@@ -1,0 +1,9 @@
+^\.github$
+^\.lintr$
+^data-raw$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.gitignore$
+^README\.Rmd$
+^_pkgdown\.yml$
+^docs$

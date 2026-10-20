@@ -1,0 +1,65 @@
+# Keeps main as the released copy of the package. Work lands on dev through
+# pull requests; every push to dev lints and runs R CMD check with the tests,
+# and only a green run moves main forward to it. A red run leaves main where
+# it was, so anyone installing from main gets a package that passed.
+#
+# The move is a fast-forward and nothing else. If main has been pushed to
+# directly and no longer sits behind dev, the job fails rather than forcing,
+# and the fix is to merge main into dev and push again.
+name: Promote dev to main
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: promote-dev
+  cancel-in-progress: false
+jobs:
+  verify:
+    name: Lint and check
+    runs-on: ubuntu-latest
+    env:
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck, any::lintr
+          needs: check
+
+      - name: Lint
+        shell: Rscript {0}
+        run: |
+          lints <- lintr::lint_package()
+          print(lints)
+          if (length(lints) > 0) stop("Lint errors found")
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          error-on: '"warning"'
+
+  promote:
+    name: Fast-forward main
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # the whole history, so main's position can be checked against dev
+          fetch-depth: 0
+
+      - name: Fast-forward main to dev
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo "::error::main is not behind dev, so it cannot be fast-forwarded. Merge main into dev and push again."
+            exit 1
+          fi
+          git push origin HEAD:main
