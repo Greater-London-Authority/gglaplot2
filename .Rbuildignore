@@ -7,3 +7,6 @@
 ^README\.Rmd$
 ^_pkgdown\.yml$
 ^docs$
+^pkgdown$
+^vignettes/articles$
+^inst/brand$

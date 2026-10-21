@@ -1,0 +1,80 @@
+---
+title: "Typography"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+The design system describes type by role rather than by size. A role names
+the job a piece of text does and carries the size, weight and line height
+that job needs. The chart set has seven roles, and `theme_gla()` sets its
+text from them.
+
+```{r roles, echo = FALSE}
+roles <- gla_type()
+knitr::kable(data.frame(
+  Role = names(roles),
+  `Size (px)` = vapply(roles, function(r) r$size, numeric(1)),
+  Weight = vapply(roles, function(r) r$weight, character(1)),
+  For = c("The chart's title", "A supporting line beneath the title",
+          "Axis names, series and legend titles", "Value labels, annotations, legend entries",
+          "Axis and scale labels", "The smaller tick tier, for denser charts",
+          "The footer: byline, source, note"),
+  check.names = FALSE
+), row.names = FALSE)
+```
+
+Sizes are in CSS pixels, as on the web, so a chart saved at 96 dpi matches a
+chart drawn by the web components pixel for pixel. In points, which is what
+ggplot2 measures text in, 14px is 10.5pt. `base_size` is the tick size and
+the other roles scale from it.
+
+```{r sizes}
+ggplot(gla_yearly, aes(year, average, colour = series)) +
+  geom_gla_line() +
+  scale_colour_gla() +
+  gla_labs(
+    title = "The title is 20px semibold",
+    subtitle = "The subtitle is 16px regular in text-muted",
+    source = "The caption is 12px", x = "Axis titles are 14px medium"
+  ) +
+  theme_gla(axis_titles = "both")
+```
+
+## Inter
+
+The typeface is Inter. The package bundles it (it is published under the SIL
+Open Font License) and registers it with systemfonts when the package loads,
+so the devices built on systemfonts draw it on any machine: ragg's `agg_png()`,
+svglite, and the knitr and pkgdown output made with them. RStudio draws with
+ragg when its graphics backend is set to AGG.
+
+The base graphics devices (quartz, the Windows device, pdf) only know fonts
+installed on the system. On those, `theme_gla()` falls back to the device's
+sans with a bold face for the title, unless Inter is installed. `gla_font()`
+says what will be used; `options(gglaplot2.font = "inter")` forces it,
+`"sans"` turns it off.
+
+```{r font}
+gla_font()
+gla_font("semibold")
+```
+
+The weights come as named families, because a font family in R has a plain
+and a bold face and nothing between. `"Inter"` is regular with Inter Bold
+as its bold; `"Inter Medium"` and `"Inter SemiBold"` are the two weights the
+roles use.
+
+## Colour and emphasis
+
+Text colour is a separate decision from its role. The title and axis titles
+are `text`, the subtitle and caption `text-muted`, tick labels
+`chart-label-muted` and annotations `chart-label`. Emphasis within a role is
+a change of weight, not of size.

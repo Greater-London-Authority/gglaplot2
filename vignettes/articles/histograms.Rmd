@@ -1,0 +1,48 @@
+---
+title: "Histograms"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+set.seed(1)
+vals <- data.frame(x = c(rbeta(600, 2, 5), rbeta(400, 5, 2)),
+                   group = rep(c("Inner London", "Outer London"), c(600, 400)))
+```
+
+A histogram is the bar mark with a binning stat: `geom_gla_bar(stat =
+"bin")` gives the house bars with the surface hairline between bins. The
+count axis is named, since it is not the measure in the subtitle.
+
+## One distribution
+
+```{r one}
+ggplot(vals, aes(x)) +
+  geom_gla_bar(stat = "bin", bins = 30, width = NULL) +
+  gla_zero_line() +
+  scale_x_continuous(labels = scales::label_percent()) +
+  scale_y_continuous(breaks = gla_breaks(), expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(title = "Most values sit below 50%", subtitle = "Distribution of a share, 1,000 areas",
+           x = NULL, y = "Areas") +
+  theme_gla(axis_titles = "y")
+```
+
+## Two, faceted
+
+```{r two, fig.height = 5}
+ggplot(vals, aes(x, fill = group)) +
+  geom_gla_bar(stat = "bin", bins = 30, width = NULL) +
+  gla_zero_line() +
+  facet_wrap(vars(group), ncol = 1) +
+  scale_fill_gla() +
+  scale_x_continuous(labels = scales::label_percent()) +
+  scale_y_continuous(breaks = gla_breaks(), expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(title = "Inner London sits lower", subtitle = "Distribution of a share by area",
+           x = NULL, y = "Areas") +
+  theme_gla(legend = "none", axis_titles = "y")
+```

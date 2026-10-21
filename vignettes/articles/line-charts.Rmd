@@ -1,0 +1,164 @@
+---
+title: "Line charts"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
+```
+
+The examples follow the visualisation team's Storybook, on its demo data,
+and carry the full set of labels a published chart does: a title that states
+the finding, a subtitle that names the measure and the period, a source, a
+note and a byline.
+
+## Single line
+
+A 2px `data-primary` line. The value axis has no title; the subtitle names
+the unit. The baseline is drawn when the axis starts at zero.
+
+```{r single}
+a <- gla_monthly[gla_monthly$series == "Variable A", ]
+
+p <- ggplot(a, aes(month, value)) +
+  geom_gla_line() +
+  gla_zero_line() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.1))) +
+  gla_labs(
+    title = "In London, Variable A's value has fallen steadily since 2017",
+    subtitle = "London monthly estimated variable value (GBP), January 2015 to March 2024",
+    source = "LDN Viz Tools demo data", note = "Data for demonstration only",
+    byline = "GLA City Intelligence", x = NULL
+  ) +
+  theme_gla()
+p
+```
+
+Every chart should carry a text alternative. `gla_describe()` writes one
+from the plot and `gla_alt()` sets it; a better one says what the chart
+shows.
+
+```{r alt}
+gla_describe(p)
+```
+
+## Multiple lines
+
+Series are named at the end of the line, with a marker on the last point,
+rather than in a legend. Labels that would overlap are pushed apart. Leave
+room on the right with the x expansion.
+
+```{r multiple}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endpoint() +
+  geom_gla_endlabel(aes(label = series)) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla() +
+  gla_labs(
+    title = "All three variables have converged since 2020",
+    subtitle = "London monthly estimated variable value (GBP), January 2015 to March 2024",
+    source = "LDN Viz Tools demo data", byline = "GLA City Intelligence", x = NULL
+  ) +
+  theme_gla(legend = "none")
+```
+
+## Dual line
+
+Two series where one is the subject and the other the reference: the
+`auto` scale colours London in primary and the comparator in context grey.
+Draw the reference first so the subject sits on top.
+
+```{r dual}
+d <- gla_monthly[gla_monthly$series != "Variable C", ]
+d$series <- ifelse(d$series == "Variable A", "London", "England")
+d <- d[order(d$series == "London"), ]
+
+ggplot(d, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endlabel(aes(label = series)) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.12))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla() +
+  gla_labs(
+    title = "London has tracked England since 2020",
+    subtitle = "Monthly estimated variable value (GBP)",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla(legend = "none")
+```
+
+## Reference line and range
+
+A target or an average is a dashed rule in context grey with its label on
+the line. A period is a wash behind the data.
+
+```{r reference}
+ggplot(a, aes(month, value)) +
+  annotate_gla_range(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-07-01")) +
+  geom_gla_line() +
+  gla_reference_line(mean(a$value), "Average") +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  gla_labs(
+    title = "Variable A was below its average through the pandemic",
+    subtitle = "London monthly estimated variable value (GBP); the shaded period is March 2020 to June 2021",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Area
+
+An area is the line's fill at a fifth opacity, with the line drawn over it.
+
+```{r area}
+ggplot(a, aes(month, value)) +
+  geom_gla_area() +
+  geom_gla_line() +
+  gla_zero_line() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.1))) +
+  gla_labs(
+    title = "Variable A", subtitle = "London monthly estimated variable value (GBP)",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Faceted
+
+Small multiples share the scales and take the strip as their title.
+
+```{r facets, fig.height = 5.5}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  facet_wrap(vars(series), ncol = 1) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla() +
+  gla_labs(title = "Each variable on its own", subtitle = "Monthly value, GBP", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+## Dark
+
+```{r dark}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endpoint() +
+  geom_gla_endlabel(aes(label = series)) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla(theme = "dark") +
+  gla_labs(
+    title = "All three variables have converged since 2020",
+    subtitle = "London monthly estimated variable value (GBP)",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla(theme = "dark", legend = "none")
+```

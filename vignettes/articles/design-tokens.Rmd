@@ -1,0 +1,80 @@
+---
+title: "Design tokens"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+A design token is a named decision: `text` is the colour body text is set in,
+`chart-grid` the colour of a gridline, `data-primary` the colour of the first
+series. The visualisation team keeps the tokens in Figma and publishes them as
+a package; this package vendors the published Sass unchanged under
+`inst/tokens/` and generates `gla_tokens` from it, so nothing in R carries a
+colour typed by hand. Every token has a light value and a dark value.
+
+```{r}
+head(gla_tokens)
+nrow(gla_tokens)
+```
+
+## Reading a token
+
+`gla_token()` reads one or several by name, in either mode. An unknown name
+is an error, so a typo fails at the call rather than surfacing as a missing
+colour on a chart.
+
+```{r}
+gla_token("data-primary")
+gla_token(c("chart-axis", "chart-grid"), theme = "dark")
+```
+
+## The groups a chart uses
+
+The `chart-*` group is the non-data ink: surface, gridlines, axis, labels.
+`theme_gla()` is built from it.
+
+```{r chart-tokens, fig.height = 4}
+gla_show_tokens("^chart-")
+```
+
+The `data-*` group is what data is drawn in. `data-primary`, `data-secondary`
+and `data-tertiary` are the first three series; `data-context` is the grey a
+comparator is drawn in; `data-positive` and `data-negative` colour a rise and a
+fall; `data-female` and `data-male` a split by sex; `data-empty` a missing
+value.
+
+```{r data-tokens, fig.height = 7.5}
+gla_show_tokens("^data-")
+```
+
+The `palette-*` ramps are the steps the sequential and diverging palettes are
+interpolated from.
+
+```{r palette-tokens, fig.height = 4}
+gla_show_tokens("^palette-blue-")
+```
+
+## Brand colours
+
+`gla_brand` holds the twelve brand statics. They are identity colours, for a
+logo or a masthead, and not for data: the `data-*` tokens are chosen for
+separability and contrast on a chart.
+
+```{r}
+gla_brand
+```
+
+## Refreshing
+
+When the visualisation team release a new token package, drop the new
+`_colors.scss` and `_primitives.scss` into `inst/tokens/` and run
+`data-raw/tokens.R`. A test checks the data against the vendored file, so a
+refresh that was not regenerated fails the suite. The Rhino dashboard template
+vendors the same two files; a refresh is done in both from the same release.

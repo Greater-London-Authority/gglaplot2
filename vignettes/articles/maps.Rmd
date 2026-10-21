@@ -1,0 +1,64 @@
+---
+title: "Maps"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5.2, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+set.seed(2)
+b <- gla_boroughs
+b$share <- round(runif(nrow(b), 5, 40), 1)
+b$change <- round(rnorm(nrow(b), 0, 4), 1)
+```
+
+`geom_gla_sf()` is `geom_sf()` with the house defaults: a `data-empty` fill,
+a 1px `chart-surface` edge between areas and no graticule. `theme_gla_map()`
+takes the axes away. The package carries the 33 London boroughs as
+`gla_boroughs`; the sf package is needed to draw them.
+
+## Outline
+
+```{r outline}
+ggplot(gla_boroughs) +
+  geom_gla_sf() +
+  gla_labs(title = "The London boroughs", source = "ONS Open Geography") +
+  theme_gla_map()
+```
+
+## Choropleth
+
+A sequential ramp for a quantity.
+
+```{r choropleth}
+ggplot(b) +
+  geom_gla_sf(aes(fill = share)) +
+  scale_fill_gla_c(name = NULL, labels = scales::label_percent(scale = 1)) +
+  gla_labs(title = "A share by borough", subtitle = "Synthetic data for the example",
+           source = "ONS Open Geography") +
+  theme_gla_map()
+```
+
+A diverging ramp for a change, centred on zero.
+
+```{r diverging}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_c("diverging", name = NULL, limits = c(-10, 10)) +
+  gla_labs(title = "A change by borough", subtitle = "Percentage points, synthetic data") +
+  theme_gla_map()
+```
+
+## Dark
+
+```{r dark}
+ggplot(b) +
+  geom_gla_sf(aes(fill = share), theme = "dark") +
+  scale_fill_gla_c(theme = "dark", name = NULL) +
+  gla_labs(title = "A share by borough", subtitle = "On an inverse surface") +
+  theme_gla_map(theme = "dark")
+```

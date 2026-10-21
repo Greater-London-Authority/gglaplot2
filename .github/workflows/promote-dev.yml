@@ -31,7 +31,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::lintr
+          extra-packages: any::rcmdcheck, any::lintr, any::roxygen2
           needs: check
 
       - name: Lint
@@ -40,6 +40,16 @@ jobs:
           lints <- lintr::lint_package()
           print(lints)
           if (length(lints) > 0) stop("Lint errors found")
+
+      - name: Check the documentation is in sync
+        shell: Rscript {0}
+        run: |
+          roxygen2::roxygenise()
+          changed <- system2("git", c("status", "--porcelain", "--", "man", "NAMESPACE"), stdout = TRUE)
+          if (length(changed) > 0) {
+            cat(changed, sep = "\n")
+            stop("man/ or NAMESPACE is out of date: run devtools::document()")
+          }
 
       - uses: r-lib/actions/check-r-package@v2
         with:

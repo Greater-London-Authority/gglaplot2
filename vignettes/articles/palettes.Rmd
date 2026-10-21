@@ -1,0 +1,104 @@
+---
+title: "Palettes and colour"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+Colour on a chart does one of four jobs: it tells series apart, it shows how
+much, it shows which side of a midpoint, or it names a state. The palettes
+are built from the `data-*` and `palette-*` tokens for those jobs.
+
+```{r swatches, fig.height = 3.6}
+gla_show_pal()
+```
+
+## Categorical
+
+The categorical palette leads with `data-primary`, `data-secondary` and
+`data-tertiary`, then the differentiable extras. It validates clean to three
+series: design to three and fold categories rather than reach for a fourth
+colour. Asking for more colours than the palette has is an error, not a
+recycled colour.
+
+```{r}
+gla_pal("categorical")
+gla_max_series()
+```
+
+## Series rules
+
+`scale_colour_gla()` and `scale_fill_gla()` default to `type = "auto"`, which
+reads the level names the way the web charts do. London against one
+comparator is `data-primary` against `data-context`: London is the subject and
+the comparator a reference.
+
+```{r london}
+d <- data.frame(
+  year = rep(2015:2024, 2), area = rep(c("London", "England"), each = 10),
+  value = c(cumsum(rnorm(10, 1)) + 20, cumsum(rnorm(10, 0.5)) + 20)
+)
+ggplot(d, aes(year, value, colour = area)) +
+  geom_gla_line() +
+  geom_gla_endlabel(aes(label = area)) +
+  scale_x_continuous(expand = expansion(mult = c(0.02, 0.15))) +
+  scale_colour_gla() +
+  gla_labs(title = "London against England", subtitle = "An index", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+Domestic against International, and Inner against Outer London, are primary
+against secondary. Anything else is the palette in order, with London moved
+to the front. The rule on its own is `gla_series_colours()`.
+
+```{r}
+gla_series_colours(c("Inner London", "Outer London"))
+gla_series_colours(c("England", "Wales", "London"))
+```
+
+## Sequential and diverging
+
+The sequential palette is the blue ramp, light to dark, interpolated to any
+number of steps. The diverging palette runs red through a neutral grey to
+blue, the same colours the change palette uses for down and up.
+
+```{r}
+gla_pal("sequential", 7)
+gla_pal("diverging", 5)
+```
+
+```{r ramps, fig.height = 5}
+ggplot(gla_boroughs) +
+  geom_gla_sf(aes(fill = nchar(name))) +
+  scale_fill_gla_c(name = NULL) +
+  gla_labs(title = "A sequential ramp", subtitle = "Letters in the borough name") +
+  theme_gla_map()
+```
+
+## Sex and change
+
+`"sex"` maps women and men by level name, under both spellings a source
+might use, so the colours never swap when the levels reorder. `"change"`
+maps `up` and `down`: a value rising is coloured by the token, not by its
+arithmetic sign.
+
+```{r}
+gla_pal("sex")
+gla_pal("change")
+```
+
+## Dark mode
+
+Every palette has a dark reading. Pass `theme = "dark"` to the scale when
+the chart uses `theme_gla(theme = "dark")`.
+
+```{r dark-swatches, fig.height = 3.6}
+gla_show_pal(theme = "dark")
+```

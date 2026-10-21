@@ -1,0 +1,107 @@
+---
+title: "Get started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Get started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+```
+
+gglaplot2 is the Greater London Authority's house style for ggplot2. It is
+built on the same design tokens, typeface and chart conventions as the City
+Intelligence Unit's web charts, taken from the visualisation team's
+[ldn-viz-tools](https://github.com/Greater-London-Authority/ldn-viz-tools)
+package unchanged, so a chart made here and a chart on one of their sites read
+as one system.
+
+```{r setup}
+library(ggplot2)
+library(gglaplot2)
+```
+
+## A chart
+
+Three things make a chart: the theme, a mark, and the labels.
+
+```{r first}
+a <- gla_monthly[gla_monthly$series == "Variable A", ]
+
+ggplot(a, aes(month, value)) +
+  geom_gla_line() +
+  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
+  gla_labs(
+    title = "Variable A has fallen steadily since 2017",
+    subtitle = "London monthly estimated value (GBP), January 2015 to March 2024",
+    source = "LDN Viz Tools demo data",
+    note = "Data for demonstration only",
+    byline = "GLA City Intelligence",
+    x = NULL
+  ) +
+  theme_gla()
+```
+
+`theme_gla()` draws the non-data ink from the `chart-*` tokens and sets the
+type from the design system's chart roles. With ggplot2 4 it also carries the
+data defaults, so `geom_gla_line()` is a 2px `data-primary` line without being
+told. `gla_labs()` is `labs()` with the title, subtitle, byline, source and
+note the web chart container shows.
+
+## Series
+
+Colour a series with `scale_colour_gla()`. Its default reads the level names
+the way the web charts do: London against a comparator is primary against
+context grey, and anything else takes the categorical palette in order. Label
+the lines at their ends rather than in a legend.
+
+```{r series}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endpoint() +
+  geom_gla_endlabel(aes(label = series)) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
+  scale_colour_gla() +
+  gla_labs(title = "Three series", subtitle = "Monthly value, GBP", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+## Dark mode
+
+Every mark reads its colour from the theme, so one argument changes the whole
+chart.
+
+```{r dark}
+ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
+  geom_gla_col() +
+  gla_zero_line() +
+  scale_fill_gla(theme = "dark") +
+  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma(),
+                     expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(title = "On an inverse surface", subtitle = "Yearly average, GBP", x = NULL) +
+  theme_gla(theme = "dark")
+```
+
+## Saving
+
+`gla_save()` writes the chart at the web charts' size, 880 by 440 pixels,
+doubled for a sharp image, through ragg so the bundled Inter is used.
+
+```{r save, eval = FALSE}
+gla_save(p, "chart.png")
+```
+
+## Where next
+
+- [Design tokens](design-tokens.html), [Typography](typography.html) and
+  [Palettes and colour](palettes.html) for the foundations.
+- A page per chart family under Charts, each with the code: start with
+  [Line charts](line-charts.html).
+- The [reference](../reference/index.html) for every function.

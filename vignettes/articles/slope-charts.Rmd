@@ -1,0 +1,35 @@
+---
+title: "Slope charts"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
+```
+
+A slope chart compares two points in time: one line per series, a marker and
+a label at each end, and no value axis to speak of.
+
+```{r slope, fig.height = 5}
+ends <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
+ends$label <- paste0(ends$series, "  ", gbp(ends$average))
+
+ggplot(ends, aes(year, average, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endpoint(where = "start") +
+  geom_gla_endpoint(where = "end") +
+  geom_gla_endlabel(aes(label = label), where = "start", dx = -8, hjust = 1) +
+  geom_gla_endlabel(aes(label = label), where = "end") +
+  scale_x_continuous(breaks = c(2015, 2024), expand = expansion(mult = 0.45), position = "top") +
+  scale_colour_gla() +
+  gla_labs(title = "Every variable fell between 2015 and 2024", subtitle = "Yearly average value (GBP)",
+           source = "LDN Viz Tools demo data", x = NULL) +
+  theme_gla(gridlines = "none", legend = "none") +
+  theme(axis.text.y = element_blank(), axis.line = element_blank())
+```

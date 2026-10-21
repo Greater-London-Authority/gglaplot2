@@ -1,0 +1,127 @@
+url: https://greater-london-authority.github.io/gglaplot2/
+
+# The site follows the visualisation team's Storybook: Inter, the surface
+# accent as the primary colour, the design tokens for everything else
+# (pkgdown/extra.scss, generated from them by data-raw/site.R).
+template:
+  bootstrap: 5
+  light-switch: true
+  bslib:
+    base_font: {google: "Inter"}
+    heading_font: {google: "Inter"}
+    primary: "#0067b4"
+    border-radius: 2px
+  includes:
+    in_header: <link rel="icon" type="image/png" href="favicon.png">
+
+home:
+  title: GLA design tokens, theme and chart marks for ggplot2
+  description: >
+    Charts in the Greater London Authority's house style, from the same design
+    tokens, typeface and conventions as the City Intelligence Unit's web charts.
+
+navbar:
+  structure:
+    left: [intro, foundations, charts, reference, news]
+    right: [search, github, lightswitch]
+  components:
+    intro:
+      text: Get started
+      href: articles/gglaplot2.html
+    foundations:
+      text: Foundations
+      menu:
+        - text: Design tokens
+          href: articles/design-tokens.html
+        - text: Typography
+          href: articles/typography.html
+        - text: Palettes and colour
+          href: articles/palettes.html
+    charts:
+      text: Charts
+      menu:
+        - text: Line charts
+          href: articles/line-charts.html
+        - text: Bar charts
+          href: articles/bar-charts.html
+        - text: Scatter plots
+          href: articles/scatter-plots.html
+        - text: Histograms
+          href: articles/histograms.html
+        - text: Slope charts
+          href: articles/slope-charts.html
+        - text: Maps
+          href: articles/maps.html
+
+articles:
+  - title: Get started
+    contents:
+      - gglaplot2
+  - title: Foundations
+    desc: The tokens, the type and the colour the charts are built from.
+    contents:
+      - articles/design-tokens
+      - articles/typography
+      - articles/palettes
+  - title: Charts
+    desc: Each family of chart as the visualisation team draws it, with the code.
+    contents:
+      - articles/line-charts
+      - articles/bar-charts
+      - articles/scatter-plots
+      - articles/histograms
+      - articles/slope-charts
+      - articles/maps
+
+reference:
+  - title: Tokens and type
+    desc: The design tokens as data, and the typeface.
+    contents:
+      - gla_tokens
+      - gla_brand
+      - gla_token
+      - gla_show_tokens
+      - gla_type
+      - gla_font
+  - title: Palettes and scales
+    contents:
+      - gla_pal
+      - gla_series_colours
+      - gla_max_series
+      - gla_show_pal
+      - scale_gla
+  - title: Theme
+    contents:
+      - theme_gla
+      - theme_gla_map
+      - gla_breaks
+  - title: Marks
+    desc: The layers the web charts draw, reading their colour from the theme.
+    contents:
+      - geom_gla_line
+      - geom_gla_dot
+      - geom_gla_col
+      - geom_gla_area
+      - geom_gla_endlabel
+      - stat_gla_end
+      - gla_zero_line
+      - gla_reference_line
+      - annotate_gla_range
+      - geom_gla_sf
+      - separate_labels
+  - title: Titles, footer and alt text
+    contents:
+      - gla_labs
+      - gla_caption
+      - gla_describe
+  - title: Saving
+    contents:
+      - gla_save
+  - title: Data
+    contents:
+      - gla_monthly
+      - gla_yearly
+      - gla_boroughs
+
+news:
+  one_page: true
