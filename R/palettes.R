@@ -69,3 +69,57 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
 #' @return An integer.
 #' @export
 gla_max_series <- function() 6L
+
+#' Series colours by what the series are
+#'
+#' The rules the visualisation team's charts colour a series by, applied to
+#' a set of level names. Two series where one is London and the other is not
+#' get `data-primary` for London and `data-context` grey for the comparator,
+#' so London is the subject and the other a reference. Domestic against
+#' International, and Inner against Outer London, get primary and secondary.
+#' Otherwise the categorical palette in order, with London moved to the
+#' front if it is there. More levels than the palette holds is an error.
+#'
+#' [scale_colour_gla()] with `type = "auto"` applies this to a plot.
+#'
+#' @param levels The series names, in the order the scale shows them.
+#' @param theme `"light"` or `"dark"`.
+#' @return A character vector of hex colours named by level.
+#' @examples
+#' gla_series_colours(c("England", "London"))
+#' gla_series_colours(c("Inner London", "Outer London"))
+#' gla_series_colours(c("Variable A", "Variable B", "Variable C"))
+#' @export
+gla_series_colours <- function(levels, theme = c("light", "dark")) {
+  theme <- match.arg(theme)
+  lv <- as.character(levels)
+  lv <- lv[!is.na(lv)]
+  t <- function(x) unname(gla_token(x, theme))
+  has <- function(pattern) grepl(pattern, lv, ignore.case = TRUE)
+  pair <- function(first, second, colour_first, colour_second) {
+    a <- has(first)
+    b <- has(second)
+    if (sum(a) == 1 && sum(b) == 1 && !any(a & b)) {
+      return(stats::setNames(ifelse(a, colour_first, colour_second), lv))
+    }
+    NULL
+  }
+
+  if (length(lv) == 2) {
+    london <- has("London")
+    if (sum(london) == 1) {
+      return(stats::setNames(ifelse(london, t("data-primary"), t("data-context")), lv))
+    }
+    out <- pair("Domestic", "International", t("data-primary"), t("data-secondary")) %||%
+      pair("Inner", "Outer", t("data-primary"), t("data-secondary"))
+    if (!is.null(out)) return(out)
+  }
+
+  pal <- gla_pal("categorical", theme = theme)
+  if (length(lv) > length(pal)) {
+    stop(sprintf("The categorical palette has %d colours; the data has %d levels. %s",
+                 length(pal), length(lv), "Fold the categories"), call. = FALSE)
+  }
+  order <- c(which(lv == "London"), which(lv != "London"))
+  stats::setNames(unname(pal[seq_along(lv)])[order(order)], lv)
+}

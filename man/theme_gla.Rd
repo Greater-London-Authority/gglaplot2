@@ -5,19 +5,20 @@
 \title{The GLA ggplot2 theme}
 \usage{
 theme_gla(
-  base_size = 12,
-  base_family = "",
+  base_size = 14,
+  base_family = gla_font(),
   theme = c("light", "dark"),
   gridlines = c("y", "x", "both", "none"),
-  legend = c("top", "right", "bottom", "none")
+  legend = c("top", "right", "bottom", "none"),
+  axis_titles = c("x", "y", "both", "none")
 )
 }
 \arguments{
-\item{base_size}{Base font size in points.}
+\item{base_size}{The tick size in CSS pixels. The other roles scale from
+it in the design system's proportions.}
 
-\item{base_family}{Font family. The GLA type is Inter; the default is the
-device's sans so a chart renders wherever it is drawn. Pass \code{"Inter"}
-when the font is installed.}
+\item{base_family}{Font family. The design system's typeface is Inter,
+bundled with the package; see \code{\link[=gla_font]{gla_font()}} for when it is used.}
 
 \item{theme}{\code{"light"} or \code{"dark"}. Dark reads the \code{-dark} tokens and is
 for a chart on an inverse surface, not a dark-mode device setting.}
@@ -26,27 +27,42 @@ for a chart on an inverse surface, not a dark-mode device setting.}
 \code{"none"}. Use \code{"x"} for horizontal bars.}
 
 \item{legend}{Legend position: \code{"top"}, \code{"right"}, \code{"bottom"} or \code{"none"}.}
+
+\item{axis_titles}{Which axis titles to show: \code{"x"} (the default, as on
+the web charts), \code{"y"}, \code{"both"} or \code{"none"}.}
 }
 \value{
 A ggplot2 theme.
 }
 \description{
-Non-data ink from the \verb{chart-*} tokens: the plot sits on \code{chart-surface},
+The non-data ink of a chart, from the design system's \verb{chart-*} colour
+tokens and its chart typography roles. The plot sits on \code{chart-surface},
 gridlines are \code{chart-grid}, the axis line \code{chart-axis}, tick labels
-\code{chart-label-muted} and titles \code{text}. These are the same tokens the
-dashboards draw their plotly charts with, so a static chart and a live
-one on the same page read as one system.
+\code{chart-label-muted} and the title \code{text}. The sizes are the roles'
+pixel sizes (title 20, subtitle 16, ticks 14, caption 12) so a chart saved
+at 96 dpi matches a chart drawn by the visualisation team's web
+components pixel for pixel. These are the same tokens the dashboards
+draw their charts with, so a static chart and a live one on the same
+page read as one system.
 }
 \details{
-Titles, subtitle and caption are left-aligned to the plot edge. Only one
-axis carries gridlines by default: the value axis, which on most charts is
-y. There is no axis line on the gridline axis, because the lowest
-gridline sits where it would go and does the same job.
+Titles, subtitle and caption are left-aligned to the plot edge. One axis
+carries gridlines (the value axis, y on most charts) and the other the
+axis line. Four gridlines is the design intent; pass
+\code{scale_y_continuous(breaks = scales::breaks_extended(4))} or
+\code{\link[=gla_breaks]{gla_breaks()}} to get them. The y axis has no title by default, as on the
+web charts, where the subtitle names the unit; \code{axis_titles} turns it on.
+
+Data defaults come with the theme too: with ggplot2 4 the geoms read
+their default colour, line width and point size from the theme, and here
+those are the design system's marks, a 2px \code{data-primary} line, a 1px
+\code{chart-surface} edge on a bar, 14px annotation text in \code{chart-label}.
+The \verb{geom_gla_*()} layers draw on them; so do the plain ggplot2 geoms.
 }
 \examples{
 library(ggplot2)
-ggplot(economics, aes(date, unemploy)) +
-  geom_line(colour = gla_token("data-primary")) +
-  labs(title = "Unemployment", caption = "Source: FRED") +
+ggplot(gla_monthly[gla_monthly$series == "Variable A", ], aes(month, value)) +
+  geom_gla_line() +
+  labs(title = "Variable A has fallen since 2017", subtitle = "Monthly value, GBP") +
   theme_gla()
 }

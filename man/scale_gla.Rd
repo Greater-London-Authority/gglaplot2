@@ -11,13 +11,13 @@
 \title{GLA colour and fill scales for ggplot2}
 \usage{
 scale_colour_gla(
-  type = c("categorical", "sex", "change"),
+  type = c("auto", "categorical", "sex", "change"),
   theme = c("light", "dark"),
   ...
 )
 
 scale_fill_gla(
-  type = c("categorical", "sex", "change"),
+  type = c("auto", "categorical", "sex", "change"),
   theme = c("light", "dark"),
   ...
 )
@@ -35,7 +35,7 @@ scale_fill_gla_c(
 )
 
 scale_color_gla(
-  type = c("categorical", "sex", "change"),
+  type = c("auto", "categorical", "sex", "change"),
   theme = c("light", "dark"),
   ...
 )
@@ -47,7 +47,7 @@ scale_color_gla_c(
 )
 }
 \arguments{
-\item{type}{A palette type as in \code{\link[=gla_pal]{gla_pal()}}. Discrete scales take
+\item{type}{A palette as above. Discrete scales take \code{"auto"},
 \code{"categorical"}, \code{"sex"} or \code{"change"}; continuous ones \code{"sequential"}
 or \code{"diverging"}.}
 
@@ -59,19 +59,25 @@ or \code{"diverging"}.}
 A ggplot2 scale.
 }
 \description{
-Discrete scales draw from \code{\link[=gla_pal]{gla_pal()}} in palette order, so the first
-series is \code{data-primary}, the second \code{data-secondary} and so on. Pass
-\code{type = "sex"} for a women and men split, which maps by level name rather
-than position so the colours never swap when the levels reorder.
-Continuous scales use the sequential or diverging ramp.
+Discrete scales colour the series the way the visualisation team's charts
+do. \code{type = "auto"}, the default, reads the level names: London against
+one comparator is primary against context grey, Domestic against
+International and Inner against Outer are primary against secondary, and
+anything else takes the categorical palette in order (see
+\code{\link[=gla_series_colours]{gla_series_colours()}}). \code{"categorical"} is the palette in order with no
+reading of names. \code{"sex"} maps women and men by level name so the colours
+never swap. \code{"change"} maps \code{up} and \code{down}.
 }
 \details{
+Continuous scales use the sequential or diverging ramp. Missing values
+take \code{data-empty}.
+
 \verb{scale_color_*} spellings are provided as aliases.
 }
 \examples{
 library(ggplot2)
-ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
-  geom_point() +
+ggplot(gla_yearly, aes(year, average, colour = series)) +
+  geom_gla_line() +
   scale_colour_gla() +
   theme_gla()
 }

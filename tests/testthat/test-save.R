@@ -1,0 +1,13 @@
+test_that("gla_save writes a 2:1 image at the web size, doubled", {
+  skip_if_not_installed("ragg")
+  skip_if_not_installed("png")
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() + theme_gla()
+  f <- withr::local_tempfile(fileext = ".png")
+  gla_save(p, f)
+  expect_true(file.exists(f))
+  img <- png::readPNG(f)
+  expect_equal(dim(img)[1:2], c(880, 1760))
+  g <- withr::local_tempfile(fileext = ".png")
+  gla_save(p, g, width = 400, height = 300, scale = 1)
+  expect_equal(dim(png::readPNG(g))[1:2], c(300, 400))
+})

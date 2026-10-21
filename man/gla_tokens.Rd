@@ -18,6 +18,7 @@ dark mode values. The names are the Sass variable names minus the leading
 so on. Generated from \verb{inst/tokens/_colors.scss} by \code{data-raw/tokens.R}.
 }
 \seealso{
-\code{\link[=gla_token]{gla_token()}} to read one, \code{\link[=gla_pal]{gla_pal()}} for the palettes built on them.
+\code{\link[=gla_token]{gla_token()}} to read one, \code{\link[=gla_pal]{gla_pal()}} for the palettes built on them,
+\code{\link[=gla_show_tokens]{gla_show_tokens()}} to see a group.
 }
 \keyword{datasets}
