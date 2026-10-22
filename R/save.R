@@ -11,7 +11,8 @@
 #'   svg, pdf, jpeg.
 #' @param width,height Size in CSS pixels.
 #' @param scale Device pixels per CSS pixel. 2 is a retina screen.
-#' @param theme `"light"` or `"dark"`, for the background colour.
+#' @param theme `"light"` or `"dark"`, for the background colour. Defaults
+#'   to the mode set by [gla_mode()].
 #' @param ... Passed to [ggplot2::ggsave()].
 #' @return The filename, invisibly.
 #' @examples
@@ -23,8 +24,8 @@
 #' gla_save(p, file.path(tempdir(), "chart.png"))
 #' @export
 gla_save <- function(plot, filename, width = 880, height = 440, scale = 2,
-                     theme = c("light", "dark"), ...) {
-  theme <- match.arg(theme)
+                     theme = gla_mode(), ...) {
+  theme <- match_mode(theme)
   ggplot2::ggsave(
     filename, plot = plot, width = width * scale, height = height * scale, units = "px",
     dpi = 96 * scale, bg = unname(gla_token("chart-surface", theme)), ...

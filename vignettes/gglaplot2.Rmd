@@ -78,18 +78,21 @@ ggplot(gla_monthly, aes(month, value, colour = series)) +
 
 ## Dark mode
 
-Every mark reads its colour from the theme, so one argument changes the whole
-chart.
+Every mark reads its colour from the theme, and every function that colours
+something reads the mode, so one switch changes the whole chart.
+`gla_mode("dark")` sets it for the session; `with_gla_mode()` for one chart.
 
 ```{r dark}
-ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
-  geom_gla_col() +
-  gla_zero_line() +
-  scale_fill_gla(theme = "dark") +
-  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma(),
-                     expand = expansion(mult = c(0, 0.05))) +
-  gla_labs(title = "On an inverse surface", subtitle = "Yearly average, GBP", x = NULL) +
-  theme_gla(theme = "dark")
+with_gla_mode("dark", {
+  ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
+    geom_gla_col() +
+    gla_zero_line() +
+    scale_fill_gla() +
+    scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma(),
+                       expand = expansion(mult = c(0, 0.05))) +
+    gla_labs(title = "On an inverse surface", subtitle = "Yearly average, GBP", x = NULL) +
+    theme_gla()
+})
 ```
 
 ## Saving

@@ -9,13 +9,13 @@ annotate_gla_range(
   xmax = Inf,
   ymin = -Inf,
   ymax = Inf,
-  theme = c("light", "dark")
+  theme = gla_mode()
 )
 }
 \arguments{
 \item{xmin, xmax, ymin, ymax}{The extent of the range, in data units.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
 A ggplot2 layer.

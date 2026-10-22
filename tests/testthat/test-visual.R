@@ -42,6 +42,32 @@ test_that("lines labelled at their ends, light and dark", {
   vdiffr::expect_doppelganger("end labels dark", lines("dark"))
 })
 
+test_that("a forecast and a pair of line styles", {
+  f <- ggplot(gla_yearly, aes(year, average, colour = series)) +
+    annotate_gla_projection(from = 2022) +
+    geom_gla_line(projected_from = 2022) +
+    geom_gla_endpoint() +
+    geom_gla_endlabel(aes(label = series)) +
+    scale_x_continuous(expand = expansion(mult = c(0.02, 0.25))) +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla() +
+    gla_labs(title = "Forecast", subtitle = "Yearly average, GBP", x = NULL) +
+    theme_gla(legend = "none")
+  vdiffr::expect_doppelganger("forecast", f)
+  d <- rbind(cbind(gla_yearly, kind = "Yearly average"),
+             cbind(transform(gla_yearly, average = mean(average)), kind = "Mean"))
+  # two legends: their order is pinned, as ggplot2 otherwise orders them by
+  # a hash that differs between platforms
+  s <- ggplot(d, aes(year, average, colour = series, linetype = kind)) +
+    geom_gla_line() +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla(guide = guide_legend(order = 1)) +
+    scale_linetype_gla(guide = guide_legend(order = 2)) +
+    gla_labs(title = "Line styles", subtitle = "Yearly average, GBP", x = NULL) +
+    theme_gla()
+  vdiffr::expect_doppelganger("line styles", s)
+})
+
 test_that("stacked and horizontal bars", {
   p <- ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
     geom_gla_col() +

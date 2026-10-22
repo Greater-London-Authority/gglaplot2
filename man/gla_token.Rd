@@ -4,13 +4,13 @@
 \alias{gla_token}
 \title{Read GLA design tokens by name}
 \usage{
-gla_token(name, theme = c("light", "dark"))
+gla_token(name, theme = gla_mode())
 }
 \arguments{
 \item{name}{One or more token names as in \link{gla_tokens}, e.g. \code{"text"},
 \code{"chart-grid"}, \code{"data-primary"}.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
 A character vector of hex colours, named by token.

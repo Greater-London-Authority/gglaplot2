@@ -4,12 +4,12 @@
 \alias{gla_series_colours}
 \title{Series colours by what the series are}
 \usage{
-gla_series_colours(levels, theme = c("light", "dark"))
+gla_series_colours(levels, theme = gla_mode())
 }
 \arguments{
 \item{levels}{The series names, in the order the scale shows them.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
 A character vector of hex colours named by level.

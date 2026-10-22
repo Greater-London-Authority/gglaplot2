@@ -114,6 +114,72 @@ ggplot(a, aes(month, value)) +
   theme_gla()
 ```
 
+## Forecast
+
+A projection is drawn the way the web charts draw one: the line goes
+dashed from the point the projection starts, and the period carries a
+`data-context` wash, a dashed rule and the word "Projected". The line is
+solid up to the point and dashed from it, meeting there, so it does not
+break. `geom_gla_line(projected_from = )` draws the line and
+`annotate_gla_projection()` the period; both take a date on a date axis.
+
+```{r forecast}
+actual <- gla_monthly[gla_monthly$series == "Variable A" & gla_monthly$month < as.Date("2023-01-01"), ]
+last <- actual[nrow(actual), ]
+projected <- data.frame(
+  month = seq(last$month, by = "month", length.out = 16)[-1],
+  series = "Variable A",
+  value = last$value * cumprod(rep(0.995, 15))
+)
+a_forecast <- rbind(actual, projected)
+
+ggplot(a_forecast, aes(month, value)) +
+  annotate_gla_projection(from = last$month) +
+  geom_gla_line(projected_from = last$month) +
+  geom_gla_endpoint() +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.05))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  gla_labs(
+    title = "Variable A is projected to keep falling through 2024",
+    subtitle = "London monthly estimated variable value (GBP); from December 2022 the values are projected",
+    source = "LDN Viz Tools demo data", note = "Projection for demonstration only", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Line styles
+
+When a chart carries a second dimension that colour cannot, the web
+charts dash it: solid for the first set of lines, dashed for the second.
+Here each series is a colour and the measure against its twelve-month
+average is the style. `scale_linetype_gla()` maps the set; the legend
+names the styles and the lines are labelled by series.
+
+```{r styles}
+ab <- gla_monthly[gla_monthly$series %in% c("Variable A", "Variable B"), ]
+ab <- ab[order(ab$series, ab$month), ]
+ab$average <- ave(ab$value, ab$series, FUN = function(v) stats::filter(v, rep(1 / 12, 12), sides = 1))
+styled <- rbind(
+  data.frame(month = ab$month, series = ab$series, value = ab$average, kind = "12-month average"),
+  data.frame(month = ab$month, series = ab$series, value = ab$value, kind = "Monthly")
+)
+styled <- styled[!is.na(styled$value) & styled$month >= as.Date("2021-01-01"), ]
+
+ggplot(styled, aes(month, value, colour = series, linetype = kind)) +
+  geom_gla_line() +
+  geom_gla_endlabel(aes(label = series), data = styled[styled$kind == "12-month average", ]) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.15))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla(guide = "none") +
+  scale_linetype_gla() +
+  gla_labs(
+    title = "Both variables sit below their twelve-month average in 2024",
+    subtitle = "London monthly estimated variable value (GBP) and its trailing twelve-month average, 2021 to 2024",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla()
+```
+
 ## Area
 
 An area is the line's fill at a fifth opacity, with the line drawn over it.
@@ -147,18 +213,30 @@ ggplot(gla_monthly, aes(month, value, colour = series)) +
 
 ## Dark
 
+A chart for an inverse surface. `gla_mode("dark")` switches every function
+at once: the theme, the scales, the reference line, the range, the
+projection and the map boundaries all read their colours from the dark
+tokens, so nothing is left in light-mode grey. `with_gla_mode()` does it for
+one chart in a light document, as here.
+
 ```{r dark}
-ggplot(gla_monthly, aes(month, value, colour = series)) +
-  geom_gla_line() +
-  geom_gla_endpoint() +
-  geom_gla_endlabel(aes(label = series)) +
-  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
-  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
-  scale_colour_gla(theme = "dark") +
-  gla_labs(
-    title = "All three variables have converged since 2020",
-    subtitle = "London monthly estimated variable value (GBP)",
-    source = "LDN Viz Tools demo data", x = NULL
-  ) +
-  theme_gla(theme = "dark", legend = "none")
+with_gla_mode("dark", {
+  ggplot(gla_monthly, aes(month, value, colour = series)) +
+    geom_gla_line() +
+    geom_gla_endpoint() +
+    geom_gla_endlabel(aes(label = series)) +
+    gla_reference_line(30000, "Target") +
+    scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla() +
+    gla_labs(
+      title = "All three variables have converged since 2020",
+      subtitle = "London monthly estimated variable value (GBP)",
+      source = "LDN Viz Tools demo data", x = NULL
+    ) +
+    theme_gla(legend = "none")
+})
 ```
+
+Every function still takes `theme = "dark"` directly, which wins over the
+mode for that one call.

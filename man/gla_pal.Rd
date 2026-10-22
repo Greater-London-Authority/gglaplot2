@@ -7,7 +7,7 @@
 gla_pal(
   type = c("categorical", "sequential", "diverging", "sex", "change"),
   n = NULL,
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 }
@@ -19,7 +19,7 @@ gla_pal(
 types and five for the ramps. A categorical request past the palette is
 an error, not a recycled colour.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{...}{gglaplot's arguments, for a script written against it:
 \code{gla_theme}, \code{palette_type} (\code{"categorical"}, \code{"quantitative"},

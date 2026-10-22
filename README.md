@@ -48,8 +48,8 @@ ggplot(gla_monthly, aes(month, value, colour = series)) +
 
 - `theme_gla()`: the non-data ink from the `chart-*` tokens and the type
   from the design system’s chart roles; with ggplot2 4 the geom defaults
-  too. `theme = "dark"` for an inverse surface, `theme_gla_map()` for a
-  map.
+  too. `gla_mode("dark")` for an inverse surface, `theme_gla_map()` for
+  a map.
 - `geom_gla_line()`, `geom_gla_dot()`, `geom_gla_marker()`,
   `geom_gla_col()`, `geom_gla_area()`, `geom_gla_endlabel()`,
   `gla_zero_line()`, `gla_reference_line()`, `annotate_gla_range()`,
