@@ -7,6 +7,10 @@
 # The move is a fast-forward and nothing else. If main has been pushed to
 # directly and no longer sits behind dev, the job fails rather than forcing,
 # and the fix is to merge main into dev and push again.
+#
+# The site is published here too, after the move. A push made by a workflow
+# with the built-in token does not start other workflows, so the push to
+# main cannot trigger the site workflow on its own.
 name: Promote dev to main
 on:
   push:
@@ -48,3 +52,9 @@ jobs:
             exit 1
           fi
           git push origin HEAD:main
+
+  publish:
+    needs: promote
+    uses: ./.github/workflows/pkgdown.yml
+    with:
+      publish: true
