@@ -1,5 +1,11 @@
 # gglaplot2 0.1.0.9000
 
+* The design system's palette checks, computed in R: `gla_check_palette()`
+  (lightness band, chroma floor, separation under simulated colour vision
+  deficiency and under normal vision, contrast on the surface) and
+  `gla_check_ramp()` for an ordered ramp. The tests hold the package's
+  palettes to them with the current reports as the baseline, so a token
+  release that moves a colour out of bounds fails the suite.
 * Grouped bars: `geom_gla_col(position = "dodge")` and `geom_gla_bar()` now
   lay the bars out as the web charts' grouped bar charts do, through
   `position_gla_dodge()`: a wide group, close bars, a clear gap before the
