@@ -103,12 +103,13 @@ request. Every pull request runs the linter, a check that `man/`,
 `NAMESPACE` and the token data are up to date, `R CMD check` with the
 tests on Ubuntu, macOS and Windows, on the current and previous R
 releases and R devel, and on the oldest ggplot2 the package claims to
-support, and a build of the site. Every push to `dev` runs the same set
-and a green run fast-forwards `main`, so `main` is always a version that
-passed everywhere; a push to `main` publishes the site. A weekly job
-compares the latest `@ldn-viz/themes` release on npm against the
-vendored one and fails if it has dropped a token the package reads.
-Releases are tagged on `main` and recorded in `NEWS.md`.
+support, a coverage run with covr that fails below 90%, and a build of
+the site. Every push to `dev` runs the same set and a green run
+fast-forwards `main`, so `main` is always a version that passed
+everywhere; a push to `main` publishes the site. A weekly job compares
+the latest `@ldn-viz/themes` release on npm against the vendored one and
+fails if it has dropped a token the package reads. Releases are tagged
+on `main` and recorded in `NEWS.md`.
 
 Do not push to `main` directly. If it ever gets ahead of `dev` the
 promotion job refuses to force it and says so; merge `main` into `dev`
