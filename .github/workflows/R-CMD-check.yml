@@ -36,6 +36,12 @@ jobs:
       - name: Check the documentation is in sync
         shell: Rscript {0}
         run: |
+          # the roxygen2 release the man pages were written with, so a newer
+          # one on the runner does not rewrite them and fail the diff
+          wanted <- read.dcf("DESCRIPTION", fields = "RoxygenNote")[[1]]
+          if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
+            pak::pkg_install(paste0("roxygen2@", wanted))
+          }
           roxygen2::roxygenise()
           changed <- system2("git", c("status", "--porcelain", "--", "man", "NAMESPACE"), stdout = TRUE)
           if (length(changed) > 0) {

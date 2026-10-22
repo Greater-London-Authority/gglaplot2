@@ -35,7 +35,7 @@ the plot data. The return value must be a \code{data.frame}, and
 will be used as the layer data. A \code{function} can be created
 from a \code{formula} (e.g. \code{~ head(.x, 10)}).}
 
-\item{...}{Other arguments passed to \code{\link[ggplot2:ggsf]{ggplot2::geom_sf()}}.}
+\item{...}{Other arguments passed to \code{\link[ggplot2:geom_sf]{ggplot2::geom_sf()}}.}
 
 \item{theme}{\code{"light"} or \code{"dark"}.}
 
@@ -58,7 +58,7 @@ the default plot specification, e.g. \code{\link[ggplot2:annotation_borders]{ann
 A list of a ggplot2 layer and a coord.
 }
 \description{
-\code{\link[ggplot2:ggsf]{ggplot2::geom_sf()}} with the design system's defaults: a \code{data-empty}
+\code{\link[ggplot2:geom_sf]{ggplot2::geom_sf()}} with the design system's defaults: a \code{data-empty}
 fill, a 1px \code{chart-surface} edge between areas, and no graticule. Map
 \code{fill} and add \code{\link[=scale_fill_gla_c]{scale_fill_gla_c()}} for a choropleth. Needs the sf
 package.

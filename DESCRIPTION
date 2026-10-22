@@ -13,7 +13,6 @@ Description: The Greater London Authority design tokens as R data, with a
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1)
 Imports:
@@ -42,3 +41,4 @@ Config/Needs/website: pkgdown, ragg, sf
 LazyData: true
 URL: https://github.com/Greater-London-Authority/gglaplot2
 BugReports: https://github.com/Greater-London-Authority/gglaplot2/issues
+Config/roxygen2/version: 8.1.1

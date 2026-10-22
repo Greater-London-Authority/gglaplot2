@@ -6,6 +6,8 @@
 \alias{gglaplot2-package}
 \title{gglaplot2: GLA Design Tokens, Theme and Chart Marks for ggplot2}
 \description{
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
 The Greater London Authority design tokens as R data, with a ggplot2 theme, colour palettes, scales and the chart marks the City Intelligence Unit's web charts draw, built on them. The successor to gglaplot. The tokens, the typeface and the chart conventions are the visualisation team's, taken from their ldn-viz-tools package unchanged, so a chart made here and a chart on one of their sites read as one system.
 }
 \seealso{
@@ -18,6 +20,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Micheal Slade \email{50627681+Micheal-Slade@users.noreply.github.com}
+
+Authors:
+\itemize{
+  \item Micheal Slade \email{50627681+Micheal-Slade@users.noreply.github.com}
+}
 
 }
 \keyword{internal}
