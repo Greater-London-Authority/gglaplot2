@@ -1,0 +1,67 @@
+# Looks at the latest @ldn-viz/themes release on npm every Monday and runs
+# the token build against it in a scratch copy, without committing anything.
+# It fails when the release has dropped or renamed a token this package
+# reads, so an upstream change is known the week it happens and the refresh
+# is planned rather than discovered at the next release. The log lists every
+# token the release adds, removes or changes against the data on dev.
+name: Upstream tokens
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: Compare the latest release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Fetch the latest release and build the tokens from it
+        shell: Rscript {0}
+        run: |
+          source("R/tokens-source.R")
+          vendored <- read_token_files("inst/tokens")$version
+          meta <- paste(readLines(url("https://registry.npmjs.org/@ldn-viz/themes/latest"), warn = FALSE), collapse = "")
+          latest <- regmatches(meta, regexec('"version"\\s*:\\s*"([^"]+)"', meta))[[1]][2]
+          cat("Vendored", vendored, "- latest on npm", latest, "\n")
+          if (identical(vendored, latest)) {
+            cat("Up to date\n")
+            quit(status = 0)
+          }
+          work <- tempfile()
+          dir.create(work)
+          tarball <- sprintf("https://registry.npmjs.org/@ldn-viz/themes/-/themes-%s.tgz", latest)
+          download.file(tarball, file.path(work, "package.tgz"), mode = "wb", quiet = TRUE)
+          untar(file.path(work, "package.tgz"), exdir = work)
+          styles <- file.path(work, "package", "styles")
+          src <- read_token_files(styles)
+          built <- build_token_data(src)
+          env <- new.env()
+          load("data/gla_tokens.rda", envir = env)
+          old <- env$gla_tokens
+          new <- built$gla_tokens
+          added <- setdiff(new$token, old$token)
+          removed <- setdiff(old$token, new$token)
+          common <- intersect(new$token, old$token)
+          a <- new[match(common, new$token), ]
+          b <- old[match(common, old$token), ]
+          changed <- common[a$light != b$light | a$dark != b$dark]
+          cat(sprintf("Release %s against dev: %d added, %d removed, %d changed\n",
+                      latest, length(added), length(removed), length(changed)))
+          if (length(added)) cat("  added:  ", paste(added, collapse = ", "), "\n")
+          if (length(removed)) cat("  removed:", paste(removed, collapse = ", "), "\n")
+          for (t in changed) {
+            cat(sprintf("  %s: %s/%s -> %s/%s\n", t, b$light[b$token == t], b$dark[b$token == t],
+                        a$light[a$token == t], a$dark[a$token == t]))
+          }
+          # the part that would break a chart
+          check_required_tokens(new$token)
+          cat("Every token the package reads is still there. Run data-raw/refresh-tokens.R", latest, "when ready.\n")

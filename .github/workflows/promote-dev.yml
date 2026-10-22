@@ -1,7 +1,8 @@
 # Keeps main as the released copy of the package. Work lands on dev through
-# pull requests; every push to dev lints and runs R CMD check with the tests,
-# and only a green run moves main forward to it. A red run leaves main where
-# it was, so anyone installing from main gets a package that passed.
+# pull requests; every push to dev runs the full check set and a build of
+# the site, and only a green run moves main forward to it. A red run leaves
+# main where it was, so anyone installing from main gets a package that
+# passed on every platform in the matrix.
 #
 # The move is a fast-forward and nothing else. If main has been pushed to
 # directly and no longer sits behind dev, the job fails rather than forcing,
@@ -17,55 +18,16 @@ concurrency:
   group: promote-dev
   cancel-in-progress: false
 jobs:
-  verify:
-    name: Lint and check
-    runs-on: ubuntu-latest
-    env:
-      R_KEEP_PKG_SOURCE: yes
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck, any::lintr, any::roxygen2
-          needs: check
-
-      - name: Lint
-        shell: Rscript {0}
-        run: |
-          lints <- lintr::lint_package()
-          print(lints)
-          if (length(lints) > 0) stop("Lint errors found")
-
-      - name: Check the documentation is in sync
-        shell: Rscript {0}
-        run: |
-          # the roxygen2 release the man pages were written with, so a newer
-          # one on the runner does not rewrite them and fail the diff
-          desc <- read.dcf("DESCRIPTION")
-          field <- intersect(c("Config/roxygen2/version", "RoxygenNote"), colnames(desc))[1]
-          wanted <- unname(desc[1, field])
-          if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
-            pak::pkg_install(paste0("roxygen2@", wanted))
-          }
-          roxygen2::roxygenise()
-          changed <- system2("git", c("status", "--porcelain", "--", "man", "NAMESPACE"), stdout = TRUE)
-          if (length(changed) > 0) {
-            cat(changed, sep = "\n")
-            stop("man/ or NAMESPACE is out of date: run devtools::document()")
-          }
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          error-on: '"warning"'
+  check:
+    uses: ./.github/workflows/check.yml
+  site:
+    uses: ./.github/workflows/pkgdown.yml
+    with:
+      publish: false
 
   promote:
     name: Fast-forward main
-    needs: verify
+    needs: [check, site]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

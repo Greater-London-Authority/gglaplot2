@@ -1,6 +1,7 @@
-# The pull request check: lint, then R CMD check with the tests. main itself
-# only moves by the promotion in promote-dev.yml, which runs these same
-# steps first, so there is no push trigger for main here.
+# The pull request check: the check set in check.yml and a build of the
+# site. main itself only moves by the promotion in promote-dev.yml, which
+# runs the same set first, so there is no push trigger for main here. A new
+# push to the same pull request cancels the run in progress.
 name: R-CMD-check
 on:
   pull_request:
@@ -8,50 +9,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
-    name: Lint and check
-    runs-on: ubuntu-latest
-    env:
-      R_KEEP_PKG_SOURCE: yes
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck, any::lintr, any::roxygen2
-          needs: check
-
-      - name: Lint
-        shell: Rscript {0}
-        run: |
-          lints <- lintr::lint_package()
-          print(lints)
-          if (length(lints) > 0) stop("Lint errors found")
-
-      - name: Check the documentation is in sync
-        shell: Rscript {0}
-        run: |
-          # the roxygen2 release the man pages were written with, so a newer
-          # one on the runner does not rewrite them and fail the diff
-          desc <- read.dcf("DESCRIPTION")
-          field <- intersect(c("Config/roxygen2/version", "RoxygenNote"), colnames(desc))[1]
-          wanted <- unname(desc[1, field])
-          if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
-            pak::pkg_install(paste0("roxygen2@", wanted))
-          }
-          roxygen2::roxygenise()
-          changed <- system2("git", c("status", "--porcelain", "--", "man", "NAMESPACE"), stdout = TRUE)
-          if (length(changed) > 0) {
-            cat(changed, sep = "\n")
-            stop("man/ or NAMESPACE is out of date: run devtools::document()")
-          }
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          error-on: '"warning"'
-          upload-snapshots: true
+    uses: ./.github/workflows/check.yml
+  site:
+    uses: ./.github/workflows/pkgdown.yml
+    with:
+      publish: false

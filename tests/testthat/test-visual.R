@@ -5,6 +5,10 @@
 
 skip_if_not_installed("vdiffr")
 skip_if_not_installed("svglite")
+# the check matrix diffs the snapshots on its reference leg only; the other
+# platforms draw every chart in the other test files and skip the diff
+skip_if(identical(Sys.getenv("GGLAPLOT2_VISUAL"), "false"),
+        "visual snapshots are compared on the reference platform only")
 
 gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
 

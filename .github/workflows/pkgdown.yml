@@ -1,20 +1,25 @@
 # The documentation site. A push to main builds it and publishes it to
-# GitHub Pages, the way the visualisation team's Storybook is published. A
-# pull request into dev builds it and keeps the result as an artifact, so a
-# change to an article can be checked before it lands.
+# GitHub Pages, the way the visualisation team's Storybook is published.
+# Called from the pull request check and the promotion with publish off, it
+# builds the site and keeps the result as an artifact, so a broken article
+# fails the check before it lands and never reaches main.
 name: pkgdown
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [dev]
+  workflow_call:
+    inputs:
+      publish:
+        description: Publish the built site to Pages
+        type: boolean
+        default: false
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'push' && 'publish' || github.run_id }}
   cancel-in-progress: false
 jobs:
   build:
@@ -46,7 +51,7 @@ jobs:
 
   deploy:
     name: Publish to Pages
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' || inputs.publish
     needs: build
     runs-on: ubuntu-latest
     environment:
