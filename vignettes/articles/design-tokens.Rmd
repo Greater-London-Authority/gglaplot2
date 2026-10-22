@@ -73,8 +73,18 @@ gla_brand
 
 ## Refreshing
 
-When the visualisation team release a new token package, drop the new
-`_colors.scss` and `_primitives.scss` into `inst/tokens/` and run
-`data-raw/tokens.R`. A test checks the data against the vendored file, so a
-refresh that was not regenerated fails the suite. The Rhino dashboard template
-vendors the same two files; a refresh is done in both from the same release.
+The tokens are the `@ldn-viz/themes` package on npm, vendored under
+`inst/tokens/` with the release recorded; `gla_token_version()` reads it.
+
+```{r}
+gla_token_version()$version
+```
+
+To move to a new release, run `data-raw/refresh-tokens.R` with the version
+(or nothing, for the latest). It fetches the release, copies the token files
+in unchanged, rebuilds the data, the gglaplot colour lists and the site
+styling, and prints every token added, removed or changed. If the release
+has lost or renamed a token this package reads, it stops with the name, and
+so does the test suite, so an upstream rename is a build failure here rather
+than a missing colour on somebody's chart. The Rhino dashboard template
+vendors the same package; a refresh is done in both from the same release.

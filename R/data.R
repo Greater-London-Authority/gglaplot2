@@ -3,7 +3,8 @@
 #' One row per token in the visualisation team's package, with its light and
 #' dark mode values. The names are the Sass variable names minus the leading
 #' `$color-`, so `text`, `chart-grid`, `data-primary`, `palette-blue-700` and
-#' so on. Generated from `inst/tokens/_colors.scss` by `data-raw/tokens.R`.
+#' so on. Generated from the vendored `@ldn-viz/themes` release under
+#' `inst/tokens/` by `data-raw/tokens.R`; [gla_token_version()] says which.
 #'
 #' @format A data frame with columns `token`, `light` and `dark`, the last two
 #'   hex colour strings.

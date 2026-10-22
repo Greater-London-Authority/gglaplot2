@@ -34,16 +34,68 @@ test_that("the brand colours are the twelve statics", {
   expect_true(all(grepl("^#[0-9a-f]{6}$", gla_brand)))
 })
 
-test_that("the token data matches the vendored source file", {
+test_that("every token the package reads is in the data", {
+  expect_true(all(required_tokens() %in% gla_tokens$token))
+  expect_no_error(check_required_tokens(gla_tokens$token))
+  expect_error(check_required_tokens(setdiff(gla_tokens$token, "data-primary")), "data-primary")
+})
+
+test_that("the token data matches the vendored package", {
   # a refreshed token package that was not regenerated into R would drift
-  # silently; this reads the Sass the way data-raw/tokens.R does
-  src <- system.file("tokens", "_colors.scss", package = "gglaplot2")
-  expect_true(nzchar(src))
-  lines <- readLines(src)
-  re <- "^\\$color-([a-z0-9-]+):\\s*(#[0-9a-fA-F]{6,8})\\s*!default;"
-  m <- regmatches(lines, regexec(re, lines, perl = TRUE))
-  m <- m[lengths(m) == 3]
-  names_in_file <- vapply(m, `[[`, character(1), 2)
-  light <- names_in_file[!grepl("-dark$", names_in_file)]
-  expect_setequal(light, gla_tokens$token)
+  # silently; this reads the vendored files the way data-raw/tokens.R does
+  dir <- system.file("tokens", package = "gglaplot2")
+  expect_true(nzchar(dir))
+  src <- read_token_files(dir)
+  built <- build_token_data(src)
+  expect_equal(built$gla_tokens, gla_tokens)
+  expect_equal(built$gla_brand, gla_brand)
+  expect_true(file.exists(file.path(dir, "LICENSE.txt")))
+})
+
+test_that("the vendored release is recorded", {
+  v <- gla_token_version()
+  expect_equal(v$package, "@ldn-viz/themes")
+  expect_match(v$version, "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+  expect_match(v$url, "registry.npmjs.org")
+})
+
+test_that("the parser reads the CSS the package publishes, resolving references", {
+  dir <- withr::local_tempdir()
+  writeLines(c(
+    ":root {",
+    "  --color-data-categorical-blue: #007acc;",
+    "  --color-data-primary: var(--color-data-categorical-blue, #007acc);",
+    "  --color-data-secondary: var(--color-data-categorical-blue);",
+    "  --primitive-typography-font-family: Inter;",
+    "}"
+  ), file.path(dir, "light.css"))
+  file.copy(file.path(dir, "light.css"), file.path(dir, "dark.css"))
+  writeLines(c(":root {", "  --primitive-color-static-gla-blue: #007ACC;", "}"),
+             file.path(dir, "primitives.css"))
+  src <- read_token_files(dir)
+  expect_equal(src$light[["data-primary"]], "#007acc")
+  expect_equal(src$light[["data-secondary"]], "#007acc")
+  expect_false("primitive-typography-font-family" %in% names(src$light))
+  expect_true(is.na(src$version))
+  built <- build_token_data(src)
+  expect_equal(built$gla_brand, c(blue = "#007acc"))
+  expect_equal(built$gla_tokens$dark, built$gla_tokens$light)
+  # a reference that resolves to nothing is a broken file
+  writeLines(c(":root {", "  --color-text: var(--color-missing);", "}"),
+             file.path(dir, "light.css"))
+  expect_error(read_token_files(dir), "resolves to no colour")
+  # and no files at all says what it expected
+  expect_error(read_token_files(withr::local_tempdir()), "light.css")
+})
+
+test_that("the Sass form an older checkout vendored still reads", {
+  dir <- withr::local_tempdir()
+  writeLines(c("$color-text: #353d42 !default;", "$color-text-dark: #ffffff !default;"),
+             file.path(dir, "_colors.scss"))
+  writeLines("$primitive-color-static-gla-blue: #007acc !default;",
+             file.path(dir, "_primitives.scss"))
+  src <- read_token_files(dir)
+  expect_equal(src$light[["text"]], "#353d42")
+  expect_equal(src$dark[["text"]], "#ffffff")
+  expect_equal(build_token_data(src)$gla_brand, c(blue = "#007acc"))
 })

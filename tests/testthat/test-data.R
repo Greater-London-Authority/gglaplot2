@@ -1,10 +1,28 @@
 test_that("the demo data is the Storybook's", {
-  expect_equal(nrow(gla_monthly), 333)
+  expect_equal(names(gla_monthly), c("month", "series", "value"))
   expect_equal(sort(unique(gla_monthly$series)), paste("Variable", c("A", "B", "C")))
   expect_s3_class(gla_monthly$month, "Date")
-  expect_equal(range(gla_monthly$month), as.Date(c("2015-01-01", "2024-03-01")))
-  expect_equal(nrow(gla_yearly), 30)
-  expect_equal(range(gla_yearly$year), c(2015L, 2024L))
+  expect_true(all(format(gla_monthly$month, "%d") == "01"))
+  expect_true(all(table(gla_monthly$series) > 100))
+  expect_equal(names(gla_yearly), c("year", "series", "average"))
+  expect_type(gla_yearly$year, "integer")
+  expect_equal(nrow(gla_yearly), length(unique(gla_yearly$year)) * 3)
+  expect_false(anyNA(gla_yearly$average))
+})
+
+test_that("gglaplot's datasets and colour lists are here", {
+  expect_equal(dim(LDNUK), c(42, 3))
+  expect_s3_class(LDNUK$Year, "Date")
+  expect_equal(nrow(AvAtt), 8)
+  expect_equal(nrow(EYFSP), 12)
+  expect_equal(nrow(Internet), 2)
+  expect_equal(nrow(EURef), 33)
+  expect_equal(names(gla_default), names(gla_inverse))
+  expect_equal(gla_default[["background"]], unname(gla_token("chart-surface")))
+  expect_equal(gla_inverse[["background"]], unname(gla_token("chart-surface", "dark")))
+  expect_equal(length(gla_colours), 30)
+  expect_equal(gla_colours[["blue_core"]], unname(gla_token("data-categorical-blue")))
+  expect_equal(gla_colours[["pink_brand"]], unname(gla_brand[["pink"]]))
 })
 
 test_that("the boroughs are the 33 with their GSS codes", {
