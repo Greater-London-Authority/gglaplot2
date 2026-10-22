@@ -1,6 +1,7 @@
-# The documentation site. A push to main builds it and publishes it to
-# GitHub Pages, the way the visualisation team's Storybook is published.
-# Called from the pull request check and the promotion with publish off, it
+# The documentation site. The promotion publishes it to GitHub Pages after
+# it moves main, the way the visualisation team's Storybook is published;
+# a push to main by hand or a dispatch on main publishes it too. Called from
+# the pull request check and the promotion's verify with publish off, it
 # builds the site and keeps the result as an artifact, so a broken article
 # fails the check before it lands and never reaches main.
 name: pkgdown
