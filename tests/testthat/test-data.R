@@ -32,6 +32,14 @@ test_that("the boroughs are the 33 with their GSS codes", {
   expect_true("City of London" %in% gla_boroughs$name)
 })
 
+test_that("registering the fonts is idempotent and quiet without systemfonts", {
+  skip_if_not_installed("systemfonts")
+  # a second registration finds the families known and leaves them alone
+  expect_true(register_gla_fonts())
+  expect_true(all(c("Inter", "Inter Medium", "Inter SemiBold") %in%
+                    c(systemfonts::registry_fonts()$family, systemfonts::system_fonts()$family)))
+})
+
 test_that("the fonts are bundled and registered", {
   skip_if_not_installed("systemfonts")
   dir <- system.file("fonts", package = "gglaplot2")
