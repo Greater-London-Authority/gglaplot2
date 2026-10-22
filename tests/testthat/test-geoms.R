@@ -73,6 +73,50 @@ test_that("dodge is the house dodge: a wide group, close bars, a gap before the 
   expect_equal(length(unique(round(sb$xmax - sb$xmin, 6))), 1)
 })
 
+test_that("a projected line goes dashed from the point, through it", {
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) +
+    geom_gla_line(projected_from = 2022) + theme_gla()
+  expect_equal(p$layers[[1]]$geom_params$projected_from, 2022)
+  runs <- ggplot2::layer_grob(p, 1)[[1]]
+  expect_equal(length(runs), 2)
+  # the first run is solid, the second dashed; both have every series
+  expect_true(all(runs[[1]]$gp$lty %in% c(1, "solid")))
+  expect_equal(unique(runs[[2]]$gp$lty), gla_linetypes()[["projected"]])
+  expect_equal(length(unique(runs[[1]]$id)), 3)
+  expect_equal(length(unique(runs[[2]]$id)), 3)
+  # the point is on both runs
+  x_at <- function(l) sort(unique(round(as.numeric(l$x), 4)))
+  expect_equal(length(intersect(x_at(runs[[1]]), x_at(runs[[2]]))), 1)
+  # a date axis takes a date
+  q <- ggplot(a_series, aes(month, value)) +
+    geom_gla_line(projected_from = as.Date("2023-01-01")) + theme_gla()
+  expect_equal(length(ggplot2::layer_grob(q, 1)[[1]]), 2)
+  expect_no_error(draw(q))
+  # nothing projected draws one run
+  r <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() + theme_gla()
+  expect_s3_class(ggplot2::layer_grob(r, 1)[[1]], "polyline")
+})
+
+test_that("the projection annotation is a wash, a rule and a label", {
+  layers <- annotate_gla_projection(from = 2022, label = "Projected")
+  expect_equal(length(layers), 3)
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) + layers +
+    geom_gla_line(projected_from = 2022) + theme_gla()
+  b <- build(p)
+  context <- tolower(unname(gla_token("data-context")))
+  expect_equal(tolower(b$data[[1]]$fill), context)
+  expect_equal(b$data[[1]]$xmin, 2022)
+  expect_true(is.infinite(b$data[[1]]$xmax))
+  expect_equal(b$data[[2]]$linetype, "42")
+  expect_equal(tolower(b$data[[2]]$colour), context)
+  expect_equal(b$data[[3]]$label, "Projected")
+  expect_no_error(draw(p))
+  expect_equal(length(annotate_gla_projection(from = 2022, label = NULL)), 2)
+  dark <- annotate_gla_projection(from = 2022, theme = "dark")
+  expect_equal(tolower(build(ggplot(gla_yearly, aes(year, average)) + dark)$data[[1]]$fill),
+               tolower(unname(gla_token("data-context", "dark"))))
+})
+
 test_that("stat_gla_end keeps one point per series", {
   p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
     geom_gla_endpoint() + geom_gla_endlabel(aes(label = series), where = "max")

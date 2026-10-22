@@ -1,5 +1,11 @@
 # gglaplot2 0.1.0.9000
 
+* Forecasts: `geom_gla_line(projected_from = )` draws each line solid to
+  the point and dashed from it, and `annotate_gla_projection()` adds the
+  web charts' wash, rule and "Projected" label over the period.
+* Line styles: `scale_linetype_gla()` and `gla_linetypes()`, the web
+  charts' solid-then-dashed set for a second dimension colour cannot
+  carry, such as a measure against its average.
 * Grouped bars: `geom_gla_col(position = "dodge")` and `geom_gla_bar()` now
   lay the bars out as the web charts' grouped bar charts do, through
   `position_gla_dodge()`: a wide group, close bars, a clear gap before the

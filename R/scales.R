@@ -109,3 +109,50 @@ scale_color_gla <- scale_colour_gla
 #' @rdname scale_gla
 #' @export
 scale_color_gla_c <- scale_colour_gla_c
+
+#' Line styles for when colour cannot carry the series
+#'
+#' The web charts tell two sets of lines apart with a dash: solid for the
+#' first, dashed for the second, as in a chart of a measure and its
+#' average, or an actual and a target. `scale_linetype_gla()` maps a
+#' variable to that set, solid first. `gla_linetypes()` is the set itself,
+#' as ggplot2 linetype strings in units of the line's width, so a 2px line
+#' dashes 4px on, 4px off as the web's does. The `projected` style is the
+#' forecast dash [geom_gla_line()] draws.
+#'
+#' The web only has the two; the third and fourth styles are here so a
+#' scale with more levels still draws, but a chart that needs them is
+#' usually better faceted.
+#'
+#' @param n How many styles, or `NULL` for all of them.
+#' @param ... Passed to [ggplot2::discrete_scale()].
+#' @return `gla_linetypes()` a named character vector of linetypes;
+#'   `scale_linetype_gla()` a ggplot2 scale.
+#' @examples
+#' library(ggplot2)
+#' d <- rbind(
+#'   cbind(gla_yearly, kind = "Yearly average"),
+#'   cbind(transform(gla_yearly, average = mean(average)), kind = "Mean")
+#' )
+#' ggplot(d, aes(year, average, colour = series, linetype = kind)) +
+#'   geom_gla_line() +
+#'   scale_colour_gla() +
+#'   scale_linetype_gla() +
+#'   theme_gla()
+#' @name scale_linetype_gla
+NULL
+
+#' @rdname scale_linetype_gla
+#' @export
+gla_linetypes <- function(n = NULL) {
+  styles <- c(solid = "solid", dashed = "22", dotted = "12", dashdot = "4212", projected = "32")
+  if (is.null(n)) return(styles)
+  if (n > 4) stop("Four line styles are the most a chart can carry; facet instead", call. = FALSE)
+  styles[seq_len(n)]
+}
+
+#' @rdname scale_linetype_gla
+#' @export
+scale_linetype_gla <- function(...) {
+  ggplot2::discrete_scale("linetype", palette = function(n) unname(gla_linetypes(n)), ...)
+}
