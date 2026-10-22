@@ -7,7 +7,8 @@
 gla_pal(
   type = c("categorical", "sequential", "diverging", "sex", "change"),
   n = NULL,
-  theme = c("light", "dark")
+  theme = c("light", "dark"),
+  ...
 )
 }
 \arguments{
@@ -19,6 +20,14 @@ types and five for the ramps. A categorical request past the palette is
 an error, not a recycled colour.}
 
 \item{theme}{\code{"light"} or \code{"dark"}.}
+
+\item{...}{gglaplot's arguments, for a script written against it:
+\code{gla_theme}, \code{palette_type} (\code{"categorical"}, \code{"quantitative"},
+\code{"highlight"} or \code{"diverging"}), \code{palette_name}, \code{main_colours}
+(gglaplot's colour names, translated to the tokens), \code{inc0} and
+\code{remove_margin}. With any of them given the palette is built the way
+gglaplot built it, from the current tokens, and \code{n} means what it
+meant there.}
 }
 \value{
 A character vector of hex colours, named for the discrete types.
@@ -28,13 +37,17 @@ Palettes built from the \verb{data-*} and \verb{palette-*} tokens, so a chart ma
 here matches a dashboard built on the same tokens.
 }
 \details{
-\code{"categorical"} leads with \code{data-primary}, \code{data-secondary} and
-\code{data-tertiary}, then the differentiable extras, ordered by measured
-OKLab separation. It validates clean to three series: at four the teal
-reads grey and drops below 3:1 contrast on a white card, at five the
-dark purple leaves the lightness band. Design to three and fold
-categories rather than reach for a fourth colour. Red and yellow are held
-back for good and bad.
+\code{"categorical"} is the order the visualisation team's charts colour
+series in: \code{data-primary}, \code{data-secondary}, \code{data-tertiary}, then
+turquoise, purple, red, green and yellow from the \verb{data-categorical-*}
+tokens. It is their \code{getColorScale} order, so a chart here and a chart on
+one of their sites colour the fourth series alike. It validates clean to
+three series under the palette checks (lightness band, chroma, colour
+vision deficiency separation, contrast on the chart surface); past three,
+turquoise reads grey on a light surface, purple leaves the lightness
+band and red against green is a known pair. Design to three and fold
+categories rather than reach for a fourth colour; where a chart must
+carry more, label the series directly.
 
 \code{"sequential"} is the blue ramp, light to dark, interpolated to \code{n}.
 \code{"diverging"} runs red through a neutral grey to blue, the same colours

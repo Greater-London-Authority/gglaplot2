@@ -27,7 +27,11 @@ navbar:
   components:
     intro:
       text: Get started
-      href: articles/gglaplot2.html
+      menu:
+        - text: Get started
+          href: articles/gglaplot2.html
+        - text: Migrating from gglaplot
+          href: articles/migrating.html
     foundations:
       text: Foundations
       menu:
@@ -57,6 +61,7 @@ articles:
   - title: Get started
     contents:
       - gglaplot2
+      - articles/migrating
   - title: Foundations
     desc: The tokens, the type and the colour the charts are built from.
     contents:
@@ -80,6 +85,7 @@ reference:
       - gla_tokens
       - gla_brand
       - gla_token
+      - gla_token_version
       - gla_show_tokens
       - gla_type
       - gla_font
@@ -103,6 +109,7 @@ reference:
       - geom_gla_col
       - geom_gla_area
       - geom_gla_endlabel
+      - geom_gla_text
       - stat_gla_end
       - gla_zero_line
       - gla_reference_line
@@ -122,6 +129,18 @@ reference:
       - gla_monthly
       - gla_yearly
       - gla_boroughs
+  - title: From gglaplot
+    desc: The old package's names, kept so its scripts run; see the migration guide.
+    contents:
+      - gglaplot-compat
+      - ggla_plotly
+      - gla_default
+      - gla_colours
+      - AvAtt
+      - EURef
+      - EYFSP
+      - LDNUK
+      - Internet
 
 news:
   one_page: true

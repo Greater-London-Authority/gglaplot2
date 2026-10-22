@@ -22,11 +22,16 @@ gla_show_pal()
 
 ## Categorical
 
-The categorical palette leads with `data-primary`, `data-secondary` and
-`data-tertiary`, then the differentiable extras. It validates clean to three
-series: design to three and fold categories rather than reach for a fourth
-colour. Asking for more colours than the palette has is an error, not a
-recycled colour.
+The categorical palette is the order the web charts colour series in:
+`data-primary`, `data-secondary`, `data-tertiary`, then turquoise, purple,
+red, green and yellow. A chart here and a chart on one of the visualisation
+team's sites colour the fourth series alike. It validates clean to three
+series under the palette checks (lightness, chroma, colour vision deficiency
+separation, contrast on the surface); past three, turquoise reads grey on a
+light surface and red against green is a known pair. Design to three and fold
+categories rather than reach for a fourth colour; where a chart must carry
+more, label the series directly. Asking for more colours than the palette has
+is an error, not a recycled colour.
 
 ```{r}
 gla_pal("categorical")

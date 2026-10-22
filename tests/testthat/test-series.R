@@ -24,7 +24,8 @@ test_that("anything else is the palette in order, with London first", {
 })
 
 test_that("more levels than colours is an error, not a repeat", {
-  expect_error(gla_series_colours(letters[1:8]), "Fold the categories")
+  expect_equal(length(gla_series_colours(letters[1:8])), 8)
+  expect_error(gla_series_colours(letters[1:9]), "Fold the categories")
 })
 
 test_that("dark mode reads the dark tokens", {

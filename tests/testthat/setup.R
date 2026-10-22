@@ -4,6 +4,9 @@ library(ggplot2)
 # knows registered fonts, so they measure the same on every machine
 options(gglaplot2.font = "inter")
 
+# the once-a-session notes from the gglaplot names are tested on their own
+options(rlib_message_verbosity = "quiet")
+
 build <- function(p) ggplot2::ggplot_build(p)
 a_series <- gla_monthly[gla_monthly$series == "Variable A", ]
 

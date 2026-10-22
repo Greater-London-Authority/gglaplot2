@@ -4,14 +4,21 @@
 \alias{gla_reference_line}
 \title{A labelled reference line}
 \usage{
-gla_reference_line(y, label = NULL, theme = c("light", "dark"))
+gla_reference_line(
+  y = NULL,
+  label = NULL,
+  theme = c("light", "dark"),
+  x = NULL
+)
 }
 \arguments{
-\item{y}{The value the line marks.}
+\item{y}{The value a horizontal line marks.}
 
 \item{label}{Text for the line. \code{NULL} for none.}
 
 \item{theme}{\code{"light"} or \code{"dark"}, to colour the rule.}
+
+\item{x}{The value a vertical line marks, instead of \code{y}.}
 }
 \value{
 A list of ggplot2 layers.
@@ -19,14 +26,16 @@ A list of ggplot2 layers.
 \description{
 A dashed 2px rule in \code{data-context} grey across the plot at a value,
 with its label sitting on the line at the right edge, as the web line
-charts draw a target or an average. The line reads its colour from the
-theme's surface, so it holds in dark mode.
+charts draw a target or an average. Give \code{x} instead of \code{y} for a
+vertical rule at a date or a value, labelled at the top. The line reads
+its colour from the theme's surface, so it holds in dark mode.
 }
 \examples{
 library(ggplot2)
 ggplot(gla_yearly, aes(year, average, colour = series)) +
   geom_gla_line() +
   gla_reference_line(30000, "Target") +
+  gla_reference_line(x = 2020, label = "Pandemic") +
   scale_colour_gla() +
   theme_gla()
 }

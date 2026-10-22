@@ -31,6 +31,26 @@ The first full build, on the visualisation team's ldn-viz-tools conventions.
 * A pkgdown site structured like the Storybook: Foundations (tokens,
   typography, palettes) and a page per chart family, styled from the
   tokens. Built on pull requests and published from main.
+* The categorical palette is the web charts' `getColorScale` order:
+  primary, secondary, tertiary, then turquoise, purple, red, green and
+  yellow. `gla_max_series()` is the design ceiling, three.
+* Everything gglaplot exported runs here under its old name: `ggla_line()`,
+  `ggla_highlight()`, `ggla_labelline()`, `ggla_axisat0()`,
+  `ggla_highlightarea()`, `ggla_horizbar()`, `ggla_sf()`, `ggla_donut()`,
+  `show_gla_pals()`, `left_align_labs()`, the `GeomGLA*` objects,
+  `mm_to_pt`, the plotly helpers, and `theme_gla()` and `gla_pal()` with
+  their old arguments. The colour lists `gla_default`, `gla_inverse` and
+  `gla_colours` are generated from the tokens; the example datasets are
+  the originals. Each old name says once a session what it is now; the
+  Migrating from gglaplot article lists them.
+* `geom_gla_text()`, annotation text in the house style, and
+  `gla_reference_line(x = )` for a vertical rule.
+* `plotly::ggplotly()` converts the `geom_gla_*()` marks.
+* The tokens are vendored from the `@ldn-viz/themes` npm release, recorded
+  in `inst/tokens/VERSION` and read by `gla_token_version()`.
+  `data-raw/refresh-tokens.R` fetches a release, rebuilds everything from
+  it and prints what changed; it and the tests fail with the token's name
+  if a release drops or renames one the package reads.
 
 # gglaplot2 0.0.0.9000
 

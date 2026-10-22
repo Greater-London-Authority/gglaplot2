@@ -27,6 +27,9 @@ library(ggplot2)
 library(gglaplot2)
 ```
 
+Coming from gglaplot? Its names all still work; the Migrating from gglaplot
+page lists what each is now.
+
 ## A chart
 
 Three things make a chart: the theme, a mark, and the labels.

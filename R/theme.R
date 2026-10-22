@@ -34,6 +34,13 @@
 #' @param legend Legend position: `"top"`, `"right"`, `"bottom"` or `"none"`.
 #' @param axis_titles Which axis titles to show: `"x"` (the default, as on
 #'   the web charts), `"y"`, `"both"` or `"none"`.
+#' @param ... gglaplot's arguments, for a script written against it:
+#'   `gla_theme` (`"default"` or `"inverse"`), `x_axis_title`,
+#'   `y_axis_title`, `xgridlines` (each `TRUE` or `FALSE`), and
+#'   `free_y_facets` and `y_label_length`, which no longer do anything.
+#'   `legend` may be `TRUE` or `FALSE` as it was. When any of these is
+#'   given the rest take gglaplot's defaults, so the old chart keeps its
+#'   shape.
 #' @return A ggplot2 theme.
 #' @examples
 #' library(ggplot2)
@@ -45,7 +52,20 @@
 theme_gla <- function(base_size = 14, base_family = gla_font(), theme = c("light", "dark"),
                       gridlines = c("y", "x", "both", "none"),
                       legend = c("top", "right", "bottom", "none"),
-                      axis_titles = c("x", "y", "both", "none")) {
+                      axis_titles = c("x", "y", "both", "none"), ...) {
+  dots <- list(...)
+  if (is.character(base_size)) {
+    # gglaplot's first argument was the theme name
+    dots$gla_theme <- base_size
+    base_size <- 14
+  }
+  if (length(dots) || is.logical(legend)) {
+    old <- compat_theme_args(dots, if (is.character(theme)) theme[1] else "light", legend)
+    theme <- old$theme
+    gridlines <- old$gridlines
+    legend <- old$legend
+    axis_titles <- old$axis_titles
+  }
   theme <- match.arg(theme)
   gridlines <- match.arg(gridlines)
   legend <- match.arg(legend)

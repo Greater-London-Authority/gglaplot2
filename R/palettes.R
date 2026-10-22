@@ -3,13 +3,17 @@
 #' Palettes built from the `data-*` and `palette-*` tokens, so a chart made
 #' here matches a dashboard built on the same tokens.
 #'
-#' `"categorical"` leads with `data-primary`, `data-secondary` and
-#' `data-tertiary`, then the differentiable extras, ordered by measured
-#' OKLab separation. It validates clean to three series: at four the teal
-#' reads grey and drops below 3:1 contrast on a white card, at five the
-#' dark purple leaves the lightness band. Design to three and fold
-#' categories rather than reach for a fourth colour. Red and yellow are held
-#' back for good and bad.
+#' `"categorical"` is the order the visualisation team's charts colour
+#' series in: `data-primary`, `data-secondary`, `data-tertiary`, then
+#' turquoise, purple, red, green and yellow from the `data-categorical-*`
+#' tokens. It is their `getColorScale` order, so a chart here and a chart on
+#' one of their sites colour the fourth series alike. It validates clean to
+#' three series under the palette checks (lightness band, chroma, colour
+#' vision deficiency separation, contrast on the chart surface); past three,
+#' turquoise reads grey on a light surface, purple leaves the lightness
+#' band and red against green is a known pair. Design to three and fold
+#' categories rather than reach for a fourth colour; where a chart must
+#' carry more, label the series directly.
 #'
 #' `"sequential"` is the blue ramp, light to dark, interpolated to `n`.
 #' `"diverging"` runs red through a neutral grey to blue, the same colours
@@ -24,6 +28,13 @@
 #'   types and five for the ramps. A categorical request past the palette is
 #'   an error, not a recycled colour.
 #' @param theme `"light"` or `"dark"`.
+#' @param ... gglaplot's arguments, for a script written against it:
+#'   `gla_theme`, `palette_type` (`"categorical"`, `"quantitative"`,
+#'   `"highlight"` or `"diverging"`), `palette_name`, `main_colours`
+#'   (gglaplot's colour names, translated to the tokens), `inc0` and
+#'   `remove_margin`. With any of them given the palette is built the way
+#'   gglaplot built it, from the current tokens, and `n` means what it
+#'   meant there.
 #' @return A character vector of hex colours, named for the discrete types.
 #' @examples
 #' gla_pal()
@@ -31,7 +42,16 @@
 #' gla_pal("sex")
 #' @export
 gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "change"),
-                    n = NULL, theme = c("light", "dark")) {
+                    n = NULL, theme = c("light", "dark"), ...) {
+  dots <- list(...)
+  if (length(type) == 1 && tolower(type) %in% c("default", "inverse", "light", "dark")) {
+    # gglaplot's first argument was the theme name
+    dots$gla_theme <- type
+    type <- "categorical"
+  }
+  if (length(dots)) {
+    return(compat_gla_pal(n, if (is.character(theme)) theme[1] else "light", dots))
+  }
   type <- match.arg(type)
   theme <- match.arg(theme)
   t <- function(x) unname(gla_token(x, theme))
@@ -39,9 +59,10 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
 
   pal <- switch(type,
     categorical = stats::setNames(
-      t(c("data-primary", "data-secondary", "data-tertiary", "data-female",
-          "data-male", "data-categorical-turquoise", "data-categorical-pink")),
-      c("primary", "secondary", "tertiary", "quaternary", "quinary", "senary", "septenary")
+      t(c("data-primary", "data-secondary", "data-tertiary", "data-categorical-turquoise",
+          "data-categorical-purple", "data-categorical-red", "data-categorical-green",
+          "data-categorical-yellow")),
+      c("primary", "secondary", "tertiary", "turquoise", "purple", "red", "green", "yellow")
     ),
     sequential = blues(c(100, 300, 500, 700, 900)),
     diverging = c(t(paste0("palette-red-", c(700, 400))), t("data-neutral-0"), blues(c(400, 700))),
@@ -63,12 +84,16 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
 
 #' The number of categorical series colour can carry on one chart
 #'
-#' Three is the recommended ceiling for a clean chart; six is the measured
-#' one, past which the palette has no separable hues left. See [gla_pal()].
+#' Three is the design ceiling for a clean chart. Past it the palette still
+#' has colours, eight in all, but they no longer all pass the palette
+#' checks, so a chart that goes over should label its series directly. See
+#' [gla_pal()].
 #'
 #' @return An integer.
+#' @examples
+#' gla_max_series()
 #' @export
-gla_max_series <- function() 6L
+gla_max_series <- function() 3L
 
 #' Series colours by what the series are
 #'

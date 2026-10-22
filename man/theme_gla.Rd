@@ -10,7 +10,8 @@ theme_gla(
   theme = c("light", "dark"),
   gridlines = c("y", "x", "both", "none"),
   legend = c("top", "right", "bottom", "none"),
-  axis_titles = c("x", "y", "both", "none")
+  axis_titles = c("x", "y", "both", "none"),
+  ...
 )
 }
 \arguments{
@@ -30,6 +31,14 @@ for a chart on an inverse surface, not a dark-mode device setting.}
 
 \item{axis_titles}{Which axis titles to show: \code{"x"} (the default, as on
 the web charts), \code{"y"}, \code{"both"} or \code{"none"}.}
+
+\item{...}{gglaplot's arguments, for a script written against it:
+\code{gla_theme} (\code{"default"} or \code{"inverse"}), \code{x_axis_title},
+\code{y_axis_title}, \code{xgridlines} (each \code{TRUE} or \code{FALSE}), and
+\code{free_y_facets} and \code{y_label_length}, which no longer do anything.
+\code{legend} may be \code{TRUE} or \code{FALSE} as it was. When any of these is
+given the rest take gglaplot's defaults, so the old chart keeps its
+shape.}
 }
 \value{
 A ggplot2 theme.

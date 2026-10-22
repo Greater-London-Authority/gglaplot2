@@ -77,17 +77,24 @@ sans; see `?gla_font`.
 
 ## Refreshing the tokens
 
-When the visualisation team release a new token package, drop the new
-`_colors.scss` and `_primitives.scss` into `inst/tokens/` and run:
+The tokens are the visualisation team’s `@ldn-viz/themes` package on
+npm, vendored under `inst/tokens/` with the release recorded in
+`VERSION` (`gla_token_version()` reads it). To move to a new release:
 
 ``` r
-source("data-raw/tokens.R")
+source("data-raw/refresh-tokens.R")   # or: Rscript data-raw/refresh-tokens.R 9.3.0
 devtools::document()
+devtools::test()
 ```
 
-Nothing in `R/` carries a colour by hand, and a test checks the data
-against the vendored file, so a refresh that was not regenerated fails
-the suite. Do the Rhino dashboard template from the same release.
+It fetches the release, copies the token files in unchanged, rebuilds
+`gla_tokens` and `gla_brand`, the gglaplot colour lists and the site
+styling, and prints every token that was added, removed or changed. It
+stops, naming the token, if the release has lost or renamed one this
+package reads, so a rename upstream is a build failure here and not a
+missing colour on a chart. The test suite checks the data against the
+vendored files, so a refresh that was not regenerated fails too. Do the
+Rhino dashboard template from the same release.
 
 ## Contributing
 
@@ -116,9 +123,10 @@ The visual snapshots under `tests/testthat/_snaps/` are drawn with the
 bundled Inter through svglite, so they match across machines; after a
 change that moves pixels on purpose, run `testthat::snapshot_review()`.
 
-## What is not here
+## From gglaplot
 
-gglaplot’s plotly helpers and its donut chart have not been brought
-across. Interactive charts belong to the web packages; the rest of
-gglaplot’s geoms are here under new names, against the tokens rather
-than the old hand-kept colour tables.
+Everything gglaplot exported is here under its old name, with the old
+arguments translated and the chart drawn in the current style, so a
+script written against it runs after changing `library(gglaplot)` to
+`library(gglaplot2)`. Each old name says once a session what it is now.
+The Migrating from gglaplot page on the site lists them side by side.

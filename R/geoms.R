@@ -204,6 +204,47 @@ GeomGlaArea <- ggplot2::ggproto(
   )
 )
 
+#' Annotation text in the house style
+#'
+#' Text drawn in `chart-label` at the label size, in the theme's family, as
+#' the web charts annotate a point or a range. [ggplot2::geom_text()] with
+#' the design system's defaults; use it for the words on a chart that are
+#' not an axis or a legend.
+#'
+#' @inheritParams ggplot2::geom_text
+#' @param ... Other arguments passed to [ggplot2::layer()].
+#' @return A ggplot2 layer.
+#' @examples
+#' library(ggplot2)
+#' ggplot(gla_yearly, aes(year, average, colour = series)) +
+#'   geom_gla_line() +
+#'   geom_gla_text(aes(label = series), where = "max", stat = "gla_end", vjust = -0.6) +
+#'   scale_colour_gla() +
+#'   theme_gla(legend = "none")
+#' @export
+geom_gla_text <- function(mapping = NULL, data = NULL, stat = "identity",
+                          position = "identity", ..., na.rm = FALSE,
+                          show.legend = FALSE, inherit.aes = TRUE) {
+  ggplot2::layer(
+    data = data, mapping = mapping, stat = stat, geom = GeomGlaText,
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+#' @rdname geom_gla_text
+#' @format NULL
+#' @usage NULL
+#' @export
+GeomGlaText <- ggplot2::ggproto(
+  "GeomGlaText", ggplot2::GeomText,
+  default_aes = ggplot2::aes(
+    colour = ggplot2::from_theme(ink), family = ggplot2::from_theme(family),
+    size = ggplot2::from_theme(fontsize), angle = 0, hjust = 0.5, vjust = 0.5,
+    alpha = NA, fontface = 1, lineheight = 1.2
+  )
+)
+
 # ── end of line ─────────────────────────────────────────────────────────────
 
 #' One point per series: the end, the start, the high or the low
@@ -241,12 +282,20 @@ stat_gla_end <- function(mapping = NULL, data = NULL, geom = "point",
 StatGlaEnd <- ggplot2::ggproto(
   "StatGlaEnd", ggplot2::Stat,
   required_aes = c("x", "y"),
-  compute_group = function(data, scales, where = "end") {
+  compute_group = function(data, scales, where = "end", x_filt = NULL, y_filt = NULL) {
     data <- data[!is.na(data$x) & !is.na(data$y), , drop = FALSE]
     if (nrow(data) == 0) return(data)
+    if (where == "xy") {
+      # gglaplot's filter_type = "xy": the rows at a given x and/or y
+      keep <- rep(TRUE, nrow(data))
+      if (!is.null(x_filt)) keep <- keep & data$x %in% as.numeric(x_filt)
+      if (!is.null(y_filt)) keep <- keep & data$y %in% as.numeric(y_filt)
+      return(data[keep, , drop = FALSE])
+    }
     i <- switch(where,
       end = which.max(data$x), start = which.min(data$x),
-      max = which.max(data$y), min = which.min(data$y)
+      max = which.max(data$y), min = which.min(data$y),
+      stop("where must be end, start, max, min or xy", call. = FALSE)
     )
     data[i, , drop = FALSE]
   }
@@ -451,35 +500,55 @@ GeomGlaVline <- ggplot2::ggproto(
 #'
 #' A dashed 2px rule in `data-context` grey across the plot at a value,
 #' with its label sitting on the line at the right edge, as the web line
-#' charts draw a target or an average. The line reads its colour from the
-#' theme's surface, so it holds in dark mode.
+#' charts draw a target or an average. Give `x` instead of `y` for a
+#' vertical rule at a date or a value, labelled at the top. The line reads
+#' its colour from the theme's surface, so it holds in dark mode.
 #'
-#' @param y The value the line marks.
+#' @param y The value a horizontal line marks.
 #' @param label Text for the line. `NULL` for none.
 #' @param theme `"light"` or `"dark"`, to colour the rule.
+#' @param x The value a vertical line marks, instead of `y`.
 #' @return A list of ggplot2 layers.
 #' @examples
 #' library(ggplot2)
 #' ggplot(gla_yearly, aes(year, average, colour = series)) +
 #'   geom_gla_line() +
 #'   gla_reference_line(30000, "Target") +
+#'   gla_reference_line(x = 2020, label = "Pandemic") +
 #'   scale_colour_gla() +
 #'   theme_gla()
 #' @export
-gla_reference_line <- function(y, label = NULL, theme = c("light", "dark")) {
+gla_reference_line <- function(y = NULL, label = NULL, theme = c("light", "dark"), x = NULL) {
   theme <- match.arg(theme)
+  if (is.null(y) == is.null(x)) stop("Give one of y or x", call. = FALSE)
+  rule <- list(na.rm = TRUE, colour = unname(gla_token("data-context", theme)),
+               linewidth = px(2), linetype = "42")
+  if (!is.null(y)) {
+    layers <- list(ggplot2::layer(
+      data = data.frame(yintercept = y), mapping = ggplot2::aes(yintercept = .data$yintercept),
+      stat = "identity", geom = GeomGlaHline, position = "identity",
+      show.legend = FALSE, inherit.aes = FALSE, params = rule
+    ))
+    if (!is.null(label)) {
+      layers <- c(layers, list(ggplot2::layer(
+        data = data.frame(y = y, label = label),
+        mapping = ggplot2::aes(y = .data$y, label = .data$label),
+        stat = "identity", geom = GeomGlaEdgelabel, position = "identity",
+        show.legend = FALSE, inherit.aes = FALSE, params = list(na.rm = TRUE)
+      )))
+    }
+    return(layers)
+  }
   layers <- list(ggplot2::layer(
-    data = data.frame(yintercept = y), mapping = ggplot2::aes(yintercept = .data$yintercept),
-    stat = "identity", geom = GeomGlaHline, position = "identity",
-    show.legend = FALSE, inherit.aes = FALSE,
-    params = list(na.rm = TRUE, colour = unname(gla_token("data-context", theme)),
-                  linewidth = px(2), linetype = "42")
+    data = data.frame(xintercept = x), mapping = ggplot2::aes(xintercept = .data$xintercept),
+    stat = "identity", geom = GeomGlaVline, position = "identity",
+    show.legend = FALSE, inherit.aes = FALSE, params = rule
   ))
   if (!is.null(label)) {
     layers <- c(layers, list(ggplot2::layer(
-      data = data.frame(y = y, label = label),
-      mapping = ggplot2::aes(y = .data$y, label = .data$label),
-      stat = "identity", geom = GeomGlaEdgelabel, position = "identity",
+      data = data.frame(x = x, label = label),
+      mapping = ggplot2::aes(x = .data$x, label = .data$label),
+      stat = "identity", geom = GeomGlaToplabel, position = "identity",
       show.legend = FALSE, inherit.aes = FALSE, params = list(na.rm = TRUE)
     )))
   }
@@ -501,6 +570,28 @@ GeomGlaEdgelabel <- ggplot2::ggproto(
       data$label, x = grid::unit(1, "npc") - grid::unit(px_pt(4), "pt"),
       y = grid::unit(data$y, "native") + grid::unit(px_pt(4), "pt"),
       hjust = 1, vjust = 0,
+      gp = grid::gpar(col = ggplot2::alpha(data$colour, data$alpha),
+                      fontsize = data$size * ggplot2::.pt, fontfamily = data$family,
+                      fontface = data$fontface)
+    )
+  }
+)
+
+# text at the top of the panel, just right of its x
+GeomGlaToplabel <- ggplot2::ggproto(
+  "GeomGlaToplabel", ggplot2::GeomText,
+  required_aes = c("x", "label"),
+  default_aes = ggplot2::aes(
+    colour = ggplot2::from_theme(ink), family = ggplot2::from_theme(family),
+    size = ggplot2::from_theme(fontsize), alpha = NA, fontface = 1
+  ),
+  draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
+    data$y <- panel_params$y.range[2]
+    data <- coord$transform(data, panel_params)
+    grid::textGrob(
+      data$label, x = grid::unit(data$x, "native") + grid::unit(px_pt(4), "pt"),
+      y = grid::unit(1, "npc") - grid::unit(px_pt(4), "pt"),
+      hjust = 0, vjust = 1,
       gp = grid::gpar(col = ggplot2::alpha(data$colour, data$alpha),
                       fontsize = data$size * ggplot2::.pt, fontfamily = data$family,
                       fontface = data$fontface)

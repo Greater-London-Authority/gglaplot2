@@ -33,7 +33,7 @@ test_that("the sex scale maps by level name whatever the order", {
 })
 
 test_that("too many levels for the palette is an error at build", {
-  d <- data.frame(x = 1:8, y = 1:8, g = letters[1:8])
+  d <- data.frame(x = 1:9, y = 1:9, g = letters[1:9])
   p <- ggplot(d, aes(x, y, colour = g)) + geom_point() + scale_colour_gla()
   expect_error(build(p), "Fold the categories")
   q <- ggplot(d, aes(x, y, colour = g)) + geom_point() + scale_colour_gla("categorical")

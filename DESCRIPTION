@@ -26,6 +26,7 @@ Imports:
 Suggests:
     knitr,
     lintr,
+    plotly,
     png,
     ragg,
     rmarkdown,
