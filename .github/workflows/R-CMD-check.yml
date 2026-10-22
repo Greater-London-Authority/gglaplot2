@@ -38,7 +38,9 @@ jobs:
         run: |
           # the roxygen2 release the man pages were written with, so a newer
           # one on the runner does not rewrite them and fail the diff
-          wanted <- read.dcf("DESCRIPTION", fields = "RoxygenNote")[[1]]
+          desc <- read.dcf("DESCRIPTION")
+          field <- intersect(c("Config/roxygen2/version", "RoxygenNote"), colnames(desc))[1]
+          wanted <- unname(desc[1, field])
           if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
             pak::pkg_install(paste0("roxygen2@", wanted))
           }
