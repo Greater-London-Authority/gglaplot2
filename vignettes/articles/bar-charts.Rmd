@@ -1,0 +1,107 @@
+---
+title: "Bar charts"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
+a <- gla_yearly[gla_yearly$series == "Variable A", ]
+```
+
+Bars are `data-primary` with a 1px `chart-surface` edge, so stacked segments
+and neighbouring bars keep a hairline between them, and they fill a little
+over half the slot. The value axis starts at zero and the baseline is drawn.
+
+## Single variable
+
+```{r single}
+ggplot(a, aes(factor(year), average)) +
+  geom_gla_col() +
+  gla_zero_line() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(
+    title = "Variable A's yearly average has halved since 2016",
+    subtitle = "London yearly average variable value (GBP), 2015 to 2024",
+    source = "LDN Viz Tools demo data", byline = "GLA City Intelligence", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Stacked
+
+```{r stacked}
+ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
+  geom_gla_col() +
+  gla_zero_line() +
+  scale_fill_gla() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(
+    title = "The three variables together", subtitle = "Yearly average value (GBP)",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Grouped
+
+```{r grouped}
+ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
+  geom_gla_col(position = position_dodge(width = 0.7), width = 0.65) +
+  gla_zero_line() +
+  scale_fill_gla() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(
+    title = "Variable A has fallen furthest", subtitle = "Yearly average value (GBP)",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla()
+```
+
+## Faceted
+
+```{r faceted, fig.height = 6}
+ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
+  geom_gla_col() +
+  gla_zero_line() +
+  facet_wrap(vars(series), ncol = 1) +
+  scale_fill_gla() +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
+  gla_labs(title = "Each variable on its own", subtitle = "Yearly average value (GBP)", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+## Horizontal
+
+Map the category to `y`, put the gridlines on `x`, and the baseline on the
+left. Order the bars by value unless the categories have an order of their
+own.
+
+```{r horizontal, fig.height = 3}
+y24 <- gla_yearly[gla_yearly$year == 2024, ]
+ggplot(y24, aes(average, reorder(series, average))) +
+  geom_gla_col() +
+  gla_zero_line("x") +
+  scale_x_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.08))) +
+  gla_labs(title = "Variable A was the largest in 2024", subtitle = "Average value (GBP), 2024",
+           source = "LDN Viz Tools demo data", x = NULL) +
+  theme_gla(gridlines = "x")
+```
+
+## Horizontal stacked
+
+```{r horizontal-stacked, fig.height = 3}
+two <- gla_yearly[gla_yearly$year %in% c(2015, 2021), ]
+ggplot(two, aes(average, factor(year), fill = series)) +
+  geom_gla_col() +
+  gla_zero_line("x") +
+  scale_fill_gla() +
+  scale_x_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.08))) +
+  gla_labs(title = "2015 against 2021", subtitle = "Average value (GBP)", x = NULL) +
+  theme_gla(gridlines = "x")
+```

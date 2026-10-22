@@ -1,0 +1,126 @@
+# The check set, called by the pull request workflow and by the promotion of
+# dev to main so the two cannot drift. Lint and the documentation sync run
+# once, on the reference platform. R CMD check runs on a matrix: the three
+# platforms analysts use, the current and previous R releases, R devel, and
+# a leg pinned to the oldest ggplot2 the package claims to support, so a
+# change that quietly needs a newer one fails here and not on someone's
+# machine. The visual snapshots are compared on the reference leg only; the
+# other legs still draw every chart, they just do not diff the pixels.
+name: Check
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  lint:
+    name: Lint and documentation
+    runs-on: ubuntu-latest
+    env:
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::lintr, any::roxygen2
+          needs: check
+
+      - name: Lint
+        shell: Rscript {0}
+        run: |
+          lints <- lintr::lint_package()
+          print(lints)
+          if (length(lints) > 0) stop("Lint errors found")
+
+      - name: Check the documentation is in sync
+        shell: Rscript {0}
+        run: |
+          # the roxygen2 release the man pages were written with, so a newer
+          # one on the runner does not rewrite them and fail the diff
+          desc <- read.dcf("DESCRIPTION")
+          field <- intersect(c("Config/roxygen2/version", "RoxygenNote"), colnames(desc))[1]
+          wanted <- unname(desc[1, field])
+          if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
+            pak::pkg_install(paste0("roxygen2@", wanted))
+          }
+          roxygen2::roxygenise()
+          changed <- system2("git", c("status", "--porcelain", "--", "man", "NAMESPACE"), stdout = TRUE)
+          if (length(changed) > 0) {
+            cat(changed, sep = "\n")
+            stop("man/ or NAMESPACE is out of date: run devtools::document()")
+          }
+
+      - name: Check the token data matches the vendored package
+        shell: Rscript {0}
+        run: |
+          # the same comparison the tests make, run before the slow legs so
+          # a refresh that was not regenerated is reported in a minute
+          source("R/tokens-source.R")
+          src <- read_token_files("inst/tokens")
+          built <- build_token_data(src)
+          check_required_tokens(built$gla_tokens$token)
+          env <- new.env()
+          load("data/gla_tokens.rda", envir = env)
+          load("data/gla_brand.rda", envir = env)
+          if (!identical(built$gla_tokens, env$gla_tokens) || !identical(built$gla_brand, env$gla_brand)) {
+            stop("data/ is out of date against inst/tokens/: run data-raw/tokens.R")
+          }
+          cat("Token data matches @ldn-viz/themes", src$version, "\n")
+
+  check:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: "Ubuntu, R release (reference)", os: ubuntu-latest, r: release, reference: true }
+          - { name: "Ubuntu, R devel", os: ubuntu-latest, r: devel, http-user-agent: release }
+          - { name: "Ubuntu, R oldrel", os: ubuntu-latest, r: oldrel-1 }
+          - { name: "Ubuntu, oldest ggplot2", os: ubuntu-latest, r: release, ggplot2: "4.0.0" }
+          - { name: "macOS, R release", os: macos-latest, r: release }
+          - { name: "Windows, R release", os: windows-latest, r: release }
+    env:
+      R_KEEP_PKG_SOURCE: yes
+      # the snapshots are diffed on the reference leg; elsewhere the charts
+      # are drawn and the diff skipped, so a font metric on another platform
+      # is not a failure
+      GGLAPLOT2_VISUAL: ${{ matrix.config.reference && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - name: Pin ggplot2 to the oldest supported release
+        if: matrix.config.ggplot2
+        shell: Rscript {0}
+        run: |
+          pak::pkg_install("ggplot2@${{ matrix.config.ggplot2 }}")
+          floor <- read.dcf("DESCRIPTION", fields = "Imports")[[1]]
+          floor <- regmatches(floor, regexec("ggplot2 \\(>= ([0-9.]+)\\)", floor))[[1]][2]
+          if (!identical(floor, "${{ matrix.config.ggplot2 }}")) {
+            stop("DESCRIPTION says ggplot2 >= ", floor, " but this leg pins ", "${{ matrix.config.ggplot2 }}",
+                 ": change one to match the other")
+          }
+          cat("ggplot2", as.character(packageVersion("ggplot2")), "\n")
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          error-on: '"warning"'
+          upload-snapshots: ${{ matrix.config.reference || false }}
+          upload-results: true

@@ -1,39 +1,26 @@
-# The pull request check: lint, then R CMD check with the tests. main itself
-# only moves by the promotion in promote-dev.yml, which runs these same
-# steps first, so there is no push trigger for main here.
+# The pull request check: the check set in check.yml and a build of the
+# site. main itself only moves by the promotion in promote-dev.yml, which
+# runs the same set first, so there is no push trigger for main here. A new
+# push to the same pull request cancels the run in progress.
 name: R-CMD-check
 on:
   pull_request:
     branches: [dev, main]
   workflow_dispatch:
+# the site job is the pkgdown workflow called with publishing off; a called
+# workflow may not ask for more than its caller grants, so the Pages
+# permissions are granted here and go unused
 permissions:
   contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
-    name: Lint and check
-    runs-on: ubuntu-latest
-    env:
-      R_KEEP_PKG_SOURCE: yes
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck, any::lintr
-          needs: check
-
-      - name: Lint
-        shell: Rscript {0}
-        run: |
-          lints <- lintr::lint_package()
-          print(lints)
-          if (length(lints) > 0) stop("Lint errors found")
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          error-on: '"warning"'
-          upload-snapshots: true
+    uses: ./.github/workflows/check.yml
+  site:
+    uses: ./.github/workflows/pkgdown.yml
+    with:
+      publish: false

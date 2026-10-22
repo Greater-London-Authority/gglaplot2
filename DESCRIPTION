@@ -1,29 +1,44 @@
 Package: gglaplot2
-Title: GLA Design Tokens and a ggplot2 Theme
-Version: 0.0.0.9000
+Title: GLA Design Tokens, Theme and Chart Marks for ggplot2
+Version: 0.1.0
 Authors@R:
     person("Micheal", "Slade", , "50627681+Micheal-Slade@users.noreply.github.com", role = c("aut", "cre"))
 Description: The Greater London Authority design tokens as R data, with a
-    ggplot2 theme, colour palettes and scales built on them. The successor to
-    gglaplot. The tokens are the City Intelligence Unit's visualisation
-    team's package, vendored unchanged, so a chart made with this package
-    and a dashboard built on the same tokens read as one system.
+    ggplot2 theme, colour palettes, scales and the chart marks the City
+    Intelligence Unit's web charts draw, built on them. The successor to
+    gglaplot. The tokens, the typeface and the chart conventions are the
+    visualisation team's, taken from their ldn-viz-tools package unchanged,
+    so a chart made here and a chart on one of their sites read as one
+    system.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1)
 Imports:
-    ggplot2 (>= 3.4),
+    ggplot2 (>= 4.0.0),
     grid,
     grDevices,
+    rlang,
+    scales,
     stats
 Suggests:
+    knitr,
     lintr,
-    scales,
-    testthat (>= 3.0.0)
+    plotly,
+    png,
+    ragg,
+    rmarkdown,
+    sf,
+    svglite,
+    systemfonts,
+    testthat (>= 3.0.0),
+    vdiffr,
+    withr
+VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/Needs/website: pkgdown, ragg, sf
 LazyData: true
 URL: https://github.com/Greater-London-Authority/gglaplot2
 BugReports: https://github.com/Greater-London-Authority/gglaplot2/issues
+Config/roxygen2/version: 8.1.1

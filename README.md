@@ -1,91 +1,136 @@
-# gglaplot2
 
-The GLA design tokens as R data, with a ggplot2 theme, palettes and scales
-built on them. The successor to
+# gglaplot2 <img src="man/figures/logo.svg" align="right" height="34" alt="" />
+
+Charts in the Greater London Authority’s house style, for ggplot2. The
+successor to
 [gglaplot](https://github.com/Greater-London-Authority/gglaplot).
 
-The tokens under `inst/tokens/` are the City Intelligence Unit visualisation
-team's package, vendored unchanged. The same files are vendored by the Rhino
-dashboard template, so a static chart made here and a live chart on a
-dashboard draw from one set of colours. This package is the way those tokens
-reach anyone plotting in R.
+The design tokens, the typeface and the chart conventions are the City
+Intelligence Unit visualisation team’s, taken from their
+[ldn-viz-tools](https://github.com/Greater-London-Authority/ldn-viz-tools)
+package unchanged: the same tokens the Rhino dashboard template vendors,
+so a static chart made here, a live chart on a dashboard and a chart on
+one of the team’s sites read as one system. This package is the way
+those decisions reach anyone plotting in R.
 
 ## Install
 
-The repository is private, so install with a GitHub token that can read it:
+The repository is private, so install with a GitHub token that can read
+it:
 
-```r
+``` r
 # install.packages("pak")
 pak::pak("Greater-London-Authority/gglaplot2")
 ```
 
 ## Use
 
-```r
+``` r
 library(ggplot2)
 library(gglaplot2)
 
-ggplot(economics, aes(date, unemploy / 1000)) +
-  geom_line(colour = gla_token("data-primary"), linewidth = 0.8) +
-  labs(title = "Unemployment", subtitle = "Thousands, monthly", caption = "Source: FRED") +
-  theme_gla()
-
-ggplot(mpg, aes(displ, hwy, colour = drv)) +
-  geom_point() +
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  geom_gla_endpoint() +
+  geom_gla_endlabel(aes(label = series)) +
+  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
   scale_colour_gla() +
-  theme_gla()
+  gla_labs(
+    title = "All three variables have converged since 2020",
+    subtitle = "London monthly estimated variable value (GBP), January 2015 to March 2024",
+    source = "LDN Viz Tools demo data", byline = "GLA City Intelligence", x = NULL
+  ) +
+  theme_gla(legend = "none")
 ```
 
-- `theme_gla()`: the non-data ink from the `chart-*` tokens. One gridline
-  axis by default, titles left-aligned to the plot edge, `theme = "dark"` for
-  an inverse surface.
-- `gla_pal()`: `categorical`, `sequential`, `diverging`, `sex` and `change`
-  palettes. The categorical palette is safe to three series; design to three
-  and fold categories rather than reach for a fourth colour.
-- `scale_colour_gla()`, `scale_fill_gla()`, `scale_colour_gla_c()`,
-  `scale_fill_gla_c()`: the palettes as scales. `type = "sex"` maps by level
-  name so women and men never swap colours.
-- `gla_token()`: any token by name, in either mode. `gla_tokens` is the
-  whole table and `gla_brand` the twelve brand statics.
+<img src="man/figures/README-example-1.png" alt="" width="100%" />
+
+- `theme_gla()`: the non-data ink from the `chart-*` tokens and the type
+  from the design system’s chart roles; with ggplot2 4 the geom defaults
+  too. `theme = "dark"` for an inverse surface, `theme_gla_map()` for a
+  map.
+- `geom_gla_line()`, `geom_gla_dot()`, `geom_gla_marker()`,
+  `geom_gla_col()`, `geom_gla_area()`, `geom_gla_endlabel()`,
+  `gla_zero_line()`, `gla_reference_line()`, `annotate_gla_range()`,
+  `geom_gla_sf()`: the marks the web charts draw, reading their colour
+  from the theme.
+- `scale_colour_gla()`, `scale_fill_gla()` and the continuous variants:
+  the palettes as scales. The default reads the series names the way the
+  web charts do, so London against a comparator is primary against
+  context grey.
+- `gla_labs()`: title, subtitle, byline, source and note.
+  `gla_describe()` writes a text alternative from the plot.
+- `gla_save()`: the web charts’ 880 by 440, doubled.
+- `gla_token()`, `gla_pal()`, `gla_tokens`, `gla_brand`: the tokens
+  themselves.
+
+The site at <https://greater-london-authority.github.io/gglaplot2/> has
+a page per chart family with the code, and the foundations behind them.
+
+## Typeface
+
+Inter is bundled and registered with systemfonts when the package loads,
+so ragg, svglite, knitr and pkgdown draw it on any machine. The base
+graphics devices only know installed fonts and fall back to the device’s
+sans; see `?gla_font`.
 
 ## Refreshing the tokens
 
-When the visualisation team release a new token package, drop the new
-`_colors.scss` and `_primitives.scss` into `inst/tokens/` and run:
+The tokens are the visualisation team’s `@ldn-viz/themes` package on
+npm, vendored under `inst/tokens/` with the release recorded in
+`VERSION` (`gla_token_version()` reads it). To move to a new release:
 
-```r
-source("data-raw/tokens.R")
+``` r
+source("data-raw/refresh-tokens.R")   # or: Rscript data-raw/refresh-tokens.R 9.3.0
 devtools::document()
+devtools::test()
 ```
 
-That regenerates `gla_tokens` and `gla_brand`. Nothing in `R/` carries a
-colour by hand, and a test checks the data against the vendored file, so a
-refresh that was not regenerated fails the suite.
+It fetches the release, copies the token files in unchanged, rebuilds
+`gla_tokens` and `gla_brand`, the gglaplot colour lists and the site
+styling, and prints every token that was added, removed or changed. It
+stops, naming the token, if the release has lost or renamed one this
+package reads, so a rename upstream is a build failure here and not a
+missing colour on a chart. The test suite checks the data against the
+vendored files, so a refresh that was not regenerated fails too. Do the
+Rhino dashboard template from the same release.
 
 ## Contributing
 
-Development happens on feature branches off `dev`, merged by pull request.
-Every pull request runs the linter and `R CMD check` with the tests. Every
-push to `dev` runs the same, and a green run fast-forwards `main`, so `main`
-is always a version that passed. Releases are tagged on `main` and recorded
-in `NEWS.md`.
+Development happens on feature branches off `dev`, merged by pull
+request. Every pull request runs the linter, a check that `man/`,
+`NAMESPACE` and the token data are up to date, `R CMD check` with the
+tests on Ubuntu, macOS and Windows, on the current and previous R
+releases and R devel, and on the oldest ggplot2 the package claims to
+support, and a build of the site. Every push to `dev` runs the same set
+and a green run fast-forwards `main`, so `main` is always a version that
+passed everywhere; a push to `main` publishes the site. A weekly job
+compares the latest `@ldn-viz/themes` release on npm against the
+vendored one and fails if it has dropped a token the package reads.
+Releases are tagged on `main` and recorded in `NEWS.md`.
 
-Do not push to `main` directly. If it ever gets ahead of `dev` the promotion
-job refuses to force it and says so; merge `main` into `dev` and push again.
+Do not push to `main` directly. If it ever gets ahead of `dev` the
+promotion job refuses to force it and says so; merge `main` into `dev`
+and push again.
 
 Before opening a pull request:
 
-```r
+``` r
 lintr::lint_package()
 devtools::document()
+devtools::test()
 devtools::check()
 ```
 
-## What is not here yet
+The visual snapshots under `tests/testthat/_snaps/` are drawn with the
+bundled Inter through svglite, so they match across machines; after a
+change that moves pixels on purpose, run `testthat::snapshot_review()`.
 
-gglaplot carried geoms (`ggla_line`, `ggla_highlight`, `ggla_donut`,
-`ggla_horizbar`, `ggla_sf`), plotly helpers and example datasets. None of
-those have been brought across. The package starts with the tokens, the
-theme, the palettes and the scales, which is what every chart needs; the
-rest comes in as someone needs it, against the tokens rather than the old
-hand-kept colour tables.
+## From gglaplot
+
+Everything gglaplot exported is here under its old name, with the old
+arguments translated and the chart drawn in the current style, so a
+script written against it runs after changing `library(gglaplot)` to
+`library(gglaplot2)`. Each old name says once a session what it is now.
+The Migrating from gglaplot page on the site lists them side by side.

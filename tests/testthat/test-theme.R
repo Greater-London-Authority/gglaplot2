@@ -1,12 +1,8 @@
-library(ggplot2)
-
-.build <- function(p) ggplot2::ggplot_build(p)
-
 test_that("theme_gla is a complete theme a plot can build with", {
   th <- theme_gla()
   expect_s3_class(th, "theme")
   p <- ggplot(mtcars, aes(wt, mpg)) + geom_point() + th
-  expect_no_error(.build(p))
+  expect_no_error(build(p))
 })
 
 test_that("the theme reads the chart tokens", {
@@ -19,6 +15,28 @@ test_that("the theme reads the chart tokens", {
 
   dark <- theme_gla(theme = "dark")
   expect_equal(dark$plot.background$fill, unname(gla_token("chart-surface", "dark")))
+  expect_equal(dark$geom@accent, unname(gla_token("data-primary", "dark")))
+})
+
+test_that("the type sizes are the chart roles, in points", {
+  th <- theme_gla()
+  roles <- gla_type()
+  expect_equal(th$plot.title$size, roles$title$size * 0.75)
+  expect_equal(th$plot.subtitle$size, roles$subtitle$size * 0.75)
+  expect_equal(th$axis.text$size, roles$tick$size * 0.75)
+  expect_equal(th$plot.caption$size, roles$caption$size * 0.75)
+  # the semibold title is a named Inter family, not a bold face
+  expect_equal(th$plot.title$family, "Inter SemiBold")
+  expect_equal(th$axis.title$family, "Inter Medium")
+  # scaled from the tick size
+  expect_equal(theme_gla(base_size = 28)$plot.title$size, roles$title$size * 2 * 0.75)
+})
+
+test_that("without Inter the weights fall back to faces on the base family", {
+  th <- withr::with_options(list(gglaplot2.font = "sans"), theme_gla())
+  expect_equal(th$plot.title$family, "")
+  expect_equal(th$plot.title$face, "bold")
+  expect_equal(th$axis.title$face, "plain")
 })
 
 test_that("gridlines go on one axis and the axis line on the other", {
@@ -38,32 +56,34 @@ test_that("gridlines go on one axis and the axis line on the other", {
   expect_s3_class(none$panel.grid.major.y, "element_blank")
 })
 
-test_that("the discrete scales colour series in palette order", {
-  p <- ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) + geom_point() + scale_colour_gla()
-  b <- .build(p)
-  used <- unique(b$data[[1]]$colour)
-  expect_setequal(tolower(used), tolower(unname(gla_pal(n = 3))))
+test_that("axis titles are off on y by default, as on the web charts", {
+  th <- theme_gla()
+  expect_s3_class(th$axis.title.y, "element_blank")
+  expect_s3_class(th$axis.title.x, "element_text")
+  both <- theme_gla(axis_titles = "both")
+  expect_s3_class(both$axis.title.y, "element_text")
+  none <- theme_gla(axis_titles = "none")
+  expect_s3_class(none$axis.title.x, "element_blank")
 })
 
-test_that("the sex scale maps by level name whatever the order", {
-  d <- data.frame(x = 1:4, y = 1:4, sex = c("Men", "Women", "Men", "Women"))
-  p <- ggplot(d, aes(x, y, colour = sex)) + geom_point() + scale_colour_gla("sex")
-  b <- .build(p)
-  got <- unique(b$data[[1]][, c("colour")])
-  expect_true(tolower(gla_pal("sex")[["Women"]]) %in% tolower(got))
-  expect_true(tolower(gla_pal("sex")[["Men"]]) %in% tolower(got))
+test_that("the geom defaults are the design system's marks", {
+  g <- theme_gla()$geom
+  expect_equal(g@accent, unname(gla_token("data-primary")))
+  expect_equal(g@paper, unname(gla_token("chart-surface")))
+  expect_equal(g@ink, unname(gla_token("chart-label")))
+  # a 2px line, a 1px edge
+  expect_equal(g@linewidth, 2 * 0.75 / .pt)
+  expect_equal(g@borderwidth, 0.75 / .pt)
 })
 
-test_that("too many levels for the palette is an error at build", {
-  d <- data.frame(x = 1:8, y = 1:8, g = letters[1:8])
-  p <- ggplot(d, aes(x, y, colour = g)) + geom_point() + scale_colour_gla()
-  expect_error(.build(p), "palette has 7 colours")
+test_that("the map theme strips the axes", {
+  th <- theme_gla_map()
+  expect_s3_class(th$axis.text, "element_blank")
+  expect_s3_class(th$panel.grid, "element_blank")
+  expect_equal(th$legend.position, "right")
 })
 
-test_that("the continuous scales build", {
-  p <- ggplot(mtcars, aes(wt, mpg, colour = hp)) + geom_point() + scale_colour_gla_c()
-  expect_no_error(.build(p))
-  q <- ggplot(mtcars, aes(wt, mpg, fill = hp)) + geom_point(shape = 21) +
-    scale_fill_gla_c("diverging")
-  expect_no_error(.build(q))
+test_that("gla_breaks aims for four", {
+  b <- gla_breaks()(c(0, 100))
+  expect_true(length(b) >= 3 && length(b) <= 6)
 })

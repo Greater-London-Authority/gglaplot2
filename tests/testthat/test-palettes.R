@@ -1,20 +1,20 @@
-test_that("the categorical palette leads with primary, secondary, tertiary", {
+test_that("the categorical palette is the web charts' order", {
   pal <- gla_pal()
-  expect_equal(unname(pal[1:3]),
-               unname(gla_token(c("data-primary", "data-secondary", "data-tertiary"))))
+  expect_equal(unname(pal), unname(gla_token(c(
+    "data-primary", "data-secondary", "data-tertiary", "data-categorical-turquoise",
+    "data-categorical-purple", "data-categorical-red", "data-categorical-green",
+    "data-categorical-yellow"
+  ))))
+  expect_equal(names(pal), c("primary", "secondary", "tertiary", "turquoise", "purple", "red",
+                             "green", "yellow"))
   expect_false(anyDuplicated(pal) > 0)
-  expect_equal(length(pal), 7)
   expect_equal(length(gla_pal(n = 3)), 3)
 })
 
 test_that("asking for more categorical colours than exist is an error, not a repeat", {
-  expect_error(gla_pal(n = 8), "Fold the categories")
+  expect_error(gla_pal(n = 9), "Fold the categories")
+  expect_equal(gla_max_series(), 3L)
   expect_true(gla_max_series() <= length(gla_pal()))
-})
-
-test_that("green is not a series colour", {
-  # green is the good-news UI state and is held back from the data palette
-  expect_false(gla_brand[["green"]] %in% gla_pal())
 })
 
 test_that("the ramps interpolate to any n and keep their ends", {

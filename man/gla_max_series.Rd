@@ -10,6 +10,11 @@ gla_max_series()
 An integer.
 }
 \description{
-Three is the recommended ceiling for a clean chart; six is the measured
-one, past which the palette has no separable hues left. See \code{\link[=gla_pal]{gla_pal()}}.
+Three is the design ceiling for a clean chart. Past it the palette still
+has colours, eight in all, but they no longer all pass the palette
+checks, so a chart that goes over should label its series directly. See
+\code{\link[=gla_pal]{gla_pal()}}.
+}
+\examples{
+gla_max_series()
 }

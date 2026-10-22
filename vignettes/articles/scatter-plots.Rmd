@@ -1,0 +1,69 @@
+---
+title: "Scatter plots"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+A scatter uses the small dot, `data-primary` at 70% opacity with no edge,
+which keeps a dense cloud readable. Both axes carry gridlines and, as the
+only chart family where the axes need naming, both carry titles.
+
+## Dots
+
+```{r dots}
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_gla_dot(size = 2.5) +
+  gla_labs(
+    title = "Heavier cars use more fuel", subtitle = "Weight against fuel economy, 32 cars from 1974",
+    source = "Motor Trend, 1974", x = "Weight (1,000 lb)", y = "Miles per gallon"
+  ) +
+  theme_gla(gridlines = "both", axis_titles = "both")
+```
+
+## Coloured by a series
+
+```{r series}
+cars <- transform(mtcars, cyl = paste(cyl, "cylinders"))
+ggplot(cars, aes(wt, mpg, colour = cyl)) +
+  geom_gla_dot(size = 2.5) +
+  scale_colour_gla() +
+  gla_labs(
+    title = "The heaviest cars have eight cylinders", subtitle = "Weight against fuel economy",
+    source = "Motor Trend, 1974", x = "Weight (1,000 lb)", y = "Miles per gallon"
+  ) +
+  theme_gla(gridlines = "both", axis_titles = "both")
+```
+
+## Faceted
+
+```{r faceted, fig.height = 3.5}
+ggplot(cars, aes(wt, mpg)) +
+  geom_gla_dot(size = 2.5) +
+  facet_wrap(vars(cyl)) +
+  gla_labs(title = "Weight against fuel economy, by cylinders", x = "Weight (1,000 lb)", y = "Miles per gallon") +
+  theme_gla(gridlines = "both", axis_titles = "both")
+```
+
+## Picking out a point
+
+`geom_gla_marker()` is the larger hollow marker. With `stat_gla_end()` it
+picks the high, the low or the ends of a series.
+
+```{r marker}
+ggplot(gla_yearly, aes(year, average, colour = series)) +
+  geom_gla_line() +
+  stat_gla_end(where = "max", geom = GeomGlaMarker, show.legend = FALSE) +
+  scale_x_continuous(breaks = 2015:2024) +
+  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
+  scale_colour_gla() +
+  gla_labs(title = "Each variable's peak year", subtitle = "Yearly average value (GBP)", x = NULL) +
+  theme_gla()
+```

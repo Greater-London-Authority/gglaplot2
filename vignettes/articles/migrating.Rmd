@@ -1,0 +1,127 @@
+---
+title: "Migrating from gglaplot"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter", rlib_message_verbosity = "quiet")
+library(ggplot2)
+library(gglaplot2)
+```
+
+gglaplot2 replaces gglaplot. Everything gglaplot exported is still here under
+its old name, so a script written against it runs after changing one line:
+
+```r
+library(gglaplot2)
+```
+
+Each old name says once a session what it is now. The chart comes out in the
+current style: the colours are the design tokens rather than the 2019 colour
+tables, the type is the chart roles, and the marks are the ones the web charts
+draw. The old arguments are translated, so `theme_gla(gla_theme = "inverse")`
+is `theme_gla(theme = "dark")` and `gla_pal(palette_type = "highlight")` is
+primary against context grey.
+
+New code should use the new names. This page lists them side by side, then
+rewrites gglaplot's own README example.
+
+## The names
+
+| gglaplot | gglaplot2 | Notes |
+|---|---|---|
+| `theme_gla(gla_theme = "inverse")` | `theme_gla(theme = "dark")` | |
+| `theme_gla(x_axis_title = TRUE, y_axis_title = TRUE)` | `theme_gla(axis_titles = "both")` | The x title is on by default now, the y title off, as on the web charts |
+| `theme_gla(xgridlines = TRUE)` | `theme_gla(gridlines = "both")` | `gridlines = "x"` for horizontal bars |
+| `theme_gla(legend = FALSE)` | `theme_gla(legend = "none")` | |
+| `theme_gla(y_label_length = , free_y_facets = )` | nothing | Tick labels sit beside the axis |
+| `gla_pal(palette_type = "categorical", n = 3)` | `gla_pal("categorical", 3)` or `scale_colour_gla()` | |
+| `gla_pal(palette_type = "highlight", n = c(1, 1))` | `scale_colour_gla()` | London against a comparator is primary against context by the level names |
+| `gla_pal(palette_type = "quantitative")` | `gla_pal("sequential")` or `scale_fill_gla_c()` | |
+| `gla_pal(palette_type = "diverging")` | `gla_pal("diverging")` or `scale_fill_gla_c("diverging")` | |
+| `gla_pal(main_colours = "ldndkpink")` | `gla_token("data-categorical-darkpink")` | The colour names are translated |
+| `ggla_line()` | `geom_gla_line()` | |
+| `ggla_highlight(filter_type = "end")` | `geom_gla_endpoint()` | `where` takes `"end"`, `"start"`, `"max"`, `"min"` |
+| `ggla_highlight(geom = GeomGLATextHighlight)` | `geom_gla_endlabel()` | Labels push apart when they overlap |
+| `ggla_labelline(y1 = )` | `gla_reference_line(y = , label = )` | `x = ` for a vertical rule |
+| `ggla_axisat0()` | `gla_zero_line()` | With `expand_limits(y = 0)` if the axis does not reach zero |
+| `ggla_highlightarea()` | `annotate_gla_range()` | |
+| `ggla_horizbar()` | `geom_gla_col()` with the category on `y`, `theme_gla(gridlines = "x")` | No `coord_flip()` |
+| `ggla_sf()` | `geom_gla_sf()` | |
+| `ggla_donut()` | `ggla_donut()` | Kept as it was, on the tokens |
+| `annotate(geom = GeomGLAAnnotate)` | `geom_gla_text()` or `annotate(geom = GeomGlaText)` | |
+| `show_gla_pals()` | `gla_show_pal()` | |
+| `left_align_labs()` | nothing | `theme_gla()` aligns the titles to the plot edge |
+| `mm_to_pt` | `mm_to_pt` | One CSS pixel in millimetres; the theme sets the widths now |
+| `gla_default$background` | `gla_token("chart-surface")` | The old lists are generated from the tokens |
+| `gla_colours$blue_core` | `gla_token("data-categorical-blue")` | |
+| `ggla_plotly_settings()` | `ggla_plotly_settings()` | Kept, on the tokens; `ggplotly()` understands the `geom_gla_*()` marks |
+| `labs(caption = "Source: ...")` | `gla_labs(source = , note = , byline = )` | |
+
+## gglaplot's example, both ways
+
+gglaplot's README drew the gender pay gap for London and the UK. As written,
+it runs:
+
+```{r old, fig.height = 4.4}
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+
+ggplot(LDNUK, aes(x = Year, y = GPG, group = location, colour = location)) +
+  ggla_line(aes(linewidth = location)) +
+  scale_linewidth_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+  scale_colour_manual(values = pal) +
+  ggla_highlight(filter_type = "end") +
+  ggla_axisat0() +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 32.5),
+                     labels = scales::label_percent(scale = 1)) +
+  scale_x_date(date_breaks = "2 years", date_labels = "'%y",
+               expand = expansion(mult = c(0.05, 0.01))) +
+  labs(title = "Gender Pay Gap - Total (Median)",
+       subtitle = "Gender Pay Gap - Total (Median) - London VS UK",
+       caption = "Note: 2017 data is provisional\nChart: GLA City Intelligence  Source: London Datastore") +
+  theme_gla(gla_theme = "default")
+```
+
+The same chart in gglaplot2. The scale reads the level names, so London is
+primary and the UK context grey without a palette being built; the lines end
+in a marker and a label instead of a legend; the title states the finding and
+the footer carries the byline, source and note.
+
+```{r new, fig.height = 4.4}
+ggplot(LDNUK, aes(x = Year, y = GPG, colour = location)) +
+  geom_gla_line() +
+  geom_gla_endpoint() +
+  geom_gla_endlabel(aes(label = location)) +
+  gla_zero_line() +
+  scale_colour_gla() +
+  scale_y_continuous(breaks = gla_breaks(), limits = c(0, 32.5), expand = c(0, 0),
+                     labels = scales::label_percent(scale = 1)) +
+  scale_x_date(date_breaks = "2 years", date_labels = "'%y",
+               expand = expansion(mult = c(0.02, 0.12))) +
+  gla_labs(
+    title = "London's gender pay gap has narrowed less than the UK's",
+    subtitle = "Median gender pay gap, all employees",
+    source = "London Datastore", note = "2017 data is provisional",
+    byline = "GLA City Intelligence", x = NULL
+  ) +
+  theme_gla(legend = "none")
+```
+
+## What changed underneath
+
+- Colour comes from the design tokens the visualisation team publish, read
+  by name with `gla_token()`. `gla_default`, `gla_inverse` and `gla_colours`
+  are generated from them, so `gla_colours$blue_core` is the token that
+  colour is now, not the 2019 hex.
+- The categorical palette is the web charts' order and has eight colours.
+  Three is the design ceiling; past it, label the series directly.
+- `theme_gla()` needs ggplot2 4.0 or later: the marks read their colour,
+  width and type from the theme, which is what lets `theme_gla(theme =
+  "dark")` recolour a chart without a change to the layers.
+- Inter, the design system's typeface, is bundled and used wherever the
+  device can draw it. See the Typography page.
+- The old package's chroma fork and its dependencies on dplyr, tidyr,
+  checkmate and ggplotify are gone. plotly is suggested, not required.

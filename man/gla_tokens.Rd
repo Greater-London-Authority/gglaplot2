@@ -15,9 +15,11 @@ gla_tokens
 One row per token in the visualisation team's package, with its light and
 dark mode values. The names are the Sass variable names minus the leading
 \verb{$color-}, so \code{text}, \code{chart-grid}, \code{data-primary}, \code{palette-blue-700} and
-so on. Generated from \verb{inst/tokens/_colors.scss} by \code{data-raw/tokens.R}.
+so on. Generated from the vendored \verb{@ldn-viz/themes} release under
+\verb{inst/tokens/} by \code{data-raw/tokens.R}; \code{\link[=gla_token_version]{gla_token_version()}} says which.
 }
 \seealso{
-\code{\link[=gla_token]{gla_token()}} to read one, \code{\link[=gla_pal]{gla_pal()}} for the palettes built on them.
+\code{\link[=gla_token]{gla_token()}} to read one, \code{\link[=gla_pal]{gla_pal()}} for the palettes built on them,
+\code{\link[=gla_show_tokens]{gla_show_tokens()}} to see a group.
 }
 \keyword{datasets}
