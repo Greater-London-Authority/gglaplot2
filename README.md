@@ -15,13 +15,13 @@ those decisions reach anyone plotting in R.
 
 ## Install
 
-The repository is private, so install with a GitHub token that can read
-it:
-
 ``` r
 # install.packages("pak")
 pak::pak("Greater-London-Authority/gglaplot2")
 ```
+
+That installs `main`, which is always a version that passed the checks.
+It needs ggplot2 4.0 or later.
 
 ## Use
 
