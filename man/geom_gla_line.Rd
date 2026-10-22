@@ -11,6 +11,7 @@ geom_gla_line(
   stat = "identity",
   position = "identity",
   ...,
+  projected_from = NULL,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -65,6 +66,9 @@ to use \code{position_jitter()}, give the position as \code{"jitter"}.
 
 \item{...}{Other arguments passed to \code{\link[ggplot2:layer]{ggplot2::layer()}}.}
 
+\item{projected_from}{The x value (a date on a date axis) where the
+projection starts, or \code{NULL} for a line that is all actual.}
+
 \item{na.rm}{If \code{FALSE}, the default, missing values are removed with
 a warning. If \code{TRUE}, missing values are silently removed.}
 
@@ -89,10 +93,22 @@ A 2px line in \code{data-primary} with round ends, the default line mark of
 the web charts. Colour it by series with \code{aes(colour = )} and
 \code{\link[=scale_colour_gla]{scale_colour_gla()}}.
 }
+\details{
+\code{projected_from} draws the part of each line from that point on dashed,
+the way the web charts show a forecast: the line is solid up to the
+point and dashed after it, the two meeting at the point. Pair it with
+\code{\link[=annotate_gla_projection]{annotate_gla_projection()}} for the wash and the label over the
+projected period.
+}
 \examples{
 library(ggplot2)
 ggplot(gla_yearly, aes(year, average, colour = series)) +
   geom_gla_line() +
+  scale_colour_gla() +
+  theme_gla()
+ggplot(gla_yearly, aes(year, average, colour = series)) +
+  annotate_gla_projection(from = 2022) +
+  geom_gla_line(projected_from = 2022) +
   scale_colour_gla() +
   theme_gla()
 }

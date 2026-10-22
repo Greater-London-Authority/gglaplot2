@@ -10,7 +10,15 @@
 #' the web charts. Colour it by series with `aes(colour = )` and
 #' [scale_colour_gla()].
 #'
+#' `projected_from` draws the part of each line from that point on dashed,
+#' the way the web charts show a forecast: the line is solid up to the
+#' point and dashed after it, the two meeting at the point. Pair it with
+#' [annotate_gla_projection()] for the wash and the label over the
+#' projected period.
+#'
 #' @inheritParams ggplot2::geom_line
+#' @param projected_from The x value (a date on a date axis) where the
+#'   projection starts, or `NULL` for a line that is all actual.
 #' @param ... Other arguments passed to [ggplot2::layer()].
 #' @return A ggplot2 layer.
 #' @examples
@@ -19,14 +27,19 @@
 #'   geom_gla_line() +
 #'   scale_colour_gla() +
 #'   theme_gla()
+#' ggplot(gla_yearly, aes(year, average, colour = series)) +
+#'   annotate_gla_projection(from = 2022) +
+#'   geom_gla_line(projected_from = 2022) +
+#'   scale_colour_gla() +
+#'   theme_gla()
 #' @export
 geom_gla_line <- function(mapping = NULL, data = NULL, stat = "identity",
-                          position = "identity", ..., na.rm = FALSE,
+                          position = "identity", ..., projected_from = NULL, na.rm = FALSE,
                           show.legend = NA, inherit.aes = TRUE) {
   ggplot2::layer(
     data = data, mapping = mapping, stat = stat, geom = GeomGlaLine,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(na.rm = na.rm, lineend = "round", ...)
+    params = list(na.rm = na.rm, lineend = "round", projected_from = projected_from, ...)
   )
 }
 
@@ -39,7 +52,28 @@ GeomGlaLine <- ggplot2::ggproto(
   default_aes = ggplot2::aes(
     colour = ggplot2::from_theme(accent), linewidth = ggplot2::from_theme(linewidth),
     linetype = ggplot2::from_theme(linetype), alpha = NA
-  )
+  ),
+  draw_panel = function(self, data, panel_params, coord, arrow = NULL, arrow.fill = NULL,
+                        lineend = "round", linejoin = "round", linemitre = 10, na.rm = FALSE,
+                        projected_from = NULL) {
+    draw <- function(d) {
+      ggplot2::ggproto_parent(ggplot2::GeomLine, self)$draw_panel(
+        d, panel_params, coord, arrow = arrow, arrow.fill = arrow.fill, lineend = lineend,
+        linejoin = linejoin, linemitre = linemitre, na.rm = na.rm
+      )
+    }
+    if (is.null(projected_from)) return(draw(data))
+    # the web's forecast line: solid to the point, dashed from it, both
+    # passing through it so the line does not break
+    from <- as.numeric(projected_from)
+    actual <- data[data$x <= from, , drop = FALSE]
+    projected <- data[data$x >= from, , drop = FALSE]
+    projected$linetype <- gla_linetypes()[["projected"]]
+    grid::gList(
+      if (nrow(actual) > 1) draw(actual),
+      if (nrow(projected) > 1) draw(projected)
+    )
+  }
 )
 
 #' Dots and markers in the house style
@@ -685,6 +719,58 @@ annotate_gla_range <- function(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
   theme <- match.arg(theme)
   ggplot2::annotate("rect", xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
                     fill = unname(gla_token("chart-label", theme)), alpha = 0.1, colour = NA)
+}
+
+#' Mark the projected period of a forecast
+#'
+#' The web charts set a forecast apart with a `data-context` wash from the
+#' point the projection starts to the end of the data, a dashed rule at
+#' that point, and the word "Projected" at the top. This draws those three;
+#' the line itself goes dashed through `geom_gla_line(projected_from = )`.
+#'
+#' @param from The x value (a date on a date axis) where the projection
+#'   starts.
+#' @param to Where it ends. The default runs to the edge of the plot.
+#' @param label Text at the top of the period. `NULL` for none.
+#' @param theme `"light"` or `"dark"`.
+#' @return A list of ggplot2 layers.
+#' @examples
+#' library(ggplot2)
+#' ggplot(gla_yearly, aes(year, average, colour = series)) +
+#'   annotate_gla_projection(from = 2022) +
+#'   geom_gla_line(projected_from = 2022) +
+#'   scale_colour_gla() +
+#'   theme_gla()
+#' @export
+annotate_gla_projection <- function(from, to = Inf, label = "Projected \u2192",
+                                    theme = c("light", "dark")) {
+  theme <- match.arg(theme)
+  context <- unname(gla_token("data-context", theme))
+  if (inherits(from, c("Date", "POSIXct")) && !inherits(to, class(from)[1])) {
+    # an open end on a date axis, without the scale having to convert it
+    to <- structure(as.numeric(to), class = class(from), tzone = attr(from, "tzone"))
+  }
+  layers <- list(
+    ggplot2::annotate("rect", xmin = from, xmax = to, ymin = -Inf, ymax = Inf,
+                      fill = context, alpha = 0.1, colour = NA),
+    ggplot2::layer(
+      data = data.frame(xintercept = from), mapping = ggplot2::aes(xintercept = .data$xintercept),
+      stat = "identity", geom = GeomGlaVline, position = "identity",
+      show.legend = FALSE, inherit.aes = FALSE,
+      params = list(na.rm = TRUE, colour = context, linewidth = px(1.5), linetype = "42",
+                    alpha = 0.6)
+    )
+  )
+  if (!is.null(label)) {
+    layers <- c(layers, list(ggplot2::layer(
+      data = data.frame(x = from, label = label),
+      mapping = ggplot2::aes(x = .data$x, label = .data$label),
+      stat = "identity", geom = GeomGlaToplabel, position = "identity",
+      show.legend = FALSE, inherit.aes = FALSE,
+      params = list(na.rm = TRUE, colour = context, size = px_pt(11) / ggplot2::.pt)
+    )))
+  }
+  layers
 }
 
 # ── maps ────────────────────────────────────────────────────────────────────
