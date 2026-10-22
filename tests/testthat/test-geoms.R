@@ -31,6 +31,48 @@ test_that("bars are edged in the surface colour and sit in half the slot", {
   expect_no_error(build(q))
 })
 
+test_that("dodge is the house dodge: a wide group, close bars, a gap before the next", {
+  d <- gla_yearly[gla_yearly$year >= 2022, ]
+  p <- ggplot(d, aes(factor(year), average, fill = series)) + geom_gla_col(position = "dodge") +
+    scale_fill_gla() + theme_gla()
+  expect_s3_class(p$layers[[1]]$position, "PositionDodge2")
+  b <- build(p)
+  bars <- b$data[[1]]
+  bars$slot <- round(bars$x)
+  bars <- bars[order(bars$slot, bars$xmin), ]
+  # three bars in each of three slots, the group spanning four fifths of it
+  # less the half gap outside the end bars
+  first <- bars[bars$slot == 1, ]
+  expect_equal(nrow(first), 3)
+  expect_equal(round(max(first$xmax) - min(first$xmin), 6), 0.8 - 0.8 / 3 * 0.15)
+  # a gap between neighbours inside the group, and a bigger one to the next slot
+  within <- first$xmin[-1] - first$xmax[-3]
+  expect_true(all(within > 0))
+  second <- bars[bars$slot == 2, ]
+  expect_true(min(second$xmin) - max(first$xmax) > max(within) * 2)
+  # the bars follow the series order
+  expect_equal(as.character(first$fill), unname(gla_pal(n = 3)))
+  # the same with the category on y
+  h <- ggplot(d, aes(average, factor(year), fill = series)) + geom_gla_col(position = "dodge") +
+    scale_fill_gla() + theme_gla(gridlines = "x")
+  hb <- build(h)$data[[1]]
+  expect_equal(sum(round(hb$y) == 1), 3)
+  expect_true(all(hb$ymax - hb$ymin > 0))
+  # read top to bottom, the first series comes first
+  top <- hb[round(hb$y) == 1, ]
+  expect_equal(as.character(top$fill[order(-top$ymin)]), unname(gla_pal(n = 3)))
+  # a lone bar keeps its narrower width, and an explicit width wins
+  lone <- build(ggplot(d, aes(factor(year), average)) + geom_gla_col())$data[[1]]
+  expect_equal(unique(round(lone$xmax - lone$xmin, 6)), 0.6)
+  wide <- build(ggplot(d, aes(factor(year), average)) + geom_gla_col(width = 0.9))$data[[1]]
+  expect_equal(unique(round(wide$xmax - wide$xmin, 6)), 0.9)
+  # a missing series in a category does not widen the others
+  short <- d[!(d$year == 2023 & d$series == "Variable B"), ]
+  sb <- build(ggplot(short, aes(factor(year), average, fill = series)) +
+                geom_gla_col(position = "dodge"))$data[[1]]
+  expect_equal(length(unique(round(sb$xmax - sb$xmin, 6))), 1)
+})
+
 test_that("stat_gla_end keeps one point per series", {
   p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
     geom_gla_endpoint() + geom_gla_endlabel(aes(label = series), where = "max")

@@ -120,9 +120,15 @@ GeomGlaMarker <- ggplot2::ggproto(
 #' For horizontal bars map the category to `y` and use
 #' `theme_gla(gridlines = "x")`.
 #'
+#' Grouped bars are `position = "dodge"`, which here is
+#' [position_gla_dodge()]: the group takes most of its slot and the bars
+#' inside it sit close together, as the web charts' grouped bar charts lay
+#' them out, with the series in the order the fill scale gives them. The
+#' same works with the category on `y`.
+#'
 #' @inheritParams ggplot2::geom_col
 #' @param width Bar width as a share of the slot. The default leaves a
-#'   little under half the slot empty.
+#'   little under half the slot empty; a dodged group takes four fifths.
 #' @param stat For `geom_gla_bar()`, the statistical transformation:
 #'   `"count"` by default, `"bin"` for a histogram.
 #' @param ... Other arguments passed to [ggplot2::layer()].
@@ -132,30 +138,88 @@ GeomGlaMarker <- ggplot2::ggproto(
 #' ggplot(gla_yearly[gla_yearly$series == "Variable A", ], aes(factor(year), average)) +
 #'   geom_gla_col() +
 #'   theme_gla()
+#' ggplot(gla_yearly[gla_yearly$year >= 2021, ], aes(factor(year), average, fill = series)) +
+#'   geom_gla_col(position = "dodge") +
+#'   scale_fill_gla() +
+#'   theme_gla()
 #' @name geom_gla_col
 NULL
 
 #' @rdname geom_gla_col
 #' @export
 geom_gla_col <- function(mapping = NULL, data = NULL, position = "stack", ...,
-                         width = 0.6, na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
+                         width = NULL, na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
+  bars <- bar_layout(position, width)
   ggplot2::layer(
     data = data, mapping = mapping, stat = "identity", geom = GeomGlaBar,
-    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(width = width, na.rm = na.rm, ...)
+    position = bars$position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(width = bars$width, na.rm = na.rm, ...)
   )
 }
 
 #' @rdname geom_gla_col
 #' @export
 geom_gla_bar <- function(mapping = NULL, data = NULL, stat = "count", position = "stack", ...,
-                         width = 0.6, na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
+                         width = NULL, na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
+  bars <- bar_layout(position, width)
   ggplot2::layer(
     data = data, mapping = mapping, stat = stat, geom = GeomGlaBar,
-    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(width = width, na.rm = na.rm, ...)
+    position = bars$position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(width = bars$width, na.rm = na.rm, ...)
   )
 }
+
+# "dodge" means the house dodge, and a dodged group is wider than a lone bar
+bar_layout <- function(position, width) {
+  dodged <- (is.character(position) && position %in% c("dodge", "dodge2")) ||
+    inherits(position, "PositionDodge")
+  if (is.character(position) && position %in% c("dodge", "dodge2")) {
+    position <- position_gla_dodge()
+  }
+  list(position = position, width = width %||% if (dodged) 0.8 else 0.6)
+}
+
+#' Dodge bars the way the web charts group them
+#'
+#' The grouped bar charts on the web put each category's bars side by side
+#' in a slot of their own, close together, with a clear gap before the
+#' next category. This is [ggplot2::position_dodge2()] with that spacing:
+#' the group fills `width` of the slot and `padding` of each bar's width is
+#' left between neighbours. Categories with fewer bars keep the same bar
+#' width. The bars run in the series order left to right, and with the
+#' category on `y` top to bottom, as the web lists them.
+#' `geom_gla_col(position = "dodge")` uses it.
+#'
+#' @param width The share of the slot the group of bars fills.
+#' @param padding The share of a bar's width left as a gap beside it.
+#' @param reverse Reverse the order of the bars within a group.
+#' @return A ggplot2 position.
+#' @examples
+#' library(ggplot2)
+#' ggplot(gla_yearly[gla_yearly$year >= 2021, ], aes(factor(year), average, fill = series)) +
+#'   geom_gla_col(position = position_gla_dodge()) +
+#'   scale_fill_gla() +
+#'   theme_gla()
+#' @export
+position_gla_dodge <- function(width = 0.8, padding = 0.15, reverse = FALSE) {
+  ggplot2::ggproto(NULL, PositionGlaDodge, width = width, padding = padding,
+                   preserve = "single", reverse = reverse)
+}
+
+#' @rdname position_gla_dodge
+#' @format NULL
+#' @usage NULL
+#' @export
+PositionGlaDodge <- ggplot2::ggproto(
+  "PositionGlaDodge", ggplot2::PositionDodge2,
+  setup_params = function(self, data) {
+    params <- ggplot2::ggproto_parent(ggplot2::PositionDodge2, self)$setup_params(data)
+    # ggplot2 dodges upward on a horizontal chart; the web reads a group
+    # top to bottom, so the order flips with the orientation
+    if (isTRUE(params$flipped_aes)) params$reverse <- !params$reverse
+    params
+  }
+)
 
 #' @rdname geom_gla_col
 #' @format NULL
