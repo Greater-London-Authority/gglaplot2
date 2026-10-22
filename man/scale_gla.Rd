@@ -12,46 +12,38 @@
 \usage{
 scale_colour_gla(
   type = c("auto", "categorical", "sex", "change"),
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 
 scale_fill_gla(
   type = c("auto", "categorical", "sex", "change"),
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 
 scale_colour_gla_c(
   type = c("sequential", "diverging"),
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 
-scale_fill_gla_c(
-  type = c("sequential", "diverging"),
-  theme = c("light", "dark"),
-  ...
-)
+scale_fill_gla_c(type = c("sequential", "diverging"), theme = gla_mode(), ...)
 
 scale_color_gla(
   type = c("auto", "categorical", "sex", "change"),
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 
-scale_color_gla_c(
-  type = c("sequential", "diverging"),
-  theme = c("light", "dark"),
-  ...
-)
+scale_color_gla_c(type = c("sequential", "diverging"), theme = gla_mode(), ...)
 }
 \arguments{
 \item{type}{A palette as above. Discrete scales take \code{"auto"},
 \code{"categorical"}, \code{"sex"} or \code{"change"}; continuous ones \code{"sequential"}
 or \code{"diverging"}.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{...}{Passed to the underlying ggplot2 scale.}
 }

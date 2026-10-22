@@ -8,7 +8,7 @@ annotate_gla_projection(
   from,
   to = Inf,
   label = "Projected →",
-  theme = c("light", "dark")
+  theme = gla_mode()
 )
 }
 \arguments{
@@ -19,7 +19,7 @@ starts.}
 
 \item{label}{Text at the top of the period. \code{NULL} for none.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
 A list of ggplot2 layers.

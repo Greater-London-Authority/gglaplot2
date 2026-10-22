@@ -29,6 +29,7 @@
 #'   bundled with the package; see [gla_font()] for when it is used.
 #' @param theme `"light"` or `"dark"`. Dark reads the `-dark` tokens and is
 #'   for a chart on an inverse surface, not a dark-mode device setting.
+#'   Defaults to the mode set by [gla_mode()].
 #' @param gridlines Which axis carries gridlines: `"y"`, `"x"`, `"both"` or
 #'   `"none"`. Use `"x"` for horizontal bars.
 #' @param legend Legend position: `"top"`, `"right"`, `"bottom"` or `"none"`.
@@ -49,7 +50,7 @@
 #'   labs(title = "Variable A has fallen since 2017", subtitle = "Monthly value, GBP") +
 #'   theme_gla()
 #' @export
-theme_gla <- function(base_size = 14, base_family = gla_font(), theme = c("light", "dark"),
+theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode(),
                       gridlines = c("y", "x", "both", "none"),
                       legend = c("top", "right", "bottom", "none"),
                       axis_titles = c("x", "y", "both", "none"), ...) {
@@ -66,7 +67,7 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = c("light
     legend <- old$legend
     axis_titles <- old$axis_titles
   }
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   gridlines <- match.arg(gridlines)
   legend <- match.arg(legend)
   axis_titles <- match.arg(axis_titles)
@@ -164,9 +165,9 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = c("light
 #'   ggplot(gla_boroughs) + geom_gla_sf() + theme_gla_map()
 #' }
 #' @export
-theme_gla_map <- function(base_size = 14, base_family = gla_font(), theme = c("light", "dark"),
+theme_gla_map <- function(base_size = 14, base_family = gla_font(), theme = gla_mode(),
                           legend = c("right", "top", "bottom", "none")) {
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   legend <- match.arg(legend)
   theme_gla(base_size, base_family, theme, gridlines = "none", legend = legend,
             axis_titles = "none") +

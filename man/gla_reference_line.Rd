@@ -4,19 +4,14 @@
 \alias{gla_reference_line}
 \title{A labelled reference line}
 \usage{
-gla_reference_line(
-  y = NULL,
-  label = NULL,
-  theme = c("light", "dark"),
-  x = NULL
-)
+gla_reference_line(y = NULL, label = NULL, theme = gla_mode(), x = NULL)
 }
 \arguments{
 \item{y}{The value a horizontal line marks.}
 
 \item{label}{Text for the line. \code{NULL} for none.}
 
-\item{theme}{\code{"light"} or \code{"dark"}, to colour the rule.}
+\item{theme}{\code{"light"} or \code{"dark"}, to colour the rule. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{x}{The value a vertical line marks, instead of \code{y}.}
 }

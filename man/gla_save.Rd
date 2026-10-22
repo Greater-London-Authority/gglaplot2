@@ -10,7 +10,7 @@ gla_save(
   width = 880,
   height = 440,
   scale = 2,
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   ...
 )
 }
@@ -24,7 +24,8 @@ svg, pdf, jpeg.}
 
 \item{scale}{Device pixels per CSS pixel. 2 is a retina screen.}
 
-\item{theme}{\code{"light"} or \code{"dark"}, for the background colour.}
+\item{theme}{\code{"light"} or \code{"dark"}, for the background colour. Defaults
+to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{...}{Passed to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}.}
 }

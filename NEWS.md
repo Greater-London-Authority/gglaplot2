@@ -1,5 +1,10 @@
 # gglaplot2 0.1.0.9000
 
+* One switch for dark mode: `gla_mode("dark")` sets it for the session and
+  `with_gla_mode()` for a block of code. Every function that takes a
+  `theme` argument now defaults to the mode, so a dark chart no longer
+  needs `theme = "dark"` on the theme, the scales, the reference line and
+  the range separately. An explicit `theme` still wins for that call.
 * Forecasts: `geom_gla_line(projected_from = )` draws each line solid to
   the point and dashed from it, and `annotate_gla_projection()` adds the
   web charts' wash, rule and "Projected" label over the period.

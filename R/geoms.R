@@ -604,7 +604,7 @@ GeomGlaVline <- ggplot2::ggproto(
 #'
 #' @param y The value a horizontal line marks.
 #' @param label Text for the line. `NULL` for none.
-#' @param theme `"light"` or `"dark"`, to colour the rule.
+#' @param theme `"light"` or `"dark"`, to colour the rule. Defaults to the mode set by [gla_mode()].
 #' @param x The value a vertical line marks, instead of `y`.
 #' @return A list of ggplot2 layers.
 #' @examples
@@ -616,8 +616,8 @@ GeomGlaVline <- ggplot2::ggproto(
 #'   scale_colour_gla() +
 #'   theme_gla()
 #' @export
-gla_reference_line <- function(y = NULL, label = NULL, theme = c("light", "dark"), x = NULL) {
-  theme <- match.arg(theme)
+gla_reference_line <- function(y = NULL, label = NULL, theme = gla_mode(), x = NULL) {
+  theme <- match_mode(theme)
   if (is.null(y) == is.null(x)) stop("Give one of y or x", call. = FALSE)
   rule <- list(na.rm = TRUE, colour = unname(gla_token("data-context", theme)),
                linewidth = px(2), linetype = "42")
@@ -704,7 +704,7 @@ GeomGlaToplabel <- ggplot2::ggproto(
 #' Leave an end open with `-Inf` or `Inf`.
 #'
 #' @param xmin,xmax,ymin,ymax The extent of the range, in data units.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @return A ggplot2 layer.
 #' @examples
 #' library(ggplot2)
@@ -715,8 +715,8 @@ GeomGlaToplabel <- ggplot2::ggproto(
 #'   theme_gla()
 #' @export
 annotate_gla_range <- function(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
-                               theme = c("light", "dark")) {
-  theme <- match.arg(theme)
+                               theme = gla_mode()) {
+  theme <- match_mode(theme)
   ggplot2::annotate("rect", xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
                     fill = unname(gla_token("chart-label", theme)), alpha = 0.1, colour = NA)
 }
@@ -732,7 +732,7 @@ annotate_gla_range <- function(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
 #'   starts.
 #' @param to Where it ends. The default runs to the edge of the plot.
 #' @param label Text at the top of the period. `NULL` for none.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @return A list of ggplot2 layers.
 #' @examples
 #' library(ggplot2)
@@ -743,8 +743,8 @@ annotate_gla_range <- function(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
 #'   theme_gla()
 #' @export
 annotate_gla_projection <- function(from, to = Inf, label = "Projected \u2192",
-                                    theme = c("light", "dark")) {
-  theme <- match.arg(theme)
+                                    theme = gla_mode()) {
+  theme <- match_mode(theme)
   context <- unname(gla_token("data-context", theme))
   if (inherits(from, c("Date", "POSIXct")) && !inherits(to, class(from)[1])) {
     # an open end on a date axis, without the scale having to convert it
@@ -783,7 +783,7 @@ annotate_gla_projection <- function(from, to = Inf, label = "Projected \u2192",
 #' package.
 #'
 #' @inheritParams ggplot2::geom_sf
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param ... Other arguments passed to [ggplot2::geom_sf()].
 #' @return A list of a ggplot2 layer and a coord.
 #' @examples
@@ -792,9 +792,9 @@ annotate_gla_projection <- function(from, to = Inf, label = "Projected \u2192",
 #'   ggplot(gla_boroughs) + geom_gla_sf() + theme_gla_map()
 #' }
 #' @export
-geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = c("light", "dark"),
+geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = gla_mode(),
                         na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   dots <- list(...)
   if (is.null(dots$fill) && !"fill" %in% names(mapping)) {
     dots$fill <- unname(gla_token("data-empty", theme))

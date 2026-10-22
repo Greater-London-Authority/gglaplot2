@@ -6,13 +6,13 @@
 \usage{
 gla_show_pal(
   type = c("categorical", "sequential", "diverging", "sex", "change"),
-  theme = c("light", "dark")
+  theme = gla_mode()
 )
 }
 \arguments{
 \item{type}{Palette types to show. Default all.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
 A ggplot.

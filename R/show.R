@@ -5,16 +5,16 @@
 #' choosing one.
 #'
 #' @param type Palette types to show. Default all.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @return A ggplot.
 #' @examples
 #' gla_show_pal()
 #' gla_show_pal("sequential", theme = "dark")
 #' @export
 gla_show_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "change"),
-                         theme = c("light", "dark")) {
+                         theme = gla_mode()) {
   type <- match.arg(type, several.ok = TRUE)
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   rows <- lapply(type, function(ty) {
     pal <- gla_pal(ty, theme = theme)
     data.frame(palette = ty, position = seq_along(pal), colour = unname(pal),

@@ -17,7 +17,7 @@
 #' @param type A palette as above. Discrete scales take `"auto"`,
 #'   `"categorical"`, `"sex"` or `"change"`; continuous ones `"sequential"`
 #'   or `"diverging"`.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param ... Passed to the underlying ggplot2 scale.
 #' @return A ggplot2 scale.
 #' @examples
@@ -71,23 +71,23 @@ ScaleDiscreteGla <- ggplot2::ggproto(
 #' @rdname scale_gla
 #' @export
 scale_colour_gla <- function(type = c("auto", "categorical", "sex", "change"),
-                             theme = c("light", "dark"), ...) {
-  .gla_discrete("colour", match.arg(type), match.arg(theme), ...)
+                             theme = gla_mode(), ...) {
+  .gla_discrete("colour", match.arg(type), match_mode(theme), ...)
 }
 
 #' @rdname scale_gla
 #' @export
 scale_fill_gla <- function(type = c("auto", "categorical", "sex", "change"),
-                           theme = c("light", "dark"), ...) {
-  .gla_discrete("fill", match.arg(type), match.arg(theme), ...)
+                           theme = gla_mode(), ...) {
+  .gla_discrete("fill", match.arg(type), match_mode(theme), ...)
 }
 
 #' @rdname scale_gla
 #' @export
 scale_colour_gla_c <- function(type = c("sequential", "diverging"),
-                               theme = c("light", "dark"), ...) {
+                               theme = gla_mode(), ...) {
   type <- match.arg(type)
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   ggplot2::scale_colour_gradientn(colours = gla_pal(type, theme = theme),
                                   na.value = unname(gla_token("data-empty", theme)), ...)
 }
@@ -95,9 +95,9 @@ scale_colour_gla_c <- function(type = c("sequential", "diverging"),
 #' @rdname scale_gla
 #' @export
 scale_fill_gla_c <- function(type = c("sequential", "diverging"),
-                             theme = c("light", "dark"), ...) {
+                             theme = gla_mode(), ...) {
   type <- match.arg(type)
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   ggplot2::scale_fill_gradientn(colours = gla_pal(type, theme = theme),
                                 na.value = unname(gla_token("data-empty", theme)), ...)
 }

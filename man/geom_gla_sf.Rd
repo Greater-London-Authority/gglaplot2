@@ -8,7 +8,7 @@ geom_gla_sf(
   mapping = ggplot2::aes(),
   data = NULL,
   ...,
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -37,7 +37,7 @@ from a \code{formula} (e.g. \code{~ head(.x, 10)}).}
 
 \item{...}{Other arguments passed to \code{\link[ggplot2:geom_sf]{ggplot2::geom_sf()}}.}
 
-\item{theme}{\code{"light"} or \code{"dark"}.}
+\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{na.rm}{If \code{FALSE}, the default, missing values are removed with
 a warning. If \code{TRUE}, missing values are silently removed.}

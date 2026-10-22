@@ -213,18 +213,30 @@ ggplot(gla_monthly, aes(month, value, colour = series)) +
 
 ## Dark
 
+A chart for an inverse surface. `gla_mode("dark")` switches every function
+at once: the theme, the scales, the reference line, the range, the
+projection and the map boundaries all read their colours from the dark
+tokens, so nothing is left in light-mode grey. `with_gla_mode()` does it for
+one chart in a light document, as here.
+
 ```{r dark}
-ggplot(gla_monthly, aes(month, value, colour = series)) +
-  geom_gla_line() +
-  geom_gla_endpoint() +
-  geom_gla_endlabel(aes(label = series)) +
-  scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
-  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
-  scale_colour_gla(theme = "dark") +
-  gla_labs(
-    title = "All three variables have converged since 2020",
-    subtitle = "London monthly estimated variable value (GBP)",
-    source = "LDN Viz Tools demo data", x = NULL
-  ) +
-  theme_gla(theme = "dark", legend = "none")
+with_gla_mode("dark", {
+  ggplot(gla_monthly, aes(month, value, colour = series)) +
+    geom_gla_line() +
+    geom_gla_endpoint() +
+    geom_gla_endlabel(aes(label = series)) +
+    gla_reference_line(30000, "Target") +
+    scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla() +
+    gla_labs(
+      title = "All three variables have converged since 2020",
+      subtitle = "London monthly estimated variable value (GBP)",
+      source = "LDN Viz Tools demo data", x = NULL
+    ) +
+    theme_gla(legend = "none")
+})
 ```
+
+Every function still takes `theme = "dark"` directly, which wins over the
+mode for that one call.
