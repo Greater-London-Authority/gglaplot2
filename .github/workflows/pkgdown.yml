@@ -51,7 +51,9 @@ jobs:
 
   deploy:
     name: Publish to Pages
-    if: github.event_name == 'push' || inputs.publish
+    # a called workflow sees the caller's event, so a push to dev would read
+    # as a push here; publish on main itself, or when the caller asks
+    if: inputs.publish || github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:
