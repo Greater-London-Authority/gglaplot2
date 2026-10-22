@@ -99,6 +99,22 @@ gla_pal("sex")
 gla_pal("change")
 ```
 
+## Checking a palette
+
+The checks the palettes are held to can be run on any set of colours.
+`gla_check_palette()` is the categorical set: the lightness band, the chroma
+floor, separation between neighbours under simulated colour vision
+deficiency and under normal vision, and contrast on the surface.
+`gla_check_ramp()` is the set for an ordered ramp. The package's tests run
+both on every palette, so a token release that moves a colour out of bounds
+fails the suite rather than reaching a chart.
+
+```{r}
+gla_check_palette(gla_pal(n = 3))
+gla_check_palette(gla_pal())
+gla_check_ramp(gla_pal("sequential", 5))
+```
+
 ## Dark mode
 
 Every palette has a dark reading. Pass `theme = "dark"` to the scale when

@@ -95,6 +95,7 @@ reference:
       - gla_series_colours
       - gla_max_series
       - gla_show_pal
+      - gla_check_palette
       - scale_gla
   - title: Theme
     contents:
