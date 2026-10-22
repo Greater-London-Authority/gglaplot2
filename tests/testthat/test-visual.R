@@ -51,6 +51,14 @@ test_that("stacked and horizontal bars", {
     gla_labs(title = "Stacked", subtitle = "Yearly average, GBP", x = NULL) +
     theme_gla()
   vdiffr::expect_doppelganger("stacked bars", p)
+  g <- ggplot(gla_yearly[gla_yearly$year >= 2020, ], aes(factor(year), average, fill = series)) +
+    geom_gla_col(position = "dodge") +
+    gla_zero_line() +
+    scale_fill_gla() +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
+    gla_labs(title = "Grouped", subtitle = "Yearly average, GBP", x = NULL) +
+    theme_gla()
+  vdiffr::expect_doppelganger("grouped bars", g)
   y24 <- gla_yearly[gla_yearly$year == 2024, ]
   h <- ggplot(y24, aes(average, reorder(series, average))) +
     geom_gla_col() +

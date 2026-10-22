@@ -107,6 +107,7 @@ reference:
       - geom_gla_line
       - geom_gla_dot
       - geom_gla_col
+      - position_gla_dodge
       - geom_gla_area
       - geom_gla_endlabel
       - geom_gla_text

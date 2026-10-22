@@ -50,17 +50,47 @@ ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
 
 ## Grouped
 
+`position = "dodge"` lays the bars out the way the web charts' grouped bar
+charts do: each category's bars side by side in a slot of their own, close
+together, with a clear gap before the next category, in the series order
+the fill scale gives them. The legend stays, as it does on the web; a
+grouped chart has too many bars to label each.
+
 ```{r grouped}
-ggplot(gla_yearly, aes(factor(year), average, fill = series)) +
-  geom_gla_col(position = position_dodge(width = 0.7), width = 0.65) +
+recent <- gla_yearly[gla_yearly$year >= 2020, ]
+ggplot(recent, aes(factor(year), average, fill = series)) +
+  geom_gla_col(position = "dodge") +
   gla_zero_line() +
   scale_fill_gla() +
   scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.05))) +
   gla_labs(
-    title = "Variable A has fallen furthest", subtitle = "Yearly average value (GBP)",
+    title = "Variable A has fallen furthest", subtitle = "Yearly average value (GBP), 2020 to 2024",
     source = "LDN Viz Tools demo data", x = NULL
   ) +
   theme_gla()
+```
+
+The spacing is `position_gla_dodge()`, which can be given directly to change
+it. A category with a bar missing keeps the others at the same width rather
+than stretching them to fill the slot.
+
+## Horizontal grouped
+
+The same with the category on `y`. The web version puts each category's
+label on the left with its bars beside it; here the category is the y axis.
+
+```{r horizontal-grouped, fig.height = 4.4}
+ggplot(recent, aes(average, factor(year), fill = series)) +
+  geom_gla_col(position = "dodge") +
+  gla_zero_line("x") +
+  scale_fill_gla() +
+  scale_y_discrete(limits = rev) +
+  scale_x_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.08))) +
+  gla_labs(
+    title = "Variable A has fallen furthest", subtitle = "Yearly average value (GBP), 2020 to 2024",
+    source = "LDN Viz Tools demo data", x = NULL
+  ) +
+  theme_gla(gridlines = "x")
 ```
 
 ## Faceted

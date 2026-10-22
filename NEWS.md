@@ -1,3 +1,11 @@
+# gglaplot2 0.1.0.9000
+
+* Grouped bars: `geom_gla_col(position = "dodge")` and `geom_gla_bar()` now
+  lay the bars out as the web charts' grouped bar charts do, through
+  `position_gla_dodge()`: a wide group, close bars, a clear gap before the
+  next category, and a missing bar leaving the others at the same width.
+  Works with the category on `y`. The bar charts article shows both.
+
 # gglaplot2 0.1.0
 
 The first full build, on the visualisation team's ldn-viz-tools conventions.

@@ -11,7 +11,7 @@ geom_gla_col(
   data = NULL,
   position = "stack",
   ...,
-  width = 0.6,
+  width = NULL,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -23,7 +23,7 @@ geom_gla_bar(
   stat = "count",
   position = "stack",
   ...,
-  width = 0.6,
+  width = NULL,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -66,7 +66,7 @@ to use \code{position_jitter()}, give the position as \code{"jitter"}.
 \item{...}{Other arguments passed to \code{\link[ggplot2:layer]{ggplot2::layer()}}.}
 
 \item{width}{Bar width as a share of the slot. The default leaves a
-little under half the slot empty.}
+little under half the slot empty; a dodged group takes four fifths.}
 
 \item{na.rm}{If \code{FALSE}, the default, missing values are removed with
 a warning. If \code{TRUE}, missing values are silently removed.}
@@ -98,9 +98,20 @@ The default width leaves half the slot empty, as on the web charts.
 For horizontal bars map the category to \code{y} and use
 \code{theme_gla(gridlines = "x")}.
 }
+\details{
+Grouped bars are \code{position = "dodge"}, which here is
+\code{\link[=position_gla_dodge]{position_gla_dodge()}}: the group takes most of its slot and the bars
+inside it sit close together, as the web charts' grouped bar charts lay
+them out, with the series in the order the fill scale gives them. The
+same works with the category on \code{y}.
+}
 \examples{
 library(ggplot2)
 ggplot(gla_yearly[gla_yearly$series == "Variable A", ], aes(factor(year), average)) +
   geom_gla_col() +
+  theme_gla()
+ggplot(gla_yearly[gla_yearly$year >= 2021, ], aes(factor(year), average, fill = series)) +
+  geom_gla_col(position = "dodge") +
+  scale_fill_gla() +
   theme_gla()
 }
