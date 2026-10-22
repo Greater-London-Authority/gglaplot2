@@ -7,8 +7,13 @@ on:
   pull_request:
     branches: [dev, main]
   workflow_dispatch:
+# the site job is the pkgdown workflow called with publishing off; a called
+# workflow may not ask for more than its caller grants, so the Pages
+# permissions are granted here and go unused
 permissions:
   contents: read
+  pages: write
+  id-token: write
 concurrency:
   group: check-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

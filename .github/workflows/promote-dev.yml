@@ -12,8 +12,13 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+# the site job is the pkgdown workflow called with publishing off; a called
+# workflow may not ask for more than its caller grants, so the Pages
+# permissions are granted here and go unused
 permissions:
   contents: write
+  pages: write
+  id-token: write
 concurrency:
   group: promote-dev
   cancel-in-progress: false
