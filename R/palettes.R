@@ -27,7 +27,7 @@
 #' @param n Number of colours. Defaults to the full palette for the discrete
 #'   types and five for the ramps. A categorical request past the palette is
 #'   an error, not a recycled colour.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param ... gglaplot's arguments, for a script written against it:
 #'   `gla_theme`, `palette_type` (`"categorical"`, `"quantitative"`,
 #'   `"highlight"` or `"diverging"`), `palette_name`, `main_colours`
@@ -42,7 +42,7 @@
 #' gla_pal("sex")
 #' @export
 gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "change"),
-                    n = NULL, theme = c("light", "dark"), ...) {
+                    n = NULL, theme = gla_mode(), ...) {
   dots <- list(...)
   if (length(type) == 1 && tolower(type) %in% c("default", "inverse", "light", "dark")) {
     # gglaplot's first argument was the theme name
@@ -53,7 +53,7 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
     return(compat_gla_pal(n, if (is.character(theme)) theme[1] else "light", dots))
   }
   type <- match.arg(type)
-  theme <- match.arg(theme)
+  theme <- match_mode(theme)
   t <- function(x) unname(gla_token(x, theme))
   blues <- function(levels) t(paste0("palette-blue-", levels))
 
@@ -108,15 +108,15 @@ gla_max_series <- function() 3L
 #' [scale_colour_gla()] with `type = "auto"` applies this to a plot.
 #'
 #' @param levels The series names, in the order the scale shows them.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @return A character vector of hex colours named by level.
 #' @examples
 #' gla_series_colours(c("England", "London"))
 #' gla_series_colours(c("Inner London", "Outer London"))
 #' gla_series_colours(c("Variable A", "Variable B", "Variable C"))
 #' @export
-gla_series_colours <- function(levels, theme = c("light", "dark")) {
-  theme <- match.arg(theme)
+gla_series_colours <- function(levels, theme = gla_mode()) {
+  theme <- match_mode(theme)
   lv <- as.character(levels)
   lv <- lv[!is.na(lv)]
   t <- function(x) unname(gla_token(x, theme))

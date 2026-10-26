@@ -54,3 +54,19 @@ test_that("the continuous scales build", {
     scale_fill_gla_c("diverging")
   expect_no_error(build(q))
 })
+
+test_that("the line styles are solid then dashed, and the scale maps them in order", {
+  styles <- gla_linetypes()
+  expect_equal(unname(styles[1:2]), c("solid", "22"))
+  expect_equal(length(gla_linetypes(2)), 2)
+  expect_error(gla_linetypes(5), "facet")
+  d <- rbind(cbind(gla_yearly, kind = "Yearly average"),
+             cbind(transform(gla_yearly, average = mean(average)), kind = "Mean"))
+  p <- ggplot(d, aes(year, average, colour = series, linetype = kind)) + geom_gla_line() +
+    scale_colour_gla() + scale_linetype_gla() + theme_gla()
+  b <- build(p)
+  sc <- b$plot$scales$get_scales("linetype")
+  expect_equal(unname(sc$map(c("Mean", "Yearly average"))), c("solid", "22"))
+  expect_setequal(unique(b$data[[1]]$linetype), c("solid", "22"))
+  expect_no_error(draw(p))
+})

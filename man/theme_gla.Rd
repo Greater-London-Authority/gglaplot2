@@ -7,7 +7,7 @@
 theme_gla(
   base_size = 14,
   base_family = gla_font(),
-  theme = c("light", "dark"),
+  theme = gla_mode(),
   gridlines = c("y", "x", "both", "none"),
   legend = c("top", "right", "bottom", "none"),
   axis_titles = c("x", "y", "both", "none"),
@@ -22,7 +22,8 @@ it in the design system's proportions.}
 bundled with the package; see \code{\link[=gla_font]{gla_font()}} for when it is used.}
 
 \item{theme}{\code{"light"} or \code{"dark"}. Dark reads the \code{-dark} tokens and is
-for a chart on an inverse surface, not a dark-mode device setting.}
+for a chart on an inverse surface, not a dark-mode device setting.
+Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{gridlines}{Which axis carries gridlines: \code{"y"}, \code{"x"}, \code{"both"} or
 \code{"none"}. Use \code{"x"} for horizontal bars.}

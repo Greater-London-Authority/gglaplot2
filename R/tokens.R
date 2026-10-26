@@ -6,14 +6,14 @@
 #'
 #' @param name One or more token names as in [gla_tokens], e.g. `"text"`,
 #'   `"chart-grid"`, `"data-primary"`.
-#' @param theme `"light"` or `"dark"`.
+#' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @return A character vector of hex colours, named by token.
 #' @examples
 #' gla_token("data-primary")
 #' gla_token(c("chart-axis", "chart-grid"), theme = "dark")
 #' @export
-gla_token <- function(name, theme = c("light", "dark")) {
-  theme <- match.arg(theme)
+gla_token <- function(name, theme = gla_mode()) {
+  theme <- match_mode(theme)
   hit <- match(name, gglaplot2::gla_tokens$token)
   if (anyNA(hit)) {
     stop("Unknown token: ", paste(name[is.na(hit)], collapse = ", "), call. = FALSE)
