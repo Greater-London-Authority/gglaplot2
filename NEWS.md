@@ -7,6 +7,11 @@
   version. `v0.1.0` marks the first full build. The gglaplot names stay
   for the whole 0.x series; the last 0.x release warns on every call and
   1.0 removes them.
+* The ramp scales, `scale_*_gla_c()` and `scale_*_gla_b()`, draw their
+  guide vertical on the right whatever the theme's legend position. Under
+  `theme_gla()` a ramp sat horizontal above the chart, in the place meant
+  for series keys. `legend = "none"` still hides it and a `guide` passed to
+  the scale wins.
 * Diverging scales count out from zero. `scale_fill_gla_b()` and
   `scale_colour_gla_b()` are stepped scales for maps. The diverging one
   makes zero a break, gives each side as many steps as it has bins, and

@@ -165,3 +165,25 @@ test_that("the line styles are solid then dashed, and the scale maps them in ord
   expect_setequal(unique(b$data[[1]]$linetype), c("solid", "22"))
   expect_no_error(draw(p))
 })
+
+test_that("the ramp guides stand on the right whatever the theme's legend position", {
+  drawn_at <- function(p) {
+    f <- tempfile(fileext = ".png")
+    ragg::agg_png(f)
+    on.exit({
+      grDevices::dev.off()
+      unlink(f)
+    }, add = TRUE)
+    g <- ggplot2::ggplotGrob(p)
+    is_box <- grepl("^guide-box-", g$layout$name)
+    drawn <- vapply(g$grobs[is_box], function(x) !inherits(x, "zeroGrob"), logical(1))
+    sub("^guide-box-", "", g$layout$name[is_box][drawn])
+  }
+  p <- ggplot(lopsided, aes(x, y, fill = v)) + geom_point(shape = 21)
+  expect_equal(drawn_at(p + scale_fill_gla_b("diverging") + theme_gla()), "right")
+  expect_equal(drawn_at(p + scale_fill_gla_c() + theme_gla(legend = "bottom")), "right")
+  expect_equal(drawn_at(p + scale_fill_gla_b("diverging") + theme_gla(legend = "none")),
+               character())
+  # a guide passed to the scale keeps the theme's position
+  expect_equal(drawn_at(p + scale_fill_gla_b("diverging", guide = "bins") + theme_gla()), "top")
+})
