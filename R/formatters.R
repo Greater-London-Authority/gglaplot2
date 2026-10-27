@@ -81,7 +81,7 @@ label_gla_percent <- function(accuracy = 1, scale = 100, ...) {
 #' @rdname label_gla
 #' @export
 label_gla_pounds <- function(accuracy = NULL, scale = 1, suffix = "", short = FALSE, ...) {
-  label_gla_number(accuracy = accuracy, scale = scale, prefix = "£", suffix = suffix,
+  label_gla_number(accuracy = accuracy, scale = scale, prefix = "\u00a3", suffix = suffix,
                    short = short, ...)
 }
 
