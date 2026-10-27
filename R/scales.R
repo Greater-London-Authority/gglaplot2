@@ -24,7 +24,13 @@
 #' stretching to the darkest. A bin that holds the midpoint takes the
 #' neutral. Breaks, labels and limits are ggplot2's; where one area is far
 #' from the rest, set `limits` and the values beyond take the end step,
-#' which a note on the chart should say.
+#' which a note on the chart should say. `steps` fixes how many bins each
+#' side has: `steps = 3` is three below and three above, `steps = c(2, 4)`
+#' two below and four above. Each side then takes its own step width,
+#' rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
+#' large fall gets narrow blue steps rather than being stretched; with
+#' `limits` set, the steps divide them exactly. The count holds as the data
+#' changes, where `breaks` would need resetting.
 #'
 #' Both ramps draw their guide vertical on the right, whatever legend
 #' position the theme sets, because a ramp reads top to bottom and the
@@ -40,6 +46,9 @@
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param midpoint For the diverging scales, the value the neutral sits at
 #'   and the bins are counted from. Default 0.
+#' @param steps For the diverging binned scales, how many bins each side of
+#'   the midpoint has: one number for both sides or `c(below, above)`.
+#'   `NULL`, the default, counts ggplot2's step out from the midpoint.
 #' @param ... Passed to the underlying ggplot2 scale.
 #' @return A ggplot2 scale.
 #' @examples
@@ -153,9 +162,12 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
   "ScaleBinnedGlaDiverging", ggplot2::ScaleBinned,
   midpoint = 0,
   theme_mode = "light",
+  steps = NULL,
   # ggplot2's default breaks, then the same step counted out from the
   # midpoint so it is always a break; without limits from the caller the
-  # limits widen to whole bins, as ggplot2's do
+  # limits widen to whole bins, as ggplot2's do. With steps, each side is
+  # cut into that many bins of its own rounded width, or of the width that
+  # divides limits the caller set.
   get_breaks = function(self, limits = self$get_limits()) {
     if (!inherits(self$breaks, "waiver") || !self$nice.breaks) {
       return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
@@ -164,8 +176,23 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     transformation <- self$get_transformation()
     lim <- sort(transformation$inverse(limits))
     if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
-    step <- break_step(lim, self$n.breaks %||% 5)
     mid <- self$midpoint
+    if (!is.null(self$steps)) {
+      n <- rep_len(self$steps, 2)
+      fixed <- !is.null(self$limits)
+      width <- function(extent, k) if (fixed) extent / k else nice_step(extent / k)
+      down <- width(max(mid - lim[1], 0), n[1])
+      up <- width(max(lim[2] - mid, 0), n[2])
+      if (!fixed) {
+        lim <- c(mid - n[1] * down, mid + n[2] * up)
+        self$limits <- transformation$transform(lim)
+      }
+      breaks <- c(mid - down * seq_len(n[1] - 1), mid, mid + up * seq_len(n[2] - 1))
+      breaks <- sort(breaks[breaks > lim[1] & breaks < lim[2]])
+      self$breaks <- breaks
+      return(transformation$transform(breaks))
+    }
+    step <- break_step(lim, self$n.breaks %||% 5)
     steps_out <- function(x, f) f(round((x - mid) / step, 8))
     if (is.null(self$limits)) {
       lim <- mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling))
@@ -200,6 +227,15 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
   }
 )
 
+# a step of 1, 2, 2.5, 3, 4 or 5 times a power of ten, the first at or
+# above x, so a side of fixed bins wastes as little of its end bin as it can
+nice_step <- function(x) {
+  if (x <= 0) return(0)
+  p <- 10^floor(log10(x))
+  steps <- c(1, 2, 2.5, 3, 4, 5, 10)
+  p * steps[which(steps >= x / p - 1e-9)[1]]
+}
+
 # the step ggplot2's extended breaks would use over these limits
 break_step <- function(limits, n) {
   ext <- scales::breaks_extended(n)(limits)
@@ -219,10 +255,21 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   out
 }
 
-.gla_binned <- function(aesthetic, type, theme, midpoint, ...) {
+.gla_binned <- function(aesthetic, type, theme, midpoint, steps, ...) {
   args <- list(...)
   args$guide <- args$guide %||% ramp_guide(ggplot2::guide_coloursteps)
   empty <- unname(gla_token("data-empty", theme))
+  if (!is.null(steps)) {
+    if (type != "diverging") {
+      stop("`steps` is for the diverging scale; the sequential one takes ggplot2's `n.breaks`",
+           call. = FALSE)
+    }
+    whole <- is.numeric(steps) && length(steps) %in% 1:2 && all(steps >= 1 & steps == round(steps))
+    if (!whole) {
+      stop("`steps` must be a whole number of bins, one for both sides or c(below, above)",
+           call. = FALSE)
+    }
+  }
   if (type == "sequential") {
     return(rlang::exec(ggplot2::binned_scale, aesthetic,
                        palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
@@ -233,21 +280,22 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
                     super = ScaleBinnedGlaDiverging, !!!args)
   sc$midpoint <- midpoint
   sc$theme_mode <- theme
+  sc$steps <- steps
   sc
 }
 
 #' @rdname scale_gla
 #' @export
 scale_colour_gla_b <- function(type = c("sequential", "diverging"),
-                               theme = gla_mode(), midpoint = 0, ...) {
-  .gla_binned("colour", match.arg(type), match_mode(theme), midpoint, ...)
+                               theme = gla_mode(), midpoint = 0, steps = NULL, ...) {
+  .gla_binned("colour", match.arg(type), match_mode(theme), midpoint, steps, ...)
 }
 
 #' @rdname scale_gla
 #' @export
 scale_fill_gla_b <- function(type = c("sequential", "diverging"),
-                             theme = gla_mode(), midpoint = 0, ...) {
-  .gla_binned("fill", match.arg(type), match_mode(theme), midpoint, ...)
+                             theme = gla_mode(), midpoint = 0, steps = NULL, ...) {
+  .gla_binned("fill", match.arg(type), match_mode(theme), midpoint, steps, ...)
 }
 
 #' @rdname scale_gla

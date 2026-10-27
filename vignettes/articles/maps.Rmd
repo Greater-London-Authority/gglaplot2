@@ -76,6 +76,19 @@ ggplot(b) +
   theme_gla_map()
 ```
 
+To fix how many bins each side has, whatever the data does, set `steps`:
+`steps = 3` is three below and three above, `steps = c(2, 4)` two and four.
+Each side takes its own rounded step width, so the smaller side is not
+stretched to match the larger.
+
+```{r steps}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3) +
+  gla_labs(title = "Three steps each side", subtitle = "Percentage points, synthetic data") +
+  theme_gla_map()
+```
+
 Where one area sits so far out that it takes the detail from the rest, set
 `limits`. Values beyond them take the end step, and the chart should say so.
 

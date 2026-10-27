@@ -187,3 +187,44 @@ test_that("the ramp guides stand on the right whatever the theme's legend positi
   # a guide passed to the scale keeps the theme's position
   expect_equal(drawn_at(p + scale_fill_gla_b("diverging", guide = "bins") + theme_gla()), "top")
 })
+
+test_that("steps fixes the bins each side of the midpoint", {
+  # -5 to 2: three a side, each side at its own rounded width
+  d <- data.frame(x = 1:7, y = 1, v = c(-5, -3, -1, 0.5, 1.5, 2.5, -4.5))
+  three <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", steps = 3)
+  sc <- fill_scale(three)
+  expect_equal(sc$get_breaks(), c(-4, -2, 0, 1, 2))
+  expect_equal(sc$get_limits(), c(-6, 3))
+  expect_equal(length(unique(fills(three))), 6)
+  # a different count each side
+  uneven <- ggplot(lopsided, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", steps = c(2, 4))
+  br <- fill_scale(uneven)$get_breaks()
+  expect_equal(sum(br < 0), 1)
+  expect_equal(sum(br > 0), 3)
+  expect_true(0 %in% br)
+  # with limits the steps divide them exactly
+  fixed <- ggplot(lopsided, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", steps = 3, limits = c(-6, 3))
+  expect_equal(fill_scale(fixed)$get_breaks(), c(-4, -2, 0, 1, 2))
+  # data all on one side leaves the other side empty
+  falls <- ggplot(data.frame(x = 1:3, y = 1, v = c(-8, -3, -1)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b("diverging", steps = 3)
+  expect_equal(fill_scale(falls)$get_breaks(), c(-6, -3))
+  expect_equal(fill_scale(falls)$get_limits(), c(-9, 0))
+  # the midpoint moves with it
+  shifted <- ggplot(data.frame(x = 1:4, y = 1, v = c(95, 98, 101, 104)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b("diverging", midpoint = 100, steps = 2)
+  expect_equal(fill_scale(shifted)$get_breaks(), c(97.5, 100, 102))
+  expect_error(scale_fill_gla_b("sequential", steps = 3), "diverging")
+  expect_error(scale_fill_gla_b("diverging", steps = 2.5), "whole number")
+  expect_error(scale_fill_gla_b("diverging", steps = c(1, 2, 3)), "whole number")
+  expect_equal(nice_step(1.67), 2)
+  expect_equal(nice_step(0.67), 1)
+  expect_equal(nice_step(12.7), 20)
+  expect_equal(nice_step(2.67), 3)
+  expect_equal(nice_step(3.2), 4)
+  expect_equal(nice_step(2.5), 2.5)
+  expect_equal(nice_step(0), 0)
+})

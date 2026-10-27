@@ -1,5 +1,10 @@
 # gglaplot2 0.1.0.9000
 
+* `scale_*_gla_b("diverging", steps = 3)` fixes three bins each side of
+  the midpoint, or `steps = c(2, 4)` for a different count each side. Each
+  side takes its own rounded step width, and with `limits` the steps
+  divide them exactly, so the count holds as the data changes where
+  `breaks` would need resetting.
 * Releases are tagged by the promotion: a pull request that sets a release
   version in `DESCRIPTION` and heads `NEWS.md` with it tags `main` as
   `v<version>` when it lands, makes the GitHub release from that section
