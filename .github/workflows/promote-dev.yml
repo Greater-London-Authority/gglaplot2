@@ -8,6 +8,12 @@
 # directly and no longer sits behind dev, the job fails rather than forcing,
 # and the fix is to merge main into dev and push again.
 #
+# A release is a pull request that sets a release version in DESCRIPTION
+# and heads NEWS.md with it. When that lands and promotes, the release job
+# tags main as v<version>, makes the GitHub release from that section of
+# NEWS.md, and opens the pull request that starts the next development
+# version on dev. A development version, with four parts, releases nothing.
+#
 # The site is published here too, after the move. A push made by a workflow
 # with the built-in token does not start other workflows, so the push to
 # main cannot trigger the site workflow on its own. The site job builds it
@@ -22,11 +28,14 @@ on:
   workflow_dispatch:
 # the site job is the pkgdown workflow called with publishing off, and a
 # called workflow may not ask for more than its caller grants; the Pages
-# permissions are for the publish job
+# permissions are for the publish job, the pull request and actions ones
+# for the release job
 permissions:
   contents: write
   pages: write
   id-token: write
+  pull-requests: write
+  actions: write
 concurrency:
   group: promote-dev
   cancel-in-progress: false
@@ -67,3 +76,56 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  release:
+    name: Tag the release
+    needs: promote
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Tag main and make the release when DESCRIPTION carries a release version
+        id: tag
+        run: |
+          version=$(sed -n 's/^Version: *//p' DESCRIPTION)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$version is a development version; nothing to release."
+            exit 0
+          fi
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "v$version is already released."
+            exit 0
+          fi
+          # the version's section of NEWS.md, up to the next heading
+          awk -v h="# gglaplot2 $version" '$0 == h {on = 1; next} /^# / {on = 0} on' NEWS.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::NEWS.md has no section headed '# gglaplot2 $version', so there are no release notes."
+            exit 1
+          fi
+          gh release create "v$version" --target main --title "gglaplot2 $version" --notes-file "$RUNNER_TEMP/notes.md"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request that starts the next development version
+        if: steps.tag.outputs.version != ''
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          branch="dev-after-$VERSION"
+          git fetch origin dev
+          git checkout -b "$branch" origin/dev
+          sed -i "s/^Version: .*/Version: $VERSION.9000/" DESCRIPTION
+          { printf '# gglaplot2 %s.9000\n\n' "$VERSION"; cat NEWS.md; } > "$RUNNER_TEMP/NEWS.md"
+          mv "$RUNNER_TEMP/NEWS.md" NEWS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -am "Start the development version after $VERSION"
+          git push origin "$branch"
+          gh pr create --base dev --head "$branch" \
+            --title "Start the development version after $VERSION" \
+            --body "v$VERSION is tagged and released. This moves DESCRIPTION to $VERSION.9000 and opens a new heading in NEWS.md for what comes next."
+          # a pull request made with the workflow token does not start the check itself
+          gh workflow run R-CMD-check.yml --ref "$branch"

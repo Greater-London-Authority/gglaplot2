@@ -1,5 +1,12 @@
 # gglaplot2 0.1.0.9000
 
+* Releases are tagged by the promotion: a pull request that sets a release
+  version in `DESCRIPTION` and heads `NEWS.md` with it tags `main` as
+  `v<version>` when it lands, makes the GitHub release from that section
+  of the notes and opens the pull request that starts the next development
+  version. `v0.1.0` marks the first full build. The gglaplot names stay
+  for the whole 0.x series; the last 0.x release warns on every call and
+  1.0 removes them.
 * The ramp scales, `scale_*_gla_c()` and `scale_*_gla_b()`, draw their
   guide vertical on the right whatever the theme's legend position. Under
   `theme_gla()` a ramp sat horizontal above the chart, in the place meant

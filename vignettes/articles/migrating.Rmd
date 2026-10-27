@@ -29,6 +29,13 @@ primary against context grey.
 New code should use the new names. This page lists them side by side, then
 rewrites gglaplot's own README example.
 
+## How long the old names stay
+
+For the whole 0.x series. A script that runs today runs on every 0.x
+release. The last 0.x release turns the once-a-session note into a warning
+on every call, and 1.0 removes the old names, so there is a release's notice
+to move. The list below is what to move with.
+
 ## The names
 
 | gglaplot | gglaplot2 | Notes |
