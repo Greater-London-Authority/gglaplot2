@@ -105,23 +105,18 @@
       4 Single hue           fail  
         detail                                            
       1 steps run light to dark                           
-      2 steps closer than 0.06: #e99890 to #bdc0c2 (0.047)
+      2 steps closer than 0.06: #ff8478 to #bdc0c2 (0.057)
       3 #bdc0c2 at 1.83:1 on #ffffff                      
-      4 hue spread 149 degrees                            
+      4 hue spread 150 degrees                            
 
 ---
 
     Code
       print(gla_check_ramp(div[4:7]), right = FALSE)
     Output
-        check                result
-      1 Lightness monotone   pass  
-      2 Step gap             fail  
-      3 Palest step contrast fail  
-      4 Single hue           pass  
-        detail                                            
-      1 steps run light to dark                           
-      2 steps closer than 0.06: #bdc0c2 to #82b3e1 (0.057)
-      3 #bdc0c2 at 1.83:1 on #ffffff                      
-      4 hue spread 14 degrees                             
+        check                result detail                        
+      1 Lightness monotone   pass   steps run light to dark       
+      2 Step gap             pass   every step at least 0.06 apart
+      3 Palest step contrast fail   #bdc0c2 at 1.83:1 on #ffffff  
+      4 Single hue           pass   hue spread 15 degrees         
 

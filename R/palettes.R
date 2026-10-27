@@ -16,8 +16,16 @@
 #' carry more, label the series directly.
 #'
 #' `"sequential"` is the blue ramp, light to dark, interpolated to `n`.
-#' `"diverging"` runs red through a neutral grey to blue, the same colours
-#' the `change` palette uses for down and up. `"sex"` is purple for women
+#' `"diverging"` is red for down and blue for up, the hues the `change`
+#' palette uses, as steps: `n` colours with a neutral grey in the middle
+#' when `n` is odd and none when it is even, or `n = c(down, up)` for a
+#' different number of steps each side and no neutral. Each side is cut
+#' from a ramp of the longer side's length, from the light end, so a step
+#' the same distance from the centre is the same depth of colour on either
+#' side and the shorter side stops at a lighter colour rather than reaching
+#' the darkest. The steps run from the 400 to the 800 level of the token
+#' ramps, the lightest that holds 2:1 against the surface and reads apart
+#' from the neutral. `"sex"` is purple for women
 #' and green for men, named by both spellings a source might use.
 #' `"change"` is `up` (blue) and `down` (red): a value rising is coloured by
 #' the token, not by arithmetic sign.
@@ -25,8 +33,9 @@
 #' @param type One of `"categorical"`, `"sequential"`, `"diverging"`,
 #'   `"sex"`, `"change"`.
 #' @param n Number of colours. Defaults to the full palette for the discrete
-#'   types and five for the ramps. A categorical request past the palette is
-#'   an error, not a recycled colour.
+#'   types and five for the ramps. For `"diverging"`, `c(down, up)` gives
+#'   each side its own count. A categorical request past the palette is an
+#'   error, not a recycled colour.
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param ... gglaplot's arguments, for a script written against it:
 #'   `gla_theme`, `palette_type` (`"categorical"`, `"quantitative"`,
@@ -39,6 +48,8 @@
 #' @examples
 #' gla_pal()
 #' gla_pal("sequential", 7)
+#' gla_pal("diverging", 7)
+#' gla_pal("diverging", c(4, 1))
 #' gla_pal("sex")
 #' @export
 gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "change"),
@@ -54,6 +65,7 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
   }
   type <- match.arg(type)
   theme <- match_mode(theme)
+  if (type == "diverging") return(diverging_steps(n %||% 5, theme))
   t <- function(x) unname(gla_token(x, theme))
   blues <- function(levels) t(paste0("palette-blue-", levels))
 
@@ -65,14 +77,13 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
       c("primary", "secondary", "tertiary", "turquoise", "purple", "red", "green", "yellow")
     ),
     sequential = blues(c(100, 300, 500, 700, 900)),
-    diverging = c(t(paste0("palette-red-", c(700, 400))), t("data-neutral-0"), blues(c(400, 700))),
     sex = stats::setNames(t(c("data-female", "data-male", "data-female", "data-male")),
                           c("Women", "Men", "Female", "Male")),
     change = stats::setNames(t(c("data-positive", "data-negative")), c("up", "down"))
   )
 
   if (is.null(n)) return(pal)
-  if (type %in% c("sequential", "diverging")) {
+  if (type == "sequential") {
     return(grDevices::colorRampPalette(pal)(n))
   }
   if (n > length(pal)) {
@@ -80,6 +91,43 @@ gla_pal <- function(type = c("categorical", "sequential", "diverging", "sex", "c
                  type, length(pal), n), call. = FALSE)
   }
   pal[seq_len(n)]
+}
+
+# k steps of one hue for a stepped ramp, cut from the token ramp between two
+# levels (nearest the neutral first), through the levels between, so five
+# steps from 400 to 800 are the tokens themselves and another count sits on
+# the ramp the design system drew. The tokens are a hundred apart and
+# already even in lightness, so a straight blend between neighbours holds
+# the ramp. The dark tokens run the other way, so the same levels give the
+# step nearest the neutral in either mode.
+ramp_steps <- function(hue, k, levels = c(400, 800), theme = gla_mode()) {
+  if (k < 1) return(character())
+  stops <- unname(gla_token(paste0("palette-", hue, "-", seq(levels[1], levels[2], by = 100)),
+                            theme))
+  if (k == length(stops)) return(stops)
+  tolower(grDevices::colorRampPalette(stops)(k))
+}
+
+# the diverging palette as steps, red for down and blue for up. n is one
+# count (odd for a neutral centre, even for none) or c(down, up) with no
+# neutral. Both sides are cut from one ramp of the longer side's length,
+# from the light end, so a step the same distance from the centre is the
+# same depth whichever side it is on.
+diverging_steps <- function(n, theme = gla_mode()) {
+  if (!is.numeric(n) || !length(n) %in% 1:2 || any(n < 0) || any(n != round(n))) {
+    stop("For the diverging palette n is one count or c(down, up)", call. = FALSE)
+  }
+  if (length(n) == 1) {
+    neutral <- n %% 2 == 1
+    sides <- rep((n - neutral) / 2, 2)
+  } else {
+    neutral <- FALSE
+    sides <- n
+  }
+  m <- max(sides)
+  down <- rev(ramp_steps("red", m, theme = theme)[seq_len(sides[1])])
+  up <- ramp_steps("blue", m, theme = theme)[seq_len(sides[2])]
+  c(down, if (neutral) unname(gla_token("data-neutral-0", theme)), up)
 }
 
 #' The number of categorical series colour can carry on one chart

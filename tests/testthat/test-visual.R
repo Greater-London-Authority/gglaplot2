@@ -112,6 +112,15 @@ test_that("a choropleth", {
     gla_labs(title = "Choropleth", subtitle = "Letters in the name") +
     theme_gla_map()
   vdiffr::expect_doppelganger("choropleth", p)
+  b <- gla_boroughs
+  b$change <- seq(-3, 4, length.out = nrow(b))
+  b$change[b$name == "Tower Hamlets"] <- -38
+  q <- ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", name = NULL) +
+    gla_labs(title = "Diverging steps", subtitle = "One borough far below the rest") +
+    theme_gla_map()
+  vdiffr::expect_doppelganger("diverging choropleth", q)
 })
 
 test_that("the swatch charts", {
