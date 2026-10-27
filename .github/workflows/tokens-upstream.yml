@@ -1,19 +1,34 @@
-# Looks at the latest @ldn-viz/themes release on npm every Monday and runs
-# the token build against it in a scratch copy, without committing anything.
-# It fails when the release has dropped or renamed a token this package
-# reads, so an upstream change is known the week it happens and the refresh
-# is planned rather than discovered at the next release. The log lists every
-# token the release adds, removes or changes against the data on dev.
+# Looks at the latest @ldn-viz/themes release on npm every Monday. When the
+# vendored release is behind it, the job runs the refresh script against the
+# new release, regenerates the documentation and opens a pull request to
+# dev, with every token the release adds, removes or changes in the body, so
+# the refresh is reviewed the week it happens rather than discovered at the
+# next release. A release that drops or renames a token this package reads
+# fails the refresh with the token's name, and the job fails with it.
+#
+# A pull request opened with the workflow token does not start the check on
+# its own, so the job dispatches it on the branch; the run shows against the
+# pull request's commit. A dispatch can name a release to refresh to.
 name: Upstream tokens
 on:
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
+    inputs:
+      version:
+        description: A release to refresh to, instead of the latest
+        type: string
+        default: ""
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
+  actions: write
+concurrency:
+  group: upstream-tokens
+  cancel-in-progress: false
 jobs:
-  compare:
-    name: Compare the latest release
+  refresh:
+    name: Refresh to the latest release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,16 +39,27 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Fetch the latest release and build the tokens from it
+      - name: Compare the vendored release with npm
+        id: compare
         shell: Rscript {0}
+        env:
+          WANTED: ${{ inputs.version }}
         run: |
           source("R/tokens-source.R")
           vendored <- read_token_files("inst/tokens")$version
-          meta <- paste(readLines(url("https://registry.npmjs.org/@ldn-viz/themes/latest"), warn = FALSE), collapse = "")
-          latest <- regmatches(meta, regexec('"version"\\s*:\\s*"([^"]+)"', meta))[[1]][2]
+          wanted <- Sys.getenv("WANTED")
+          if (nzchar(wanted)) {
+            latest <- wanted
+          } else {
+            meta <- paste(readLines(url("https://registry.npmjs.org/@ldn-viz/themes/latest"), warn = FALSE), collapse = "")
+            latest <- regmatches(meta, regexec('"version"\\s*:\\s*"([^"]+)"', meta))[[1]][2]
+          }
           cat("Vendored", vendored, "- latest on npm", latest, "\n")
+          outputs <- Sys.getenv("GITHUB_OUTPUT")
+          cat("version=", latest, "\n", sep = "", file = outputs, append = TRUE)
           if (identical(vendored, latest)) {
             cat("Up to date\n")
+            cat("refresh=false\n", file = outputs, append = TRUE)
             quit(status = 0)
           }
           work <- tempfile()
@@ -41,27 +67,106 @@ jobs:
           tarball <- sprintf("https://registry.npmjs.org/@ldn-viz/themes/-/themes-%s.tgz", latest)
           download.file(tarball, file.path(work, "package.tgz"), mode = "wb", quiet = TRUE)
           untar(file.path(work, "package.tgz"), exdir = work)
-          styles <- file.path(work, "package", "styles")
-          src <- read_token_files(styles)
-          built <- build_token_data(src)
+          src <- read_token_files(file.path(work, "package", "styles"))
+          new <- build_token_data(src)$gla_tokens
           env <- new.env()
           load("data/gla_tokens.rda", envir = env)
           old <- env$gla_tokens
-          new <- built$gla_tokens
           added <- setdiff(new$token, old$token)
           removed <- setdiff(old$token, new$token)
           common <- intersect(new$token, old$token)
           a <- new[match(common, new$token), ]
           b <- old[match(common, old$token), ]
           changed <- common[a$light != b$light | a$dark != b$dark]
-          cat(sprintf("Release %s against dev: %d added, %d removed, %d changed\n",
-                      latest, length(added), length(removed), length(changed)))
-          if (length(added)) cat("  added:  ", paste(added, collapse = ", "), "\n")
-          if (length(removed)) cat("  removed:", paste(removed, collapse = ", "), "\n")
-          for (t in changed) {
-            cat(sprintf("  %s: %s/%s -> %s/%s\n", t, b$light[b$token == t], b$dark[b$token == t],
-                        a$light[a$token == t], a$dark[a$token == t]))
+          # the token diff, as the pull request body and the run summary
+          counts <- sprintf("%d added, %d removed, %d changed", length(added), length(removed), length(changed))
+          cat("counts=", counts, "\n", sep = "", file = outputs, append = TRUE)
+          lines <- c(sprintf("Tokens against %s: %s.", vendored, counts), "")
+          if (length(added)) lines <- c(lines, "Added:", "", paste0("- `", added, "`"), "")
+          if (length(removed)) lines <- c(lines, "Removed:", "", paste0("- `", removed, "`"), "")
+          if (length(changed)) {
+            lines <- c(lines, "Changed (light/dark):", "",
+                       sprintf("- `%s`: %s/%s to %s/%s", changed, b$light[match(changed, b$token)], b$dark[match(changed, b$token)],
+                               a$light[match(changed, a$token)], a$dark[match(changed, a$token)]), "")
           }
-          # the part that would break a chart
+          writeLines(lines, file.path(Sys.getenv("RUNNER_TEMP"), "tokens.md"))
+          cat(lines, sep = "\n")
+          cat(lines, sep = "\n", file = Sys.getenv("GITHUB_STEP_SUMMARY"), append = TRUE)
+          # the part that would break a chart: fail here, before anything is written
           check_required_tokens(new$token)
-          cat("Every token the package reads is still there. Run data-raw/refresh-tokens.R", latest, "when ready.\n")
+          cat("refresh=true\n", file = outputs, append = TRUE)
+
+      - name: Look for a pull request already open for the release
+        id: branch
+        if: steps.compare.outputs.refresh == 'true'
+        run: |
+          branch="tokens/${{ steps.compare.outputs.version }}"
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "$branch is already on the remote, so the refresh is already up for review."
+            echo "open=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "open=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.branch.outputs.open == 'true'
+        with:
+          extra-packages: any::usethis, any::roxygen2
+
+      - name: Refresh the tokens and the documentation
+        if: steps.branch.outputs.open == 'true'
+        shell: Rscript {0}
+        env:
+          VERSION: ${{ steps.compare.outputs.version }}
+          COUNTS: ${{ steps.compare.outputs.counts }}
+        run: |
+          version <- Sys.getenv("VERSION")
+          status <- system2("Rscript", c("data-raw/refresh-tokens.R", version))
+          if (status != 0) stop("data-raw/refresh-tokens.R failed; see the log above")
+          # the roxygen2 release the man pages were written with, as in the check
+          desc <- read.dcf("DESCRIPTION")
+          field <- intersect(c("Config/roxygen2/version", "RoxygenNote"), colnames(desc))[1]
+          wanted <- desc[1, field]
+          if (!identical(as.character(packageVersion("roxygen2")), wanted)) {
+            pak::pkg_install(paste0("roxygen2@", wanted))
+          }
+          roxygen2::roxygenise()
+          # a line in NEWS under the development heading
+          news <- readLines("NEWS.md")
+          entry <- c(sprintf("* Tokens refreshed to `@ldn-viz/themes` %s: %s.", version, Sys.getenv("COUNTS")), "")
+          writeLines(c(news[1], "", entry, news[-(1:2)]), "NEWS.md")
+
+      - name: Open the pull request
+        if: steps.branch.outputs.open == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.compare.outputs.version }}
+          COUNTS: ${{ steps.compare.outputs.counts }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -q -F - <<EOF
+          Refresh the tokens to @ldn-viz/themes $VERSION
+
+          Tokens: $COUNTS. The weekly upstream job made this from
+          data-raw/refresh-tokens.R.
+          EOF
+          git push origin "$BRANCH"
+          {
+            echo "The weekly check found @ldn-viz/themes $VERSION on npm. This is data-raw/refresh-tokens.R run against it, with the documentation regenerated."
+            echo
+            cat "$RUNNER_TEMP/tokens.md"
+            echo "Before merging:"
+            echo
+            echo "- [ ] If the reference leg fails on visual snapshots, review them with testthat::snapshot_review() and push"
+            echo "- [ ] Refresh the Rhino dashboard template from the same release so the two stay byte-identical (template issue #14)"
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base dev --head "$BRANCH" \
+            --title "Refresh the tokens to @ldn-viz/themes $VERSION" \
+            --body-file "$RUNNER_TEMP/body.md"
+          # a pull request made with the workflow token does not start the check itself
+          gh workflow run R-CMD-check.yml --ref "$BRANCH"
