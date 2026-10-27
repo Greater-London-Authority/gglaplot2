@@ -26,6 +26,11 @@
 #' from the rest, set `limits` and the values beyond take the end step,
 #' which a note on the chart should say.
 #'
+#' Both ramps draw their guide vertical on the right, whatever legend
+#' position the theme sets, because a ramp reads top to bottom and the
+#' theme's top position is for series keys. `theme_gla(legend = "none")`
+#' still hides it, and a `guide` passed to the scale wins.
+#'
 #' Missing values take `data-empty`. `scale_color_*` spellings are
 #' provided as aliases.
 #'
@@ -107,11 +112,17 @@ scale_fill_gla <- function(type = c("auto", "categorical", "sex", "change"),
   .gla_discrete("fill", match.arg(type), match_mode(theme), ...)
 }
 
+# a ramp reads top to bottom, so its guide stands on the right whatever the
+# theme's legend position; the theme's "none" still hides it
+ramp_guide <- function(constructor) {
+  constructor(position = "right", direction = "vertical")
+}
+
 # a smooth ramp; the diverging one rescaled so the midpoint, not the middle
 # of the data, is the neutral
 .gla_continuous <- function(aesthetic, type, theme, midpoint, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% "colourbar"
+  args$guide <- args$guide %||% ramp_guide(ggplot2::guide_colourbar)
   if (type == "diverging") {
     args$rescaler <- args$rescaler %||% function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) {
       scales::rescale_mid(x, to, from, mid = midpoint)
@@ -210,7 +221,7 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
 
 .gla_binned <- function(aesthetic, type, theme, midpoint, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% "coloursteps"
+  args$guide <- args$guide %||% ramp_guide(ggplot2::guide_coloursteps)
   empty <- unname(gla_token("data-empty", theme))
   if (type == "sequential") {
     return(rlang::exec(ggplot2::binned_scale, aesthetic,
