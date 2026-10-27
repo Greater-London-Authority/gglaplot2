@@ -1,9 +1,9 @@
-# The documentation site. The promotion publishes it to GitHub Pages after
-# it moves main, the way the visualisation team's Storybook is published;
-# a push to main by hand or a dispatch on main publishes it too. Called from
-# the pull request check and the promotion's verify with publish off, it
-# builds the site and keeps the result as an artifact, so a broken article
-# fails the check before it lands and never reaches main.
+# The documentation site. Called from the pull request check and the
+# promotion with publish off, it builds the site and keeps the result as
+# the run's Pages artifact, so a broken article fails the check before it
+# lands and never reaches main; the promotion deploys that artifact once
+# main has moved, the way the visualisation team's Storybook is published.
+# A push to main by hand or a dispatch on main builds and publishes here.
 name: pkgdown
 on:
   push:

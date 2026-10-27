@@ -10,15 +10,19 @@
 #
 # The site is published here too, after the move. A push made by a workflow
 # with the built-in token does not start other workflows, so the push to
-# main cannot trigger the site workflow on its own.
+# main cannot trigger the site workflow on its own. The site job builds it
+# once and keeps it as the run's Pages artifact; the publish job deploys
+# that same artifact rather than building again, which would leave two
+# artifacts of the same name in the run and the deployment refusing to
+# choose between them.
 name: Promote dev to main
 on:
   push:
     branches: [dev]
   workflow_dispatch:
-# the site job is the pkgdown workflow called with publishing off; a called
-# workflow may not ask for more than its caller grants, so the Pages
-# permissions are granted here and go unused
+# the site job is the pkgdown workflow called with publishing off, and a
+# called workflow may not ask for more than its caller grants; the Pages
+# permissions are for the publish job
 permissions:
   contents: write
   pages: write
@@ -54,7 +58,12 @@ jobs:
           git push origin HEAD:main
 
   publish:
+    name: Publish to Pages
     needs: promote
-    uses: ./.github/workflows/pkgdown.yml
-    with:
-      publish: true
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
