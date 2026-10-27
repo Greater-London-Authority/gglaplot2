@@ -17,11 +17,31 @@ those decisions reach anyone plotting in R.
 
 ``` r
 # install.packages("pak")
-pak::pak("Greater-London-Authority/gglaplot2")
+pak::pak("Greater-London-Authority/gglaplot2@main")
 ```
 
 That installs `main`, which is always a version that passed the checks.
-It needs ggplot2 4.0 or later.
+It needs ggplot2 4.0 or later. Keep the `@main`: without it you get
+`dev`, the working branch. remotes and devtools do the same job:
+
+``` r
+remotes::install_github("Greater-London-Authority/gglaplot2@main")
+devtools::install_github("Greater-London-Authority/gglaplot2@main")
+```
+
+On a GLA laptop the install can stop at the download with a connection
+or certificate error, because R’s default download method does not go
+through the corporate proxy. Tell R to use Windows’ own networking, then
+install with remotes or devtools; pak fetches with its own client and
+does not read that option:
+
+``` r
+options(download.file.method = "wininet")
+remotes::install_github("Greater-London-Authority/gglaplot2@main")
+```
+
+Put the `options()` line in your `.Rprofile` and it holds for every
+session.
 
 ## Use
 
