@@ -131,8 +131,10 @@ changes, where \code{breaks} would need resetting.
 
 Both ramps draw their guide vertical on the right, whatever legend
 position the theme sets, because a ramp reads top to bottom and the
-theme's top position is for series keys. \code{theme_gla(legend = "none")}
-still hides it, and a \code{guide} passed to the scale wins.
+theme's top position is for series keys. The binned scales draw
+\code{\link[=guide_gla_bins]{guide_gla_bins()}}, a swatch per bin labelled with its range; the
+continuous ones a colour bar. \code{theme_gla(legend = "none")} still hides
+it, and a \code{guide} passed to the scale wins.
 
 Missing values take \code{data-empty}. \verb{scale_color_*} spellings are
 provided as aliases.

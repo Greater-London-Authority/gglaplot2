@@ -33,9 +33,9 @@ ggplot(gla_boroughs) +
 ## Choropleth
 
 A sequential ramp for a quantity. The web maps draw it in steps, which
-`scale_fill_gla_b()` does: a reader can match an area to a step in the
-legend, which a smooth ramp does not allow. `scale_fill_gla_c()` is the
-smooth form.
+`scale_fill_gla_b()` does: a reader can match an area to a swatch in the
+legend, labelled with the bin's range, which a smooth ramp does not allow.
+`scale_fill_gla_c()` is the smooth form.
 
 ```{r choropleth}
 ggplot(b) +

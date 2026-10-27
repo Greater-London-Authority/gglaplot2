@@ -34,8 +34,10 @@
 #'
 #' Both ramps draw their guide vertical on the right, whatever legend
 #' position the theme sets, because a ramp reads top to bottom and the
-#' theme's top position is for series keys. `theme_gla(legend = "none")`
-#' still hides it, and a `guide` passed to the scale wins.
+#' theme's top position is for series keys. The binned scales draw
+#' [guide_gla_bins()], a swatch per bin labelled with its range; the
+#' continuous ones a colour bar. `theme_gla(legend = "none")` still hides
+#' it, and a `guide` passed to the scale wins.
 #'
 #' Missing values take `data-empty`. `scale_color_*` spellings are
 #' provided as aliases.
@@ -257,7 +259,7 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
 
 .gla_binned <- function(aesthetic, type, theme, midpoint, steps, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% ramp_guide(ggplot2::guide_coloursteps)
+  args$guide <- args$guide %||% guide_gla_bins()
   empty <- unname(gla_token("data-empty", theme))
   if (!is.null(steps)) {
     if (type != "diverging") {

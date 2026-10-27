@@ -54,8 +54,8 @@ ggplot(b) +
   first step below zero is as deep a red as the first step above is a blue.
   A side with fewer steps stops at a lighter colour; it is not stretched to
   the darkest.
-- The legend stands on the right, reading top to bottom, whichever theme
-  the chart uses.
+- The legend stands on the right, a swatch for each bin labelled with its
+  range and the highest bin at the top, whichever theme the chart uses.
 
 `name = NULL` drops the legend title, since the subtitle will say what the
 values are.
@@ -150,10 +150,13 @@ ggplot(b) +
 
 ## Labels on the legend
 
-The legend takes a `labels` function like any ggplot2 scale. The data here
-is already in percentage points, so `label_gla_percent(scale = 1)` adds the
+Each swatch is labelled with the two ends of its bin. The scale's `labels`
+function shapes both ends, as on any ggplot2 scale. The data here is
+already in percentage points, so `label_gla_percent(scale = 1)` adds the
 sign without multiplying; data held as fractions, where 0.05 is five per
-cent, takes `label_gla_percent()` as it is.
+cent, takes `label_gla_percent()` as it is. `guide_gla_bins(sep = )`
+changes what joins the two ends, and `guide = "coloursteps"` swaps the
+swatches for ggplot2's stepped bar labelled at the cuts.
 
 ```{r labels}
 ggplot(b) +

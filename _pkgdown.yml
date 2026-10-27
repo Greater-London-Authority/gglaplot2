@@ -100,6 +100,7 @@ reference:
       - gla_show_pal
       - gla_check_palette
       - scale_gla
+      - guide_gla_bins
       - scale_linetype_gla
   - title: Theme
     contents:

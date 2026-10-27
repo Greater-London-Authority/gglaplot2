@@ -1,5 +1,10 @@
 # gglaplot2 0.1.0.9000
 
+* The stepped scales' legend is now a swatch per bin labelled with its
+  range, `-6% to -4%`, highest bin at the top, through `guide_gla_bins()`.
+  The ends are always labelled, and the scale's `labels` function shapes
+  both ends of each range, so `labels = label_gla_percent(scale = 1)` puts
+  the sign on. `guide = "coloursteps"` brings ggplot2's bar back.
 * `scale_*_gla_b("diverging", steps = 3)` fixes three bins each side of
   the midpoint, or `steps = c(2, 4)` for a different count each side. Each
   side takes its own rounded step width, and with `limits` the steps
