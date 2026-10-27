@@ -39,7 +39,7 @@ a <- gla_monthly[gla_monthly$series == "Variable A", ]
 
 ggplot(a, aes(month, value)) +
   geom_gla_line() +
-  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
+  scale_y_continuous(breaks = gla_breaks(), labels = label_gla_number()) +
   gla_labs(
     title = "Variable A has fallen steadily since 2017",
     subtitle = "London monthly estimated value (GBP), January 2015 to March 2024",
@@ -70,7 +70,7 @@ ggplot(gla_monthly, aes(month, value, colour = series)) +
   geom_gla_endpoint() +
   geom_gla_endlabel(aes(label = series)) +
   scale_x_date(expand = expansion(mult = c(0.02, 0.18))) +
-  scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma()) +
+  scale_y_continuous(breaks = gla_breaks(), labels = label_gla_number()) +
   scale_colour_gla() +
   gla_labs(title = "Three series", subtitle = "Monthly value, GBP", x = NULL) +
   theme_gla(legend = "none")
@@ -88,7 +88,7 @@ with_gla_mode("dark", {
     geom_gla_col() +
     gla_zero_line() +
     scale_fill_gla() +
-    scale_y_continuous(breaks = gla_breaks(), labels = scales::label_comma(),
+    scale_y_continuous(breaks = gla_breaks(), labels = label_gla_number(),
                        expand = expansion(mult = c(0, 0.05))) +
     gla_labs(title = "On an inverse surface", subtitle = "Yearly average, GBP", x = NULL) +
     theme_gla()
@@ -102,6 +102,20 @@ doubled for a sharp image, through ragg so the bundled Inter is used.
 
 ```{r save, eval = FALSE}
 gla_save(p, "chart.png")
+```
+
+## Labels
+
+`label_gla_number()`, `label_gla_percent()`, `label_gla_pounds()` and
+`label_gla_date()` put values in the shapes the web charts use, for a
+scale's `labels` argument: a comma every three digits, `£` against the
+number, whole percentages from fractions and dates written out.
+`label_gla_pounds(short = TRUE)` writes `£1.2bn`.
+
+```{r labels}
+label_gla_pounds(short = TRUE)(c(45000, 3.5e6, 1.2e9))
+label_gla_percent(accuracy = 0.1)(0.123)
+label_gla_date()(as.Date("2024-03-05"))
 ```
 
 ## Where next
