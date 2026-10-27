@@ -71,12 +71,19 @@ gla_series_colours(c("England", "Wales", "London"))
 ## Sequential and diverging
 
 The sequential palette is the blue ramp, light to dark, interpolated to any
-number of steps. The diverging palette runs red through a neutral grey to
-blue, the same colours the change palette uses for down and up.
+number of steps. The diverging palette is red for down and blue for up, the
+hues of the change palette, as steps, with a neutral grey in the middle
+when `n` is odd. `n = c(down, up)` gives each side its own count, for a
+scale with more bins one side of zero than the other: both sides are cut
+from one ramp, so a step the same distance from zero is the same depth of
+colour, and the shorter side stops at a lighter colour rather than reaching
+the darkest. `scale_fill_gla_b("diverging")` does this from the data; the
+Maps article shows it.
 
 ```{r}
 gla_pal("sequential", 7)
 gla_pal("diverging", 5)
+gla_pal("diverging", c(4, 1))
 ```
 
 ```{r ramps, fig.height = 5}

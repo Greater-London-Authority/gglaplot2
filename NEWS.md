@@ -1,5 +1,16 @@
 # gglaplot2 0.1.0.9000
 
+* Diverging scales count out from zero. `scale_fill_gla_b()` and
+  `scale_colour_gla_b()` are stepped scales for maps. The diverging one
+  makes zero a break, gives each side as many steps as it has bins, and
+  cuts both sides from one ramp, so a change running from -80 to +5 shows
+  four reds and one light blue rather than a dark blue stretched over the
+  rises; set `limits` to hold an outlier to the end step. The sequential
+  one cuts the blue ramp into steps. The continuous
+  `scale_*_gla_c("diverging")` now puts its neutral at `midpoint` (zero by
+  default) instead of at the middle of the data. `gla_pal("diverging", n)`
+  builds the steps from the 400 to 800 levels of the red and blue ramps,
+  with `n = c(down, up)` for an uneven pair.
 * One switch for dark mode: `gla_mode("dark")` sets it for the session and
   `with_gla_mode()` for a block of code. Every function that takes a
   `theme` argument now defaults to the mode, so a dark chart no longer

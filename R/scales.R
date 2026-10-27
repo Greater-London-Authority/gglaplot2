@@ -9,15 +9,32 @@
 #' reading of names. `"sex"` maps women and men by level name so the colours
 #' never swap. `"change"` maps `up` and `down`.
 #'
-#' Continuous scales use the sequential or diverging ramp. Missing values
-#' take `data-empty`.
+#' Continuous scales, `scale_colour_gla_c()` and `scale_fill_gla_c()`, use
+#' the sequential or diverging ramp. The diverging one puts its neutral grey
+#' at `midpoint`, not at the middle of the data.
 #'
-#' `scale_color_*` spellings are provided as aliases.
+#' Binned scales, `scale_colour_gla_b()` and `scale_fill_gla_b()`, are the
+#' stepped ramps the web maps use and the choice for a choropleth, where a
+#' reader matches an area to a step in the legend. The sequential one cuts
+#' the blue ramp into as many steps as there are bins. The diverging one
+#' counts its bins out from `midpoint` in equal steps, so zero is always a
+#' break, and colours each side from a ramp of the longer side's length:
+#' one step below the midpoint is as deep a red as one step above is a
+#' blue, and a side with fewer bins stops at a lighter colour rather than
+#' stretching to the darkest. A bin that holds the midpoint takes the
+#' neutral. Breaks, labels and limits are ggplot2's; where one area is far
+#' from the rest, set `limits` and the values beyond take the end step,
+#' which a note on the chart should say.
+#'
+#' Missing values take `data-empty`. `scale_color_*` spellings are
+#' provided as aliases.
 #'
 #' @param type A palette as above. Discrete scales take `"auto"`,
-#'   `"categorical"`, `"sex"` or `"change"`; continuous ones `"sequential"`
-#'   or `"diverging"`.
+#'   `"categorical"`, `"sex"` or `"change"`; continuous and binned ones
+#'   `"sequential"` or `"diverging"`.
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
+#' @param midpoint For the diverging scales, the value the neutral sits at
+#'   and the bins are counted from. Default 0.
 #' @param ... Passed to the underlying ggplot2 scale.
 #' @return A ggplot2 scale.
 #' @examples
@@ -26,6 +43,14 @@
 #'   geom_gla_line() +
 #'   scale_colour_gla() +
 #'   theme_gla()
+#' if (requireNamespace("sf", quietly = TRUE)) {
+#'   b <- gla_boroughs
+#'   b$change <- seq(-12, 4, length.out = nrow(b))
+#'   ggplot(b) +
+#'     geom_gla_sf(aes(fill = change)) +
+#'     scale_fill_gla_b("diverging", name = NULL) +
+#'     theme_gla_map()
+#' }
 #' @name scale_gla
 NULL
 
@@ -82,24 +107,136 @@ scale_fill_gla <- function(type = c("auto", "categorical", "sex", "change"),
   .gla_discrete("fill", match.arg(type), match_mode(theme), ...)
 }
 
+# a smooth ramp; the diverging one rescaled so the midpoint, not the middle
+# of the data, is the neutral
+.gla_continuous <- function(aesthetic, type, theme, midpoint, ...) {
+  args <- list(...)
+  args$guide <- args$guide %||% "colourbar"
+  if (type == "diverging") {
+    args$rescaler <- args$rescaler %||% function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) {
+      scales::rescale_mid(x, to, from, mid = midpoint)
+    }
+  }
+  rlang::exec(ggplot2::continuous_scale, aesthetic,
+              palette = scales::pal_gradient_n(gla_pal(type, theme = theme)),
+              na.value = unname(gla_token("data-empty", theme)), !!!args)
+}
+
 #' @rdname scale_gla
 #' @export
 scale_colour_gla_c <- function(type = c("sequential", "diverging"),
-                               theme = gla_mode(), ...) {
-  type <- match.arg(type)
-  theme <- match_mode(theme)
-  ggplot2::scale_colour_gradientn(colours = gla_pal(type, theme = theme),
-                                  na.value = unname(gla_token("data-empty", theme)), ...)
+                               theme = gla_mode(), midpoint = 0, ...) {
+  .gla_continuous("colour", match.arg(type), match_mode(theme), midpoint, ...)
 }
 
 #' @rdname scale_gla
 #' @export
 scale_fill_gla_c <- function(type = c("sequential", "diverging"),
-                             theme = gla_mode(), ...) {
-  type <- match.arg(type)
-  theme <- match_mode(theme)
-  ggplot2::scale_fill_gradientn(colours = gla_pal(type, theme = theme),
-                                na.value = unname(gla_token("data-empty", theme)), ...)
+                             theme = gla_mode(), midpoint = 0, ...) {
+  .gla_continuous("fill", match.arg(type), match_mode(theme), midpoint, ...)
+}
+
+# a binned scale whose bins count out from the midpoint and whose colours
+# come from where each bin sits against it
+ScaleBinnedGlaDiverging <- ggplot2::ggproto(
+  "ScaleBinnedGlaDiverging", ggplot2::ScaleBinned,
+  midpoint = 0,
+  theme_mode = "light",
+  # ggplot2's default breaks, then the same step counted out from the
+  # midpoint so it is always a break; without limits from the caller the
+  # limits widen to whole bins, as ggplot2's do
+  get_breaks = function(self, limits = self$get_limits()) {
+    if (!inherits(self$breaks, "waiver") || !self$nice.breaks) {
+      return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
+    }
+    if (self$is_empty()) return(numeric())
+    transformation <- self$get_transformation()
+    lim <- sort(transformation$inverse(limits))
+    if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
+    step <- break_step(lim, self$n.breaks %||% 5)
+    mid <- self$midpoint
+    steps_out <- function(x, f) f(round((x - mid) / step, 8))
+    if (is.null(self$limits)) {
+      lim <- mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling))
+      self$limits <- transformation$transform(lim)
+    }
+    breaks <- mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor))
+    breaks <- breaks[breaks > lim[1] & breaks < lim[2]]
+    self$breaks <- breaks
+    transformation$transform(breaks)
+  },
+  map = function(self, x, limits = self$get_limits()) {
+    if (self$after.stat) return(x)
+    breaks <- self$get_breaks(limits)
+    if (missing(limits)) limits <- self$get_limits()
+    edges <- sort(unique(c(limits[1], breaks, limits[2])))
+    x <- self$rescale(self$oob(x, range = limits), limits)
+    cuts <- self$rescale(edges, limits)
+    x_binned <- if (length(cuts) > 1) {
+      cut(x, cuts, labels = FALSE, include.lowest = TRUE, right = self$right)
+    } else {
+      rep(1L, length(x))
+    }
+    pal <- self$palette.cache
+    if (is.null(pal)) {
+      edges <- self$get_transformation()$inverse(edges)
+      pal <- diverging_bin_colours(edges[-length(edges)], edges[-1], self$midpoint,
+                                   self$theme_mode)
+      self$palette.cache <- pal
+    }
+    scaled <- pal[x_binned]
+    ifelse(!is.na(scaled), scaled, self$na.value)
+  }
+)
+
+# the step ggplot2's extended breaks would use over these limits
+break_step <- function(limits, n) {
+  ext <- scales::breaks_extended(n)(limits)
+  if (length(ext) >= 2) min(diff(ext)) else diff(limits)
+}
+
+# colours for bins by where they sit against the midpoint: those below it
+# red, those above blue, a bin that holds it the neutral
+diverging_bin_colours <- function(lo, hi, midpoint, theme) {
+  tol <- 1e-8 * max(abs(c(lo, hi)), 1)
+  down <- hi <= midpoint + tol
+  up <- lo >= midpoint - tol
+  steps <- diverging_steps(c(sum(down), sum(up)), theme)
+  out <- rep(unname(gla_token("data-neutral-0", theme)), length(lo))
+  out[down] <- steps[seq_len(sum(down))]
+  out[up] <- steps[sum(down) + seq_len(sum(up))]
+  out
+}
+
+.gla_binned <- function(aesthetic, type, theme, midpoint, ...) {
+  args <- list(...)
+  args$guide <- args$guide %||% "coloursteps"
+  empty <- unname(gla_token("data-empty", theme))
+  if (type == "sequential") {
+    return(rlang::exec(ggplot2::binned_scale, aesthetic,
+                       palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
+                       na.value = empty, !!!args))
+  }
+  sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
+                    palette = function(x) rep(NA_character_, length(x)), na.value = empty,
+                    super = ScaleBinnedGlaDiverging, !!!args)
+  sc$midpoint <- midpoint
+  sc$theme_mode <- theme
+  sc
+}
+
+#' @rdname scale_gla
+#' @export
+scale_colour_gla_b <- function(type = c("sequential", "diverging"),
+                               theme = gla_mode(), midpoint = 0, ...) {
+  .gla_binned("colour", match.arg(type), match_mode(theme), midpoint, ...)
+}
+
+#' @rdname scale_gla
+#' @export
+scale_fill_gla_b <- function(type = c("sequential", "diverging"),
+                             theme = gla_mode(), midpoint = 0, ...) {
+  .gla_binned("fill", match.arg(type), match_mode(theme), midpoint, ...)
 }
 
 #' @rdname scale_gla
@@ -109,6 +246,10 @@ scale_color_gla <- scale_colour_gla
 #' @rdname scale_gla
 #' @export
 scale_color_gla_c <- scale_colour_gla_c
+
+#' @rdname scale_gla
+#' @export
+scale_color_gla_b <- scale_colour_gla_b
 
 #' Line styles for when colour cannot carry the series
 #'

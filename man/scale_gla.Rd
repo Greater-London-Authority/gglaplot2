@@ -6,8 +6,11 @@
 \alias{scale_fill_gla}
 \alias{scale_colour_gla_c}
 \alias{scale_fill_gla_c}
+\alias{scale_colour_gla_b}
+\alias{scale_fill_gla_b}
 \alias{scale_color_gla}
 \alias{scale_color_gla_c}
+\alias{scale_color_gla_b}
 \title{GLA colour and fill scales for ggplot2}
 \usage{
 scale_colour_gla(
@@ -25,10 +28,30 @@ scale_fill_gla(
 scale_colour_gla_c(
   type = c("sequential", "diverging"),
   theme = gla_mode(),
+  midpoint = 0,
   ...
 )
 
-scale_fill_gla_c(type = c("sequential", "diverging"), theme = gla_mode(), ...)
+scale_fill_gla_c(
+  type = c("sequential", "diverging"),
+  theme = gla_mode(),
+  midpoint = 0,
+  ...
+)
+
+scale_colour_gla_b(
+  type = c("sequential", "diverging"),
+  theme = gla_mode(),
+  midpoint = 0,
+  ...
+)
+
+scale_fill_gla_b(
+  type = c("sequential", "diverging"),
+  theme = gla_mode(),
+  midpoint = 0,
+  ...
+)
 
 scale_color_gla(
   type = c("auto", "categorical", "sex", "change"),
@@ -36,16 +59,31 @@ scale_color_gla(
   ...
 )
 
-scale_color_gla_c(type = c("sequential", "diverging"), theme = gla_mode(), ...)
+scale_color_gla_c(
+  type = c("sequential", "diverging"),
+  theme = gla_mode(),
+  midpoint = 0,
+  ...
+)
+
+scale_color_gla_b(
+  type = c("sequential", "diverging"),
+  theme = gla_mode(),
+  midpoint = 0,
+  ...
+)
 }
 \arguments{
 \item{type}{A palette as above. Discrete scales take \code{"auto"},
-\code{"categorical"}, \code{"sex"} or \code{"change"}; continuous ones \code{"sequential"}
-or \code{"diverging"}.}
+\code{"categorical"}, \code{"sex"} or \code{"change"}; continuous and binned ones
+\code{"sequential"} or \code{"diverging"}.}
 
 \item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
 \item{...}{Passed to the underlying ggplot2 scale.}
+
+\item{midpoint}{For the diverging scales, the value the neutral sits at
+and the bins are counted from. Default 0.}
 }
 \value{
 A ggplot2 scale.
@@ -61,10 +99,25 @@ reading of names. \code{"sex"} maps women and men by level name so the colours
 never swap. \code{"change"} maps \code{up} and \code{down}.
 }
 \details{
-Continuous scales use the sequential or diverging ramp. Missing values
-take \code{data-empty}.
+Continuous scales, \code{scale_colour_gla_c()} and \code{scale_fill_gla_c()}, use
+the sequential or diverging ramp. The diverging one puts its neutral grey
+at \code{midpoint}, not at the middle of the data.
 
-\verb{scale_color_*} spellings are provided as aliases.
+Binned scales, \code{scale_colour_gla_b()} and \code{scale_fill_gla_b()}, are the
+stepped ramps the web maps use and the choice for a choropleth, where a
+reader matches an area to a step in the legend. The sequential one cuts
+the blue ramp into as many steps as there are bins. The diverging one
+counts its bins out from \code{midpoint} in equal steps, so zero is always a
+break, and colours each side from a ramp of the longer side's length:
+one step below the midpoint is as deep a red as one step above is a
+blue, and a side with fewer bins stops at a lighter colour rather than
+stretching to the darkest. A bin that holds the midpoint takes the
+neutral. Breaks, labels and limits are ggplot2's; where one area is far
+from the rest, set \code{limits} and the values beyond take the end step,
+which a note on the chart should say.
+
+Missing values take \code{data-empty}. \verb{scale_color_*} spellings are
+provided as aliases.
 }
 \examples{
 library(ggplot2)
@@ -72,4 +125,12 @@ ggplot(gla_yearly, aes(year, average, colour = series)) +
   geom_gla_line() +
   scale_colour_gla() +
   theme_gla()
+if (requireNamespace("sf", quietly = TRUE)) {
+  b <- gla_boroughs
+  b$change <- seq(-12, 4, length.out = nrow(b))
+  ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", name = NULL) +
+    theme_gla_map()
+}
 }

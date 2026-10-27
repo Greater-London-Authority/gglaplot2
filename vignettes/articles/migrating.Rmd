@@ -41,7 +41,7 @@ rewrites gglaplot's own README example.
 | `gla_pal(palette_type = "categorical", n = 3)` | `gla_pal("categorical", 3)` or `scale_colour_gla()` | |
 | `gla_pal(palette_type = "highlight", n = c(1, 1))` | `scale_colour_gla()` | London against a comparator is primary against context by the level names |
 | `gla_pal(palette_type = "quantitative")` | `gla_pal("sequential")` or `scale_fill_gla_c()` | |
-| `gla_pal(palette_type = "diverging")` | `gla_pal("diverging")` or `scale_fill_gla_c("diverging")` | |
+| `gla_pal(palette_type = "diverging")` | `gla_pal("diverging")` or `scale_fill_gla_b("diverging")` | Stepped and counted out from zero; `scale_fill_gla_c("diverging")` for a smooth ramp |
 | `gla_pal(main_colours = "ldndkpink")` | `gla_token("data-categorical-darkpink")` | The colour names are translated |
 | `ggla_line()` | `geom_gla_line()` | |
 | `ggla_highlight(filter_type = "end")` | `geom_gla_endpoint()` | `where` takes `"end"`, `"start"`, `"max"`, `"min"` |

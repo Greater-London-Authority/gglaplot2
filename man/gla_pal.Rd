@@ -16,8 +16,9 @@ gla_pal(
 \code{"sex"}, \code{"change"}.}
 
 \item{n}{Number of colours. Defaults to the full palette for the discrete
-types and five for the ramps. A categorical request past the palette is
-an error, not a recycled colour.}
+types and five for the ramps. For \code{"diverging"}, \code{c(down, up)} gives
+each side its own count. A categorical request past the palette is an
+error, not a recycled colour.}
 
 \item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
@@ -50,8 +51,16 @@ categories rather than reach for a fourth colour; where a chart must
 carry more, label the series directly.
 
 \code{"sequential"} is the blue ramp, light to dark, interpolated to \code{n}.
-\code{"diverging"} runs red through a neutral grey to blue, the same colours
-the \code{change} palette uses for down and up. \code{"sex"} is purple for women
+\code{"diverging"} is red for down and blue for up, the hues the \code{change}
+palette uses, as steps: \code{n} colours with a neutral grey in the middle
+when \code{n} is odd and none when it is even, or \code{n = c(down, up)} for a
+different number of steps each side and no neutral. Each side is cut
+from a ramp of the longer side's length, from the light end, so a step
+the same distance from the centre is the same depth of colour on either
+side and the shorter side stops at a lighter colour rather than reaching
+the darkest. The steps run from the 400 to the 800 level of the token
+ramps, the lightest that holds 2:1 against the surface and reads apart
+from the neutral. \code{"sex"} is purple for women
 and green for men, named by both spellings a source might use.
 \code{"change"} is \code{up} (blue) and \code{down} (red): a value rising is coloured by
 the token, not by arithmetic sign.
@@ -59,5 +68,7 @@ the token, not by arithmetic sign.
 \examples{
 gla_pal()
 gla_pal("sequential", 7)
+gla_pal("diverging", 7)
+gla_pal("diverging", c(4, 1))
 gla_pal("sex")
 }
