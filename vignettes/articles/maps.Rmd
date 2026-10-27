@@ -51,7 +51,8 @@ ggplot(b) +
 A change calls for a diverging scale. `scale_fill_gla_b("diverging")`
 counts its bins out from zero in equal steps, so zero is always a break,
 and colours each side from the same ramp: one step below zero is as deep a
-red as one step above is a blue.
+red as one step above is a blue. [Mapping a change](diverging-maps.html)
+walks through one from the first draft to the finished chart.
 
 ```{r diverging}
 ggplot(b) +

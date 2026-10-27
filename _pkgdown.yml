@@ -56,6 +56,8 @@ navbar:
           href: articles/slope-charts.html
         - text: Maps
           href: articles/maps.html
+        - text: Mapping a change
+          href: articles/diverging-maps.html
 
 articles:
   - title: Get started
@@ -77,6 +79,7 @@ articles:
       - articles/histograms
       - articles/slope-charts
       - articles/maps
+      - articles/diverging-maps
 
 reference:
   - title: Tokens and type
