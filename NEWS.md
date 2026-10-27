@@ -1,5 +1,12 @@
 # gglaplot2 0.1.0.9000
 
+* Releases are tagged by the promotion: a pull request that sets a release
+  version in `DESCRIPTION` and heads `NEWS.md` with it tags `main` as
+  `v<version>` when it lands, makes the GitHub release from that section
+  of the notes and opens the pull request that starts the next development
+  version. `v0.1.0` marks the first full build. The gglaplot names stay
+  for the whole 0.x series; the last 0.x release warns on every call and
+  1.0 removes them.
 * Diverging scales count out from zero. `scale_fill_gla_b()` and
   `scale_colour_gla_b()` are stepped scales for maps. The diverging one
   makes zero a break, gives each side as many steps as it has bins, and

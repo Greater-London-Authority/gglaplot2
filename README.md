@@ -148,6 +148,22 @@ The visual snapshots under `tests/testthat/_snaps/` are drawn with the
 bundled Inter through svglite, so they match across machines; after a
 change that moves pixels on purpose, run `testthat::snapshot_review()`.
 
+## Releasing
+
+A release is a pull request to `dev` that sets a release version in
+`DESCRIPTION` and heads `NEWS.md` with it, `# gglaplot2 0.2.0` over the
+notes written as the work landed. When it promotes, the promotion tags
+`main` as `v0.2.0`, makes the GitHub release with that section of
+`NEWS.md` as its notes, and opens the pull request that moves `dev` on
+to `0.2.0.9000`. A release can then be installed by its tag:
+
+``` r
+remotes::install_github("Greater-London-Authority/gglaplot2@v0.2.0")
+```
+
+Features make a minor release, fixes alone a patch one. `v0.1.0` is the
+first full build.
+
 ## From gglaplot
 
 Everything gglaplot exported is here under its old name, with the old
@@ -155,3 +171,7 @@ arguments translated and the chart drawn in the current style, so a
 script written against it runs after changing `library(gglaplot)` to
 `library(gglaplot2)`. Each old name says once a session what it is now.
 The Migrating from gglaplot page on the site lists them side by side.
+
+The old names stay for the whole 0.x series. The last 0.x release turns
+the once-a-session note into a warning on every call, and 1.0 removes
+them, so an old script has a release's notice to move.

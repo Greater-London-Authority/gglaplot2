@@ -139,7 +139,8 @@ The layers and helpers of gglaplot, kept so an old script runs here.
 Each is the new function under the old name with the old arguments
 translated, and each says so once a session. New code should use the
 gglaplot2 names, which the Migrating from gglaplot article lists side by
-side.
+side. The old names stay for the whole 0.x series: the last 0.x release
+warns on every call and 1.0 removes them.
 }
 \section{What each one is now}{
 
