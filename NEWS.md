@@ -1,5 +1,10 @@
 # gglaplot2 0.1.0.9000
 
+* The ramp scales, `scale_*_gla_c()` and `scale_*_gla_b()`, draw their
+  guide vertical on the right whatever the theme's legend position. Under
+  `theme_gla()` a ramp sat horizontal above the chart, in the place meant
+  for series keys. `legend = "none"` still hides it and a `guide` passed to
+  the scale wins.
 * Diverging scales count out from zero. `scale_fill_gla_b()` and
   `scale_colour_gla_b()` are stepped scales for maps. The diverging one
   makes zero a break, gives each side as many steps as it has bins, and

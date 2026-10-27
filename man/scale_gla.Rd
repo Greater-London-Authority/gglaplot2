@@ -116,6 +116,11 @@ neutral. Breaks, labels and limits are ggplot2's; where one area is far
 from the rest, set \code{limits} and the values beyond take the end step,
 which a note on the chart should say.
 
+Both ramps draw their guide vertical on the right, whatever legend
+position the theme sets, because a ramp reads top to bottom and the
+theme's top position is for series keys. \code{theme_gla(legend = "none")}
+still hides it, and a \code{guide} passed to the scale wins.
+
 Missing values take \code{data-empty}. \verb{scale_color_*} spellings are
 provided as aliases.
 }
