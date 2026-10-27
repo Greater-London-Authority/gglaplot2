@@ -103,7 +103,10 @@ reference:
       - theme_gla
       - gla_mode
       - theme_gla_map
+  - title: Axis breaks and labels
+    contents:
       - gla_breaks
+      - label_gla
   - title: Marks
     desc: The layers the web charts draw, reading their colour from the theme.
     contents:

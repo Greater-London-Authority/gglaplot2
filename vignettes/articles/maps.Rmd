@@ -40,7 +40,7 @@ smooth form.
 ```{r choropleth}
 ggplot(b) +
   geom_gla_sf(aes(fill = share)) +
-  scale_fill_gla_b(name = NULL, labels = scales::label_percent(scale = 1)) +
+  scale_fill_gla_b(name = NULL, labels = label_gla_percent(scale = 1)) +
   gla_labs(title = "A share by borough", subtitle = "Synthetic data for the example",
            source = "ONS Open Geography") +
   theme_gla_map()

@@ -1,5 +1,11 @@
 # gglaplot2 0.1.0.9000
 
+* Labels in the house shapes: `label_gla_number()`, `label_gla_percent()`,
+  `label_gla_pounds()` and `label_gla_date()`, for a scale's `labels`
+  argument. A comma every three digits, `£` against the number, whole
+  percentages from fractions, dates written out as `5 March 2024`, and
+  `short = TRUE` to cut a thousand and up to `k`, `m` and `bn`. Thin
+  wrappers over scales, which now needs 1.3.0 or later.
 * The ramp scales, `scale_*_gla_c()` and `scale_*_gla_b()`, draw their
   guide vertical on the right whatever the theme's legend position. Under
   `theme_gla()` a ramp sat horizontal above the chart, in the place meant
