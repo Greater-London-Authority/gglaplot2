@@ -1,5 +1,17 @@
 .onLoad <- function(libname, pkgname) {
+  S7::methods_register()
+  register_element_methods()
   register_gla_fonts()
+}
+
+# the chrome elements are S7 classes named with the package, which S3
+# dispatch on element_grob() needs registered under that full name
+register_element_methods <- function() {
+  ns <- asNamespace("ggplot2")
+  registerS3method("element_grob", "gglaplot2::element_gla_title",
+                   draw_gla_title, envir = ns)
+  registerS3method("element_grob", "gglaplot2::element_gla_caption",
+                   draw_gla_caption, envir = ns)
 }
 
 # Registers the bundled Inter files with systemfonts so ragg, svglite and

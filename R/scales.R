@@ -16,7 +16,9 @@
 #' Binned scales, `scale_colour_gla_b()` and `scale_fill_gla_b()`, are the
 #' stepped ramps the web maps use and the choice for a choropleth, where a
 #' reader matches an area to a step in the legend. The sequential one cuts
-#' the blue ramp into as many steps as there are bins. The diverging one
+#' the blue ramp into as many steps as there are bins; `steps = 5` fixes
+#' the count at five bins of one rounded width, from a round number at or
+#' below the data. The diverging one
 #' counts its bins out from `midpoint` in equal steps, so zero is always a
 #' break, and colours each side from a ramp of the longer side's length:
 #' one step below the midpoint is as deep a red as one step above is a
@@ -48,9 +50,11 @@
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
 #' @param midpoint For the diverging scales, the value the neutral sits at
 #'   and the bins are counted from. Default 0.
-#' @param steps For the diverging binned scales, how many bins each side of
-#'   the midpoint has: one number for both sides or `c(below, above)`.
-#'   `NULL`, the default, counts ggplot2's step out from the midpoint.
+#' @param steps For the binned scales, how many bins to cut. The
+#'   sequential scale takes one number. The diverging scale takes the count
+#'   each side of the midpoint: one number for both sides or
+#'   `c(below, above)`. `NULL`, the default, takes ggplot2's step; for the
+#'   diverging scale it is counted out from the midpoint.
 #' @param ... Passed to the underlying ggplot2 scale.
 #' @return A ggplot2 scale.
 #' @examples
@@ -158,6 +162,40 @@ scale_fill_gla_c <- function(type = c("sequential", "diverging"),
   .gla_continuous("fill", match.arg(type), match_mode(theme), midpoint, ...)
 }
 
+# a binned scale cut into a fixed number of bins of one rounded width,
+# starting from a multiple of that width at or below the data
+ScaleBinnedGlaSequential <- ggplot2::ggproto(
+  "ScaleBinnedGlaSequential", ggplot2::ScaleBinned,
+  steps = NULL,
+  get_breaks = function(self, limits = self$get_limits()) {
+    if (is.null(self$steps) || !inherits(self$breaks, "waiver") || !self$nice.breaks) {
+      return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
+    }
+    if (self$is_empty()) return(numeric())
+    transformation <- self$get_transformation()
+    lim <- sort(transformation$inverse(limits))
+    if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
+    n <- self$steps
+    if (is.null(self$limits)) {
+      # the rounded width whose grid, started at or below the data, still
+      # reaches the top of it in n bins
+      width <- nice_step(diff(lim) / n)
+      lower <- floor(lim[1] / width + 1e-9) * width
+      while (lower + n * width < lim[2] - 1e-9 * width) {
+        width <- nice_step(width * (1 + 1e-6))
+        lower <- floor(lim[1] / width + 1e-9) * width
+      }
+      lim <- c(lower, lower + n * width)
+      self$limits <- transformation$transform(lim)
+    } else {
+      width <- diff(lim) / n
+    }
+    breaks <- lim[1] + width * seq_len(n - 1)
+    self$breaks <- breaks
+    transformation$transform(breaks)
+  }
+)
+
 # a binned scale whose bins count out from the midpoint and whose colours
 # come from where each bin sits against it
 ScaleBinnedGlaDiverging <- ggplot2::ggproto(
@@ -262,20 +300,23 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   args$guide <- args$guide %||% guide_gla_bins()
   empty <- unname(gla_token("data-empty", theme))
   if (!is.null(steps)) {
-    if (type != "diverging") {
-      stop("`steps` is for the diverging scale; the sequential one takes ggplot2's `n.breaks`",
-           call. = FALSE)
-    }
-    whole <- is.numeric(steps) && length(steps) %in% 1:2 && all(steps >= 1 & steps == round(steps))
+    sides <- if (type == "diverging") 1:2 else 1
+    whole <- is.numeric(steps) && length(steps) %in% sides &&
+      all(steps >= 1 & steps == round(steps))
     if (!whole) {
-      stop("`steps` must be a whole number of bins, one for both sides or c(below, above)",
-           call. = FALSE)
+      stop(if (type == "diverging") {
+        "`steps` must be a whole number of bins, one for both sides or c(below, above)"
+      } else {
+        "`steps` must be one whole number of bins for the sequential scale"
+      }, call. = FALSE)
     }
   }
   if (type == "sequential") {
-    return(rlang::exec(ggplot2::binned_scale, aesthetic,
-                       palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
-                       na.value = empty, !!!args))
+    sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
+                      palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
+                      na.value = empty, super = ScaleBinnedGlaSequential, !!!args)
+    sc$steps <- steps
+    return(sc)
   }
   sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
                     palette = function(x) rep(NA_character_, length(x)), na.value = empty,

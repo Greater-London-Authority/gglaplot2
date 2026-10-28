@@ -21,3 +21,14 @@ draw <- function(p) {
   print(p)
   invisible(TRUE)
 }
+
+# evaluate with a ragg device open, for grobs that measure text
+with_device <- function(expr) {
+  f <- tempfile(fileext = ".png")
+  ragg::agg_png(f)
+  on.exit({
+    grDevices::dev.off()
+    unlink(f)
+  }, add = TRUE)
+  expr
+}

@@ -10,6 +10,7 @@ gla_labs(
   source = NULL,
   note = NULL,
   byline = NULL,
+  eyebrow = NULL,
   alt = ggplot2::waiver(),
   ...
 )
@@ -23,17 +24,22 @@ gla_labs(
 
 \item{byline}{Who made the chart, e.g. \code{"GLA City Intelligence"}.}
 
+\item{eyebrow}{A short label drawn above the title.}
+
 \item{...}{Other labels passed to \code{\link[ggplot2:labs]{ggplot2::labs()}}.}
 }
 \value{
 A labels object to add to a plot.
 }
 \description{
-The chart container on the web shows a title, a subtitle, and a footer
-with a byline, a source and a note. \code{gla_labs()} is \code{\link[ggplot2:labs]{ggplot2::labs()}}
-with those names, writing the footer into the caption through
-\code{\link[=gla_caption]{gla_caption()}}. \code{alt} is the short text alternative; see \code{\link[=gla_describe]{gla_describe()}}
-for one written from the plot.
+The chart container on the web shows an eyebrow and a title, a subtitle,
+and a footer with a byline, a source and a note. \code{gla_labs()} is
+\code{\link[ggplot2:labs]{ggplot2::labs()}} with those names, writing the footer into the caption
+through \code{\link[=gla_caption]{gla_caption()}}. The eyebrow is a short label above the title,
+the series or the place the chart is about; \code{\link[=theme_gla]{theme_gla()}} draws it in
+the eyebrow role, and the \verb{Source:} and \verb{Note:} labels in bold, as the
+web footer does. \code{alt} is the short text alternative; see
+\code{\link[=gla_describe]{gla_describe()}} for one written from the plot.
 }
 \examples{
 library(ggplot2)

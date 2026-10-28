@@ -101,12 +101,19 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
       plot.background = ggplot2::element_rect(fill = ct$surface, colour = NA),
       panel.background = ggplot2::element_rect(fill = ct$surface, colour = NA),
       text = ggplot2::element_text(colour = ct$text, family = body$family),
-      plot.title = text("title", ct$text, family = title$family, face = title$face,
-                        lineheight = 1.2, margin = ggplot2::margin(b = gap(4))),
+      plot.title = element_gla_title(
+        colour = ct$text, size = pt("title"), family = title$family, face = title$face,
+        lineheight = 1.2, margin = ggplot2::margin(b = gap(4)),
+        eyebrow = list(size = pt("eyebrow"), colour = ct$text_muted, family = medium$family,
+                       face = medium$face, gap = gap(2))
+      ),
       plot.subtitle = text("subtitle", ct$text_muted, lineheight = 1.3,
                            margin = ggplot2::margin(b = gap(12))),
-      plot.caption = text("caption", ct$text_muted, hjust = 0, lineheight = 1.35,
-                          margin = ggplot2::margin(t = gap(12))),
+      plot.caption = element_gla_caption(
+        colour = ct$text_muted, size = pt("caption"), hjust = 0, lineheight = 1.35,
+        margin = ggplot2::margin(t = gap(12)),
+        label = list(family = body$family, face = "bold"), gap = gap(4)
+      ),
       plot.title.position = "plot",
       plot.caption.position = "plot",
       axis.text = text("tick", ct$label_muted),
@@ -173,7 +180,11 @@ theme_gla_map <- function(base_size = 14, base_family = gla_font(), theme = gla_
             axis_titles = "none") +
     ggplot2::theme(
       axis.text = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_blank(),
       axis.line = ggplot2::element_blank(),
+      axis.line.x = ggplot2::element_blank(),
+      axis.line.y = ggplot2::element_blank(),
       panel.grid = ggplot2::element_blank()
     )
 }

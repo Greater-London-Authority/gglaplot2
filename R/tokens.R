@@ -76,8 +76,9 @@ inter_available <- function(family) {
 #' The chart typography roles
 #'
 #' The design system's chart type set, in CSS pixels: `title` 20 semibold,
-#' `subtitle` 16, `axis_title` 14 medium, `label` 14, `tick` 14, `tick_sm`
-#' 12 and `caption` 12. [theme_gla()] sets its text from these.
+#' `subtitle` 16, `eyebrow` 14 medium, `axis_title` 14 medium, `label` 14,
+#' `tick` 14, `tick_sm` 12 and `caption` 12. [theme_gla()] sets its text
+#' from these.
 #'
 #' @return A list of roles, each with `size` (px) and `weight`.
 #' @examples
@@ -87,6 +88,7 @@ gla_type <- function() {
   list(
     title = list(size = 20, weight = "semibold"),
     subtitle = list(size = 16, weight = "regular"),
+    eyebrow = list(size = 14, weight = "medium"),
     axis_title = list(size = 14, weight = "medium"),
     label = list(size = 14, weight = "regular"),
     tick = list(size = 14, weight = "regular"),

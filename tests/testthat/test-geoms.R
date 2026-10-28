@@ -182,3 +182,60 @@ test_that("geom_gla_sf draws the boroughs with the empty fill", {
     theme_gla_map()
   expect_no_error(build(q))
 })
+
+test_that("facet_gla_rows stacks full panels in one column", {
+  f <- facet_gla_rows(vars(series))
+  expect_s3_class(f, "FacetWrap")
+  expect_equal(f$params$ncol, 1)
+  expect_equal(f$params$free, list(x = FALSE, y = TRUE))
+  expect_equal(facet_gla_rows(vars(series), scales = "fixed")$params$free,
+               list(x = FALSE, y = FALSE))
+  p <- ggplot(gla_monthly, aes(month, value, colour = series)) + geom_gla_line() +
+    facet_gla_rows(vars(series)) + theme_gla(legend = "none")
+  b <- build(p)
+  expect_equal(nrow(b$layout$layout), 3)
+  expect_equal(unique(b$layout$layout$COL), 1)
+  # the axes are drawn on every panel
+  g <- with_device(ggplotGrob(p))
+  expect_equal(sum(grepl("^axis-b", g$layout$name)), 3)
+  expect_no_error(draw(p))
+})
+
+test_that("geom_gla_paired draws an arrow per category between its two markers", {
+  d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
+  d$year <- factor(d$year)
+  layers <- geom_gla_paired()
+  expect_length(layers, 2)
+  p <- ggplot(d, aes(average, series, colour = year)) + geom_gla_paired() +
+    scale_colour_gla() + theme_gla()
+  b <- build(p)
+  arrows <- b$data[[1]]
+  dots <- b$data[[2]]
+  expect_equal(nrow(arrows), 3)
+  expect_equal(nrow(dots), 6)
+  # from the first level of the colour scale to the second
+  first <- d[d$year == "2015", ]
+  expect_equal(arrows$x[order(arrows$y)], first$average[order(first$series)])
+  expect_equal(arrows$y, arrows$yend)
+  expect_equal(layers[[1]]$geom_params$context, unname(gla_token("data-context")))
+  expect_equal(unique(tolower(dots$fill)), tolower(unname(gla_token("chart-surface"))))
+  # a category with one value keeps its marker and has no arrow
+  d2 <- d
+  d2$average[d2$series == "Variable C" & d2$year == "2015"] <- NA
+  b2 <- build(ggplot(d2, aes(average, series, colour = year)) + geom_gla_paired(na.rm = TRUE) +
+                scale_colour_gla())
+  expect_equal(nrow(b2$data[[1]]), 2)
+  expect_equal(sum(!is.na(b2$data[[2]]$x)), 5)
+  # the connector stops short of the markers and ends in an arrowhead
+  g <- with_device(ggplotGrob(p))
+  panel <- g$grobs[[which(g$layout$name == "panel")]]
+  seg <- Filter(function(x) inherits(x, "segments"), panel$children)[[1]]
+  expect_false(is.null(seg$arrow))
+  expect_true(grepl("points", as.character(seg$x0[1])))
+  plain <- geom_gla_paired(arrow = FALSE)[[1]]
+  expect_null(plain$geom_params$arrow)
+  # dark mode colours the arrow from the dark tokens
+  dark <- geom_gla_paired(theme = "dark")[[1]]
+  expect_equal(dark$geom_params$context, unname(gla_token("data-context", "dark")))
+  expect_no_error(draw(p))
+})

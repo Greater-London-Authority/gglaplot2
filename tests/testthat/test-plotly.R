@@ -66,3 +66,33 @@ test_that("the plotly helpers set the surface, the type and the hover label from
   expect_equal(layout$annotations[[1]]$text, "Note")
   expect_equal(layout$xaxis$rangeslider$type, "date")
 })
+
+test_that("ggplotly takes the stepped map, the paired dot plot and stacked panels", {
+  skip_if_not_installed("sf")
+  b <- gla_boroughs
+  b$change <- seq(-6, 4, length.out = nrow(b))
+  m <- ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", steps = 3, labels = label_gla_percent(scale = 1), name = NULL) +
+    theme_gla_map()
+  out <- convert(m)
+  expect_false(any(grepl("yet to be implemented", out$warnings)))
+  expect_gt(length(out$plot$x$data), 1)
+
+  d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
+  d$year <- factor(d$year)
+  p <- ggplot(d, aes(average, series, colour = year)) + geom_gla_paired() + scale_colour_gla() +
+    theme_gla()
+  out <- convert(p)
+  expect_false(any(grepl("yet to be implemented", out$warnings)))
+  modes <- vapply(out$plot$x$data, function(t) t$mode %||% "", character(1))
+  expect_equal(sort(modes), c("lines", "markers", "markers"))
+  shown <- vapply(out$plot$x$data, function(t) isTRUE(t$showlegend), logical(1))
+  expect_equal(shown, modes == "markers")
+
+  r <- ggplot(gla_monthly, aes(month, value, colour = series)) + geom_gla_line() +
+    facet_gla_rows(vars(series)) + scale_colour_gla() + theme_gla(legend = "none")
+  out <- convert(r)
+  expect_false(any(grepl("yet to be implemented", out$warnings)))
+  expect_equal(length(out$plot$x$data), 3)
+})

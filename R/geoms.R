@@ -804,6 +804,6 @@ geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = gla_
   list(
     do.call(ggplot2::geom_sf, c(list(mapping = mapping, data = data, na.rm = na.rm,
                                      show.legend = show.legend, inherit.aes = inherit.aes), dots)),
-    ggplot2::coord_sf(datum = NA)
+    ggplot2::coord_sf(datum = NULL)
   )
 }

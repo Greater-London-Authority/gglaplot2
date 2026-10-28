@@ -54,6 +54,10 @@ navbar:
           href: articles/histograms.html
         - text: Slope charts
           href: articles/slope-charts.html
+        - text: Paired dot plots
+          href: articles/paired-dots.html
+        - text: Small multiples
+          href: articles/small-multiples.html
         - text: Maps
           href: articles/maps.html
         - text: Mapping a change
@@ -78,6 +82,8 @@ articles:
       - articles/scatter-plots
       - articles/histograms
       - articles/slope-charts
+      - articles/paired-dots
+      - articles/small-multiples
       - articles/maps
       - articles/diverging-maps
 
@@ -107,6 +113,7 @@ reference:
       - theme_gla
       - gla_mode
       - theme_gla_map
+      - element_gla
   - title: Axis breaks and labels
     contents:
       - gla_breaks
@@ -125,6 +132,8 @@ reference:
       - gla_zero_line
       - gla_reference_line
       - annotate_gla_range
+      - geom_gla_paired
+      - facet_gla_rows
       - annotate_gla_projection
       - geom_gla_sf
       - separate_labels
@@ -136,6 +145,7 @@ reference:
   - title: Saving
     contents:
       - gla_save
+      - gla_download
   - title: Data
     contents:
       - gla_monthly

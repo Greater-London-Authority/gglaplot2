@@ -11,8 +11,9 @@ A list of roles, each with \code{size} (px) and \code{weight}.
 }
 \description{
 The design system's chart type set, in CSS pixels: \code{title} 20 semibold,
-\code{subtitle} 16, \code{axis_title} 14 medium, \code{label} 14, \code{tick} 14, \code{tick_sm}
-12 and \code{caption} 12. \code{\link[=theme_gla]{theme_gla()}} sets its text from these.
+\code{subtitle} 16, \code{eyebrow} 14 medium, \code{axis_title} 14 medium, \code{label} 14,
+\code{tick} 14, \code{tick_sm} 12 and \code{caption} 12. \code{\link[=theme_gla]{theme_gla()}} sets its text
+from these.
 }
 \examples{
 gla_type()$title

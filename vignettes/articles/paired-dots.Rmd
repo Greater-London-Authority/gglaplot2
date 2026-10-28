@@ -1,0 +1,91 @@
+---
+title: "Paired dot plots"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+A paired dot plot shows a measure at two dates for each of a set of
+categories: a marker for each date and an arrow from the first to the
+second. It reads as "where each borough started and where it got to", which
+a grouped bar chart buries and a slope chart cannot carry past a dozen
+categories. The web charts draw it horizontally, categories down the side,
+ordered by the later value.
+
+## The chart
+
+The data is long, one row per category and date. `geom_gla_paired()` draws
+both layers: the arrows in `data-context`, stopping short of the markers,
+and the markers coloured by date with the surface as their fill.
+
+```{r paired, fig.height = 3.2}
+d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
+d$year <- factor(d$year)
+
+ggplot(d, aes(average, series, colour = year)) +
+  geom_gla_paired() +
+  scale_x_continuous(breaks = gla_breaks(), labels = label_gla_pounds(short = TRUE)) +
+  scale_colour_gla() +
+  gla_labs(title = "Every variable fell between 2015 and 2024",
+           subtitle = "Yearly average, GBP", source = "LDN Viz Tools demo data",
+           x = NULL, y = NULL) +
+  theme_gla(gridlines = "x")
+```
+
+## Ordering
+
+The web chart orders the categories by their second value, largest at the
+top. ggplot2 draws a factor's levels from the bottom up, so compute the
+order from the later date and set the levels with it.
+
+```{r ordered, fig.height = 5.5}
+set.seed(2)
+areas <- c("Barnet", "Camden", "Ealing", "Hackney", "Lambeth", "Newham",
+           "Southwark", "Wandsworth")
+share <- data.frame(
+  area = rep(areas, 2),
+  period = rep(c("2019", "2026"), each = length(areas)),
+  value = c(runif(8, 0.2, 0.5), runif(8, 0.25, 0.6))
+)
+later <- share[share$period == "2026", ]
+share$area <- factor(share$area, levels = later$area[order(later$value)])
+
+ggplot(share, aes(value, area, colour = period)) +
+  geom_gla_paired() +
+  scale_x_continuous(breaks = gla_breaks(), labels = label_gla_percent()) +
+  scale_colour_gla() +
+  gla_labs(title = "Most areas rose", subtitle = "Share of something, 2019 and 2026",
+           source = "Synthetic data", x = NULL, y = NULL) +
+  theme_gla(gridlines = "x")
+```
+
+## A change that crosses zero
+
+When the measure is a change, add the zero rule across the x axis. A
+category with a value at only one of the dates keeps its marker and loses
+its arrow, so a gap in the data is visible rather than drawn over.
+
+```{r zero, fig.height = 3.2}
+change <- d
+change$average <- change$average - 30000
+change$average[change$series == "Variable C" & change$year == "2015"] <- NA
+
+ggplot(change, aes(average, series, colour = year)) +
+  geom_gla_paired() +
+  gla_zero_line("x") +
+  scale_x_continuous(breaks = gla_breaks(), labels = label_gla_pounds(short = TRUE)) +
+  scale_colour_gla() +
+  gla_labs(title = "Against a 30k benchmark", subtitle = "Yearly average less 30,000, GBP",
+           note = "Variable C has no 2015 value", x = NULL, y = NULL) +
+  theme_gla(gridlines = "x")
+```
+
+`arrow = FALSE` joins the markers with a plain line, and `inset` sets how far
+the connector stops short of them, in pixels.

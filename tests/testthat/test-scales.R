@@ -217,7 +217,7 @@ test_that("steps fixes the bins each side of the midpoint", {
   shifted <- ggplot(data.frame(x = 1:4, y = 1, v = c(95, 98, 101, 104)), aes(x, y, fill = v)) +
     geom_point(shape = 21) + scale_fill_gla_b("diverging", midpoint = 100, steps = 2)
   expect_equal(fill_scale(shifted)$get_breaks(), c(97.5, 100, 102))
-  expect_error(scale_fill_gla_b("sequential", steps = 3), "diverging")
+  expect_error(scale_fill_gla_b("sequential", steps = c(2, 3)), "one whole number")
   expect_error(scale_fill_gla_b("diverging", steps = 2.5), "whole number")
   expect_error(scale_fill_gla_b("diverging", steps = c(1, 2, 3)), "whole number")
   expect_equal(nice_step(1.67), 2)
@@ -227,4 +227,29 @@ test_that("steps fixes the bins each side of the midpoint", {
   expect_equal(nice_step(3.2), 4)
   expect_equal(nice_step(2.5), 2.5)
   expect_equal(nice_step(0), 0)
+})
+
+test_that("steps fixes the bins of the sequential scale", {
+  d <- data.frame(x = 1:6, y = 1, v = c(3, 12, 25, 31, 44, 47))
+  five <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b(steps = 5)
+  sc <- fill_scale(five)
+  expect_equal(sc$get_breaks(), c(10, 20, 30, 40))
+  expect_equal(sc$get_limits(), c(0, 50))
+  expect_equal(length(unique(fills(five))), 5)
+  # the grid starts at a multiple of the width below the data and widens
+  # its step when that grid would not reach the top
+  small <- ggplot(data.frame(x = 1:3, y = 1, v = c(0.3, 0.6, 0.9)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(steps = 3)
+  expect_equal(fill_scale(small)$get_breaks(), c(0.5, 0.75))
+  expect_equal(fill_scale(small)$get_limits(), c(0.25, 1))
+  # with limits the steps divide them exactly
+  fixed <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(steps = 4, limits = c(0, 60))
+  expect_equal(fill_scale(fixed)$get_breaks(), c(15, 30, 45))
+  # without steps the scale is ggplot2's
+  plain <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b()
+  expect_equal(fill_scale(plain)$get_breaks(), c(10, 20, 30, 40))
+  expect_no_error(draw(five))
+  expect_no_error(build(ggplot(d, aes(x, y, colour = v)) + geom_point() +
+                          scale_colour_gla_b(steps = 3)))
 })
