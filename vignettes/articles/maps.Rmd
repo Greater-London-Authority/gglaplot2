@@ -33,14 +33,14 @@ ggplot(gla_boroughs) +
 ## Choropleth
 
 A sequential ramp for a quantity. The web maps draw it in steps, which
-`scale_fill_gla_b()` does: a reader can match an area to a step in the
-legend, which a smooth ramp does not allow. `scale_fill_gla_c()` is the
-smooth form.
+`scale_fill_gla_b()` does: a reader can match an area to a swatch in the
+legend, labelled with the bin's range, which a smooth ramp does not allow.
+`scale_fill_gla_c()` is the smooth form.
 
 ```{r choropleth}
 ggplot(b) +
   geom_gla_sf(aes(fill = share)) +
-  scale_fill_gla_b(name = NULL, labels = scales::label_percent(scale = 1)) +
+  scale_fill_gla_b(name = NULL, labels = label_gla_percent(scale = 1)) +
   gla_labs(title = "A share by borough", subtitle = "Synthetic data for the example",
            source = "ONS Open Geography") +
   theme_gla_map()
@@ -51,7 +51,8 @@ ggplot(b) +
 A change calls for a diverging scale. `scale_fill_gla_b("diverging")`
 counts its bins out from zero in equal steps, so zero is always a break,
 and colours each side from the same ramp: one step below zero is as deep a
-red as one step above is a blue.
+red as one step above is a blue. [Mapping a change](diverging-maps.html)
+walks through one from the first draft to the finished chart.
 
 ```{r diverging}
 ggplot(b) +
@@ -73,6 +74,19 @@ ggplot(b) +
   geom_gla_sf(aes(fill = lopsided)) +
   scale_fill_gla_b("diverging", name = NULL) +
   gla_labs(title = "One borough has fallen far", subtitle = "Percentage points, synthetic data") +
+  theme_gla_map()
+```
+
+To fix how many bins each side has, whatever the data does, set `steps`:
+`steps = 3` is three below and three above, `steps = c(2, 4)` two and four.
+Each side takes its own rounded step width, so the smaller side is not
+stretched to match the larger.
+
+```{r steps}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3) +
+  gla_labs(title = "Three steps each side", subtitle = "Percentage points, synthetic data") +
   theme_gla_map()
 ```
 

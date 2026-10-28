@@ -43,6 +43,7 @@ scale_colour_gla_b(
   type = c("sequential", "diverging"),
   theme = gla_mode(),
   midpoint = 0,
+  steps = NULL,
   ...
 )
 
@@ -50,6 +51,7 @@ scale_fill_gla_b(
   type = c("sequential", "diverging"),
   theme = gla_mode(),
   midpoint = 0,
+  steps = NULL,
   ...
 )
 
@@ -70,6 +72,7 @@ scale_color_gla_b(
   type = c("sequential", "diverging"),
   theme = gla_mode(),
   midpoint = 0,
+  steps = NULL,
   ...
 )
 }
@@ -84,6 +87,10 @@ scale_color_gla_b(
 
 \item{midpoint}{For the diverging scales, the value the neutral sits at
 and the bins are counted from. Default 0.}
+
+\item{steps}{For the diverging binned scales, how many bins each side of
+the midpoint has: one number for both sides or \code{c(below, above)}.
+\code{NULL}, the default, counts ggplot2's step out from the midpoint.}
 }
 \value{
 A ggplot2 scale.
@@ -114,12 +121,20 @@ blue, and a side with fewer bins stops at a lighter colour rather than
 stretching to the darkest. A bin that holds the midpoint takes the
 neutral. Breaks, labels and limits are ggplot2's; where one area is far
 from the rest, set \code{limits} and the values beyond take the end step,
-which a note on the chart should say.
+which a note on the chart should say. \code{steps} fixes how many bins each
+side has: \code{steps = 3} is three below and three above, \code{steps = c(2, 4)}
+two below and four above. Each side then takes its own step width,
+rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
+large fall gets narrow blue steps rather than being stretched; with
+\code{limits} set, the steps divide them exactly. The count holds as the data
+changes, where \code{breaks} would need resetting.
 
 Both ramps draw their guide vertical on the right, whatever legend
 position the theme sets, because a ramp reads top to bottom and the
-theme's top position is for series keys. \code{theme_gla(legend = "none")}
-still hides it, and a \code{guide} passed to the scale wins.
+theme's top position is for series keys. The binned scales draw
+\code{\link[=guide_gla_bins]{guide_gla_bins()}}, a swatch per bin labelled with its range; the
+continuous ones a colour bar. \code{theme_gla(legend = "none")} still hides
+it, and a \code{guide} passed to the scale wins.
 
 Missing values take \code{data-empty}. \verb{scale_color_*} spellings are
 provided as aliases.

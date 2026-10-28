@@ -1,0 +1,215 @@
+---
+title: "Mapping a change"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5.2, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+set.seed(7)
+b <- gla_boroughs
+b$change <- round(runif(nrow(b), -5, 2), 1)
+```
+
+A map of a change is the most asked-about chart in this package, so this
+page walks through one from the first draft to the version that goes out,
+with what each argument does and the mistakes that come up. The
+[Maps](maps.html) page has the other map types.
+
+The data is a change by borough: a column that runs below and above zero,
+here a percentage change from minus five to plus two. A change wants a
+diverging scale because zero means something, a fall against a rise, and
+the colour should say which side of it an area sits on.
+
+```{r data}
+head(b[, c("name", "change")])
+range(b$change)
+```
+
+## The first draft
+
+Three layers: the boroughs filled by the change, the diverging stepped
+scale, and the map theme.
+
+```{r first}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL) +
+  theme_gla_map()
+```
+
+`scale_fill_gla_b("diverging")` did four things without being asked:
+
+- Zero is a cut. Nothing straddles it, so every area is plainly a fall or a
+  rise.
+- The step is one size on both sides, taken from the range of the data the
+  way ggplot2 picks axis breaks, and counted out from zero until the data
+  is covered. Here the falls run to minus five and the rises to two, so
+  there are more steps below zero than above.
+- Each side is coloured from one ramp, red below and blue above, so the
+  first step below zero is as deep a red as the first step above is a blue.
+  A side with fewer steps stops at a lighter colour; it is not stretched to
+  the darkest.
+- The legend stands on the right, a swatch for each bin labelled with its
+  range and the highest bin at the top, whichever theme the chart uses.
+
+`name = NULL` drops the legend title, since the subtitle will say what the
+values are.
+
+## Fixing the number of steps
+
+The draft gave three steps below and one above because that is what the
+data needed. When the chart is one of a set, or the data will be refreshed,
+set `steps` and the count holds whatever the numbers do.
+
+```{r steps}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3) +
+  theme_gla_map()
+```
+
+Each side now has three bins at its own step width: two wide for the falls,
+one wide for the rises, each rounded up to a sensible number so the legend
+reads cleanly. `steps = c(2, 4)` is two below and four above.
+
+```{r steps-uneven}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = c(2, 4)) +
+  theme_gla_map()
+```
+
+## Setting the cuts yourself
+
+For full control, give `breaks` and `limits`. The breaks are the cuts and
+the limits are the two ends, so three bins a side is the lower limit plus
+two cuts below zero, zero itself, two cuts above zero and the upper limit.
+This is what `steps = 3` worked out for the data above, written by hand.
+
+```{r by-hand}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, limits = c(-6, 3),
+                   breaks = c(-4, -2, 0, 1, 2)) +
+  theme_gla_map()
+```
+
+Hand-set breaks stay where they are when the data changes, which is the
+point of them and the catch: a refresh that moves outside the limits is
+clipped, as the next section shows. `steps` with `limits` is the middle
+way, dividing the limits you set into the count you want.
+
+## An area far from the rest
+
+One borough that has fallen much further than the others takes the detail
+from everything else, since the steps have to reach it.
+
+```{r outlier}
+b$lopsided <- b$change
+b$lopsided[b$name == "Tower Hamlets"] <- -38
+ggplot(b) +
+  geom_gla_sf(aes(fill = lopsided)) +
+  scale_fill_gla_b("diverging", name = NULL) +
+  theme_gla_map()
+```
+
+Set `limits` to the range that shows the rest, and the outlier takes the
+end step. The chart has to say so, which is what `note` is for.
+
+```{r outlier-held}
+ggplot(b) +
+  geom_gla_sf(aes(fill = lopsided)) +
+  scale_fill_gla_b("diverging", name = NULL, limits = c(-6, 3), steps = 3) +
+  gla_labs(
+    title = "One borough has fallen far",
+    subtitle = "Percentage change, synthetic data",
+    note = "Tower Hamlets, at -38, is shown in the lowest step"
+  ) +
+  theme_gla_map()
+```
+
+## When the dividing line is not zero
+
+`midpoint` moves the neutral and the counting. An index against a base of
+100, or a change against the London average, reads the same way with the
+midpoint there.
+
+```{r midpoint}
+b$index <- round(100 + b$change * 3, 1)
+ggplot(b) +
+  geom_gla_sf(aes(fill = index)) +
+  scale_fill_gla_b("diverging", name = NULL, midpoint = 100, steps = 2) +
+  gla_labs(title = "An index against 100", subtitle = "Synthetic data") +
+  theme_gla_map()
+```
+
+## Labels on the legend
+
+Each swatch is labelled with the two ends of its bin. The scale's `labels`
+function shapes both ends, as on any ggplot2 scale. The data here is
+already in percentage points, so `label_gla_percent(scale = 1)` adds the
+sign without multiplying; data held as fractions, where 0.05 is five per
+cent, takes `label_gla_percent()` as it is. `guide_gla_bins(sep = )`
+changes what joins the two ends, and `guide = "coloursteps"` swaps the
+swatches for ggplot2's stepped bar labelled at the cuts.
+
+```{r labels}
+ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3,
+                   labels = label_gla_percent(scale = 1)) +
+  theme_gla_map()
+```
+
+## The finished chart
+
+The title states the finding, the subtitle says what the values are, and
+the footer carries the byline, the source and any note.
+
+```{r finished}
+gg_map_chart <- ggplot(b) +
+  geom_gla_sf(aes(fill = change)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3,
+                   labels = label_gla_percent(scale = 1)) +
+  gla_labs(
+    title = "Employment has fallen in outer London since August 2025",
+    subtitle = "Percentage change in payrolled employees, synthetic data",
+    source = "HM Revenue and Customs, Pay As You Earn Real Time Information",
+    note = "Estimates are based on where employees live",
+    byline = "GLA City Intelligence"
+  ) +
+  theme_gla_map()
+gg_map_chart
+```
+
+`gla_save("employment_map.png", gg_map_chart)` writes it at the house size.
+For a dark surface, `gla_mode("dark")` before the chart recolours every
+layer, as the [Get started](../articles/gglaplot2.html) page shows.
+
+## Things that go wrong
+
+- **The axes appear and the map sits in a box.** `theme_gla()` was used
+  instead of `theme_gla_map()`. The map theme is the chart theme with the
+  axes and gridlines taken away.
+- **"Error: unexpected '+'".** A line in the chain begins with `+`. R ends
+  the expression at the line break before it, so the `+` has to close the
+  line above.
+- **The legend goes to minus ten and nothing on the map is that low.** The
+  limits were set wider than the data, or an old `breaks` outlived a data
+  refresh. Drop them, or use `steps`.
+- **An area is darker than its value.** It is beyond the limits and took
+  the end step. Widen the limits or say so in the note.
+- **Every rise is pale.** With few rises against large falls that is right,
+  and `steps` gives the rises their own width. A smooth ramp,
+  `scale_fill_gla_c("diverging")`, would stretch its darkest blue to the
+  largest rise however small, which is why the stepped scale is the
+  default for a map.
+- **Values show as 0.05 rather than 5%.** The data is in fractions; use
+  `label_gla_percent()` without `scale = 1`.
+- **A borough is grey.** Its value is missing. Missing values take the
+  `data-empty` token, and the note should say which areas have no data.

@@ -1,5 +1,15 @@
 # gglaplot2 0.1.0.9000
 
+* The stepped scales' legend is now a swatch per bin labelled with its
+  range, `-6% to -4%`, highest bin at the top, through `guide_gla_bins()`.
+  The ends are always labelled, and the scale's `labels` function shapes
+  both ends of each range, so `labels = label_gla_percent(scale = 1)` puts
+  the sign on. `guide = "coloursteps"` brings ggplot2's bar back.
+* `scale_*_gla_b("diverging", steps = 3)` fixes three bins each side of
+  the midpoint, or `steps = c(2, 4)` for a different count each side. Each
+  side takes its own rounded step width, and with `limits` the steps
+  divide them exactly, so the count holds as the data changes where
+  `breaks` would need resetting.
 * Releases are tagged by the promotion: a pull request that sets a release
   version in `DESCRIPTION` and heads `NEWS.md` with it tags `main` as
   `v<version>` when it lands, makes the GitHub release from that section
@@ -7,6 +17,12 @@
   version. `v0.1.0` marks the first full build. The gglaplot names stay
   for the whole 0.x series; the last 0.x release warns on every call and
   1.0 removes them.
+* Labels in the house shapes: `label_gla_number()`, `label_gla_percent()`,
+  `label_gla_pounds()` and `label_gla_date()`, for a scale's `labels`
+  argument. A comma every three digits, `£` against the number, whole
+  percentages from fractions, dates written out as `5 March 2024`, and
+  `short = TRUE` to cut a thousand and up to `k`, `m` and `bn`. Thin
+  wrappers over scales, which now needs 1.3.0 or later.
 * The ramp scales, `scale_*_gla_c()` and `scale_*_gla_b()`, draw their
   guide vertical on the right whatever the theme's legend position. Under
   `theme_gla()` a ramp sat horizontal above the chart, in the place meant

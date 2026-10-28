@@ -56,6 +56,8 @@ navbar:
           href: articles/slope-charts.html
         - text: Maps
           href: articles/maps.html
+        - text: Mapping a change
+          href: articles/diverging-maps.html
 
 articles:
   - title: Get started
@@ -77,6 +79,7 @@ articles:
       - articles/histograms
       - articles/slope-charts
       - articles/maps
+      - articles/diverging-maps
 
 reference:
   - title: Tokens and type
@@ -97,13 +100,17 @@ reference:
       - gla_show_pal
       - gla_check_palette
       - scale_gla
+      - guide_gla_bins
       - scale_linetype_gla
   - title: Theme
     contents:
       - theme_gla
       - gla_mode
       - theme_gla_map
+  - title: Axis breaks and labels
+    contents:
       - gla_breaks
+      - label_gla
   - title: Marks
     desc: The layers the web charts draw, reading their colour from the theme.
     contents:

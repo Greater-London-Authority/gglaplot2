@@ -10,7 +10,7 @@ knitr::opts_chunk$set(
 options(gglaplot2.font = "inter")
 library(ggplot2)
 library(gglaplot2)
-gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
+gbp <- label_gla_pounds(short = TRUE)
 a <- gla_yearly[gla_yearly$series == "Variable A", ]
 ```
 
