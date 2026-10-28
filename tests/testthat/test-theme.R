@@ -87,3 +87,34 @@ test_that("gla_breaks aims for four", {
   b <- gla_breaks()(c(0, 100))
   expect_true(length(b) >= 3 && length(b) <= 6)
 })
+
+test_that("the title carries an eyebrow and the footer sets its labels in bold", {
+  th <- theme_gla()
+  expect_s3_class(th$plot.title, "gglaplot2::element_gla_title")
+  expect_s3_class(th$plot.caption, "gglaplot2::element_gla_caption")
+  expect_equal(th$plot.title$eyebrow$size, gla_type()$eyebrow$size * 0.75)
+  expect_equal(th$plot.caption$label$face, "bold")
+  p <- ggplot(mtcars, aes(wt, mpg)) + geom_point() +
+    gla_labs(eyebrow = "Cars", title = "Title", source = "ONS", note = "Provisional",
+             byline = "GLA") + th
+  g <- with_device(ggplotGrob(p))
+  title <- g$grobs[[which(g$layout$name == "title")]]
+  expect_s3_class(title, "gla_stack")
+  expect_length(title$children, 2)
+  caption <- g$grobs[[which(g$layout$name == "caption")]]
+  expect_s3_class(caption, "gla_stack")
+  # byline, two labelled lines, the gaps between and the margins round them
+  kinds <- vapply(caption$children, function(x) class(x$children[[1]])[1], character(1))
+  expect_equal(sum(kinds == "gla_beside"), 2)
+  # a plain title or footer draws as ggplot2 would
+  q <- ggplot(mtcars, aes(wt, mpg)) + geom_point() + gla_labs(title = "Title", byline = "GLA") + th
+  g <- with_device(ggplotGrob(q))
+  expect_s3_class(g$grobs[[which(g$layout$name == "title")]], "titleGrob")
+  expect_s3_class(g$grobs[[which(g$layout$name == "caption")]], "titleGrob")
+  # an element_text added afterwards keeps the eyebrow
+  over <- th + theme(plot.title = element_text(size = 30))
+  el <- calc_element("plot.title", over)
+  expect_s3_class(el, "gglaplot2::element_gla_title")
+  expect_equal(el$size, 30)
+  expect_no_error(draw(p + theme(plot.title = element_text(colour = "red"))))
+})

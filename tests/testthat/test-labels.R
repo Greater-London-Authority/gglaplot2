@@ -11,6 +11,12 @@ test_that("gla_labs sets title, subtitle and caption", {
   expect_equal(l$caption, "GLA\nSource: ONS")
   p <- ggplot(mtcars, aes(wt, mpg)) + geom_point() + gla_labs(title = "T", source = "ONS")
   expect_equal(p$labels$caption, "Source: ONS")
+  # the eyebrow rides on the title
+  e <- gla_labs(eyebrow = "London", title = "T")
+  expect_equal(as.character(e$title), "T")
+  expect_equal(attr(e$title, "eyebrow"), "London")
+  expect_equal(as.character(gla_labs(eyebrow = "London")$title), "")
+  expect_null(attr(gla_labs(title = "T")$title, "eyebrow"))
 })
 
 test_that("gla_describe reads the chart type, the series and the range", {

@@ -88,9 +88,11 @@ scale_color_gla_b(
 \item{midpoint}{For the diverging scales, the value the neutral sits at
 and the bins are counted from. Default 0.}
 
-\item{steps}{For the diverging binned scales, how many bins each side of
-the midpoint has: one number for both sides or \code{c(below, above)}.
-\code{NULL}, the default, counts ggplot2's step out from the midpoint.}
+\item{steps}{For the binned scales, how many bins to cut. The
+sequential scale takes one number. The diverging scale takes the count
+each side of the midpoint: one number for both sides or
+\code{c(below, above)}. \code{NULL}, the default, takes ggplot2's step; for the
+diverging scale it is counted out from the midpoint.}
 }
 \value{
 A ggplot2 scale.
@@ -113,7 +115,9 @@ at \code{midpoint}, not at the middle of the data.
 Binned scales, \code{scale_colour_gla_b()} and \code{scale_fill_gla_b()}, are the
 stepped ramps the web maps use and the choice for a choropleth, where a
 reader matches an area to a step in the legend. The sequential one cuts
-the blue ramp into as many steps as there are bins. The diverging one
+the blue ramp into as many steps as there are bins; \code{steps = 5} fixes
+the count at five bins of one rounded width, from a round number at or
+below the data. The diverging one
 counts its bins out from \code{midpoint} in equal steps, so zero is always a
 break, and colours each side from a ramp of the longer side's length:
 one step below the midpoint is as deep a red as one step above is a

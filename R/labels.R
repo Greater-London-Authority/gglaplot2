@@ -1,12 +1,16 @@
 #' Title, subtitle and the footer, as the web charts carry them
 #'
-#' The chart container on the web shows a title, a subtitle, and a footer
-#' with a byline, a source and a note. `gla_labs()` is [ggplot2::labs()]
-#' with those names, writing the footer into the caption through
-#' [gla_caption()]. `alt` is the short text alternative; see [gla_describe()]
-#' for one written from the plot.
+#' The chart container on the web shows an eyebrow and a title, a subtitle,
+#' and a footer with a byline, a source and a note. `gla_labs()` is
+#' [ggplot2::labs()] with those names, writing the footer into the caption
+#' through [gla_caption()]. The eyebrow is a short label above the title,
+#' the series or the place the chart is about; [theme_gla()] draws it in
+#' the eyebrow role, and the `Source:` and `Note:` labels in bold, as the
+#' web footer does. `alt` is the short text alternative; see
+#' [gla_describe()] for one written from the plot.
 #'
 #' @param title,subtitle,alt As in [ggplot2::labs()].
+#' @param eyebrow A short label drawn above the title.
 #' @param source Where the data came from.
 #' @param note A footnote.
 #' @param byline Who made the chart, e.g. `"GLA City Intelligence"`.
@@ -26,7 +30,11 @@
 #'   theme_gla()
 #' @export
 gla_labs <- function(title = ggplot2::waiver(), subtitle = ggplot2::waiver(), source = NULL,
-                     note = NULL, byline = NULL, alt = ggplot2::waiver(), ...) {
+                     note = NULL, byline = NULL, eyebrow = NULL, alt = ggplot2::waiver(), ...) {
+  if (!is.null(eyebrow)) {
+    if (is.null(title) || inherits(title, "waiver")) title <- ""
+    title <- structure(title, eyebrow = eyebrow)
+  }
   caption <- gla_caption(source = source, note = note, byline = byline)
   ggplot2::labs(title = title, subtitle = subtitle, alt = alt,
                 caption = if (nzchar(caption)) caption else ggplot2::waiver(), ...)

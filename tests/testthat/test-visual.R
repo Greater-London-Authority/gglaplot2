@@ -17,9 +17,9 @@ test_that("a single line chart", {
     geom_gla_line() +
     gla_zero_line() +
     scale_y_continuous(breaks = gla_breaks(), labels = gbp, expand = expansion(mult = c(0, 0.1))) +
-    gla_labs(title = "Variable A has fallen since 2017", subtitle = "Monthly value, GBP",
-             source = "Demo data", note = "For demonstration", byline = "GLA City Intelligence",
-             x = NULL) +
+    gla_labs(eyebrow = "Demo data", title = "Variable A has fallen since 2017",
+             subtitle = "Monthly value, GBP", source = "Demo data", note = "For demonstration",
+             byline = "GLA City Intelligence", x = NULL) +
     theme_gla()
   vdiffr::expect_doppelganger("single line", p)
 })

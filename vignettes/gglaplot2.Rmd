@@ -54,8 +54,9 @@ ggplot(a, aes(month, value)) +
 `theme_gla()` draws the non-data ink from the `chart-*` tokens and sets the
 type from the design system's chart roles. With ggplot2 4 it also carries the
 data defaults, so `geom_gla_line()` is a 2px `data-primary` line without being
-told. `gla_labs()` is `labs()` with the title, subtitle, byline, source and
-note the web chart container shows.
+told. `gla_labs()` is `labs()` with the eyebrow, title, subtitle, byline,
+source and note the web chart container shows, drawn as it draws them: the
+eyebrow above the title and the `Source:` and `Note:` labels in bold.
 
 ## Series
 

@@ -14,7 +14,7 @@ library(gglaplot2)
 
 The design system describes type by role rather than by size. A role names
 the job a piece of text does and carries the size, weight and line height
-that job needs. The chart set has seven roles, and `theme_gla()` sets its
+that job needs. The chart set has eight roles, and `theme_gla()` sets its
 text from them.
 
 ```{r roles, echo = FALSE}
@@ -24,6 +24,7 @@ knitr::kable(data.frame(
   `Size (px)` = vapply(roles, function(r) r$size, numeric(1)),
   Weight = vapply(roles, function(r) r$weight, character(1)),
   For = c("The chart's title", "A supporting line beneath the title",
+          "A short label above the title: the place or series the chart is about",
           "Axis names, series and legend titles", "Value labels, annotations, legend entries",
           "Axis and scale labels", "The smaller tick tier, for denser charts",
           "The footer: byline, source, note"),
@@ -41,9 +42,10 @@ ggplot(gla_yearly, aes(year, average, colour = series)) +
   geom_gla_line() +
   scale_colour_gla() +
   gla_labs(
+    eyebrow = "The eyebrow is 14px medium in text-muted",
     title = "The title is 20px semibold",
     subtitle = "The subtitle is 16px regular in text-muted",
-    source = "The caption is 12px", x = "Axis titles are 14px medium"
+    source = "The caption is 12px, its label bold", x = "Axis titles are 14px medium"
   ) +
   theme_gla(axis_titles = "both")
 ```

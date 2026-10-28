@@ -35,12 +35,13 @@ ggplot(gla_boroughs) +
 A sequential ramp for a quantity. The web maps draw it in steps, which
 `scale_fill_gla_b()` does: a reader can match an area to a swatch in the
 legend, labelled with the bin's range, which a smooth ramp does not allow.
-`scale_fill_gla_c()` is the smooth form.
+`steps = 5` fixes the count at five bins of one rounded width, so it holds
+as the data changes. `scale_fill_gla_c()` is the smooth form.
 
 ```{r choropleth}
 ggplot(b) +
   geom_gla_sf(aes(fill = share)) +
-  scale_fill_gla_b(name = NULL, labels = label_gla_percent(scale = 1)) +
+  scale_fill_gla_b(name = NULL, steps = 5, labels = label_gla_percent(scale = 1)) +
   gla_labs(title = "A share by borough", subtitle = "Synthetic data for the example",
            source = "ONS Open Geography") +
   theme_gla_map()
