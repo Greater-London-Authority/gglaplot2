@@ -180,7 +180,11 @@ theme_gla_map <- function(base_size = 14, base_family = gla_font(), theme = gla_
             axis_titles = "none") +
     ggplot2::theme(
       axis.text = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_blank(),
       axis.line = ggplot2::element_blank(),
+      axis.line.x = ggplot2::element_blank(),
+      axis.line.y = ggplot2::element_blank(),
       panel.grid = ggplot2::element_blank()
     )
 }
