@@ -1,6 +1,6 @@
 Package: gglaplot2
 Title: GLA Design Tokens, Theme and Chart Marks for ggplot2
-Version: 0.1.0.9000
+Version: 0.2.0
 Authors@R:
     person("Micheal", "Slade", , "50627681+Micheal-Slade@users.noreply.github.com", role = c("aut", "cre"))
 Description: The Greater London Authority design tokens as R data, with a
@@ -39,6 +39,6 @@ VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/Needs/website: pkgdown, ragg, sf
 LazyData: true
-URL: https://github.com/Greater-London-Authority/gglaplot2
+URL: https://greater-london-authority.github.io/gglaplot2/, https://github.com/Greater-London-Authority/gglaplot2
 BugReports: https://github.com/Greater-London-Authority/gglaplot2/issues
 Config/roxygen2/version: 8.1.1

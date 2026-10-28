@@ -1,4 +1,8 @@
-# gglaplot2 0.1.0.9000
+# gglaplot2 0.2.0
+
+Stepped scales and a range legend for maps, the house label functions,
+dark mode in one switch, forecasts, grouped bars, and the release and
+token jobs.
 
 * The stepped scales' legend is now a swatch per bin labelled with its
   range, `-6% to -4%`, highest bin at the top, through `guide_gla_bins()`.

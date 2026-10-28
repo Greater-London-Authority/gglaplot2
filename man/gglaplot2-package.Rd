@@ -13,6 +13,7 @@ The Greater London Authority design tokens as R data, with a ggplot2 theme, colo
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://greater-london-authority.github.io/gglaplot2/}
   \item \url{https://github.com/Greater-London-Authority/gglaplot2}
   \item Report bugs at \url{https://github.com/Greater-London-Authority/gglaplot2/issues}
 }
