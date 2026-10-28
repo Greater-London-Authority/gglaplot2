@@ -1,3 +1,29 @@
+# gglaplot2 0.2.0.9000
+
+* The chart chrome as the web charts draw it: `gla_labs(eyebrow = )` puts
+  a short label above the title in the eyebrow role, and the footer sets
+  its `Source:` and `Note:` labels in bold. Both are theme elements,
+  `element_gla_title()` and `element_gla_caption()`, drawn by the package
+  with no new dependency; an `element_text()` added over them keeps them.
+  `gla_type()` gains the `eyebrow` role, 14px medium.
+* `scale_*_gla_b("sequential", steps = 5)` cuts five bins of one rounded
+  width from a round number at or below the data, the contract the
+  diverging scale already had.
+* `geom_gla_paired()` draws the paired dot plot: a marker per date for
+  each category and an arrow between them in `data-context` that stops
+  short of the markers. `facet_gla_rows()` is the vertically faceted
+  chart, one full panel per level in a column with the axes on every
+  panel. Each has an article.
+* `gla_download_button()` and `gla_download()` put a save-as-SVG (or PNG)
+  button in a Shiny app, writing through `gla_save()` under a name slugged
+  from the chart's title. An SVG from `gla_save()` now declares Inter as a
+  web font from the Fontsource CDN, so it reads in the typeface on a
+  machine without it; `web_fonts = FALSE` leaves that out.
+* `ggplotly()` now takes the maps: `geom_gla_sf()` kept its coordinate
+  datum off, which left plotly nothing to build axes from, so every map
+  failed to convert. `theme_gla_map()` now blanks the axis text and lines
+  in full. The paired dot plot converts too, without its arrowheads.
+
 # gglaplot2 0.2.0
 
 Stepped scales and a range legend for maps, the house label functions,
