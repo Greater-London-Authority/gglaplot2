@@ -113,6 +113,7 @@ reference:
       - theme_gla
       - gla_mode
       - theme_gla_map
+      - element_gla
   - title: Axis breaks and labels
     contents:
       - gla_breaks

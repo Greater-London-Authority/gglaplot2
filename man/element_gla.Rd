@@ -56,6 +56,8 @@ system.}
 \item{colour, color}{Line/border colour. Color is an alias for colour.
 \code{alpha()} can be used to set the transparency of the colour.}
 
+\item{size}{Text size, in points.}
+
 \item{hjust}{Horizontal justification (in \eqn{[0, 1]})}
 
 \item{vjust}{Vertical justification (in \eqn{[0, 1]})}

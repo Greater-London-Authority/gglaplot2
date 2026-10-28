@@ -11,6 +11,7 @@
 #' and the labels and changes what it sets.
 #'
 #' @inheritParams ggplot2::element_text
+#' @param size Text size, in points.
 #' @param eyebrow A list with `size` (points), `colour`, `family` and `face`
 #'   for the eyebrow line. Anything missing is taken from the title.
 #' @param label A list with `family` and `face` for the `Source:` and
