@@ -191,6 +191,16 @@ gg_map_chart
 For a dark surface, `gla_mode("dark")` before the chart recolours every
 layer, as the [Get started](../articles/gglaplot2.html) page shows.
 
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly, with a hover label per borough. `ggplotly()` on its own drops the
+stepped legend, the eyebrow and the footer; this puts them back.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(finished)
+```
+
 ## Things that go wrong
 
 - **The axes appear and the map sits in a box.** `theme_gla()` was used

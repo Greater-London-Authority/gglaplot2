@@ -1,0 +1,62 @@
+---
+title: "Treemaps"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 3.3, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+```
+
+A treemap shows part-to-whole data as tiles sized to their value. The web
+charts draw them squarified, so the tiles stay close to square, largest
+first from the top left, with a one pixel gap between tiles and the label
+inside the tile where it fits. They are for a reader to see which parts
+are big and which are small at a glance; a bar chart is the better choice
+when the values need comparing with any precision.
+
+## One level
+
+Map the value to `area` and the name to `label`. The axes carry nothing,
+so `theme_gla_map()` is the theme.
+
+```{r one}
+d <- data.frame(
+  borough = c("Camden", "Hackney", "Islington", "Barnet", "Brent", "Ealing", "Harrow",
+              "Sutton", "Merton", "Bexley"),
+  area = c("Inner", "Inner", "Inner", "Outer", "Outer", "Outer", "Outer", "Outer", "Outer",
+           "Outer"),
+  value = c(42, 35, 28, 51, 44, 39, 22, 9, 15, 11)
+)
+
+ggplot(d, aes(area = value, label = borough)) +
+  geom_gla_treemap() +
+  gla_labs(title = "Ten boroughs by a value", subtitle = "Synthetic data",
+           source = "Demo data") +
+  theme_gla_map()
+```
+
+## Grouped
+
+Map `fill` to the parent category and the tiles are laid out group by
+group, each group's tiles together, with the categorical palette telling
+the groups apart. The web charts prefer centred labels; `label_position =
+"topleft"` puts them in the corner for a denser chart.
+
+```{r grouped}
+ggplot(d, aes(area = value, label = borough, fill = area)) +
+  geom_gla_treemap(label_position = "topleft") +
+  scale_fill_gla() +
+  gla_labs(title = "Inner and Outer London", subtitle = "Synthetic data",
+           source = "Demo data") +
+  theme_gla_map(legend = "top")
+```
+
+A tile smaller than `min_label` of the whole (two per cent by default) gets
+no label, so the small tiles stay readable as shapes rather than as
+overlapping text. The tiles are squarified for the chart's shape; pass
+`aspect` if the chart is far from the web charts' 16 by 6.

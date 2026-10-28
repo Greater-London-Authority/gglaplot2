@@ -239,3 +239,52 @@ test_that("geom_gla_paired draws an arrow per category between its two markers",
   expect_equal(dark$geom_params$context, unname(gla_token("data-context", "dark")))
   expect_no_error(draw(p))
 })
+
+test_that("geom_gla_treemap tiles the unit square by value, grouped when fill is mapped", {
+  d <- data.frame(
+    name = c("Camden", "Hackney", "Islington", "Barnet", "Brent", "Ealing", "Harrow", "Sutton"),
+    area = c("Inner", "Inner", "Inner", "Outer", "Outer", "Outer", "Outer", "Outer"),
+    value = c(42, 35, 28, 51, 44, 39, 22, 4)
+  )
+  layers <- geom_gla_treemap()
+  expect_length(Filter(function(l) inherits(l, "Layer"), layers), 2)
+  p <- ggplot(d, aes(area = value, label = name, fill = area)) + geom_gla_treemap() +
+    scale_fill_gla() + theme_gla_map()
+  tiles <- layer_data(p, 1)
+  tiles <- tiles[match(d$name, tiles$label), ]
+  areas <- (tiles$xmax - tiles$xmin) * (tiles$ymax - tiles$ymin)
+  expect_equal(areas, d$value / sum(d$value))
+  expect_true(all(tiles$xmin >= 0 & tiles$xmax <= 1 & tiles$ymin >= 0 & tiles$ymax <= 1))
+  # the largest tile sits at the top left
+  largest <- which.max(areas)
+  expect_equal(tiles$xmin[largest], 0)
+  expect_equal(tiles$ymax[largest], 1)
+  # tiles of one group fill one rectangle: their union has the group's area
+  # and no two tiles overlap
+  overlap <- function(a, b) {
+    max(0, min(a$xmax, b$xmax) - max(a$xmin, b$xmin)) *
+      max(0, min(a$ymax, b$ymax) - max(a$ymin, b$ymin))
+  }
+  pairs <- utils::combn(nrow(tiles), 2)
+  overlaps <- apply(pairs, 2, function(ij) overlap(tiles[ij[1], ], tiles[ij[2], ]))
+  expect_true(all(overlaps < 1e-9))
+  for (g in c("Inner", "Outer")) {
+    rows <- tiles[d$area == g, ]
+    bbox <- (max(rows$xmax) - min(rows$xmin)) * (max(rows$ymax) - min(rows$ymin))
+    expect_equal(bbox, sum(d$value[d$area == g]) / sum(d$value))
+  }
+  # the gap between tiles is the surface and the labels sit in the tiles
+  expect_equal(tolower(unique(tiles$colour)), tolower(unname(gla_token("chart-surface"))))
+  # a tile under min_label gets no label when drawn
+  g <- with_device(ggplotGrob(p))
+  panel <- g$grobs[[which(g$layout$name == "panel")]]
+  texts <- Filter(function(x) inherits(x, "text"), panel$children)
+  expect_equal(length(texts[[1]]$label), 7)
+  # one level, labels top left, no fill
+  q <- ggplot(d, aes(area = value, label = name)) + geom_gla_treemap(label_position = "topleft") +
+    theme_gla_map()
+  expect_no_error(draw(q))
+  one <- layer_data(q, 1)
+  expect_equal(sum((one$xmax - one$xmin) * (one$ymax - one$ymin)), 1)
+  expect_error(geom_gla_treemap(label_position = "middle"))
+})

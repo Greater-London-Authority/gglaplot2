@@ -1,5 +1,14 @@
 # gglaplot2 0.2.0.9000
 
+* `geom_gla_treemap()` draws the web charts' treemap: tiles squarified
+  largest first from the top left with a surface-colour gap, laid out
+  group by group when `fill` is mapped, labels centred or top left and
+  dropped from tiles too small for them. Drawn by the package, no new
+  dependency.
+* `gla_plotly()` makes an interactive chart from a ggplot and puts back
+  what `ggplotly()` drops: the eyebrow and title, the footer with its
+  labels in bold, and a stepped scale's bins as a legend labelled with
+  their ranges, so an interactive choropleth has a key.
 * The chart chrome as the web charts draw it: `gla_labs(eyebrow = )` puts
   a short label above the title in the eyebrow role, and the footer sets
   its `Source:` and `Note:` labels in bold. Both are theme elements,

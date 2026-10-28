@@ -96,3 +96,34 @@ test_that("ggplotly takes the stepped map, the paired dot plot and stacked panel
   expect_false(any(grepl("yet to be implemented", out$warnings)))
   expect_equal(length(out$plot$x$data), 3)
 })
+
+test_that("gla_plotly puts back the chrome and the stepped legend", {
+  skip_if_not_installed("sf")
+  b <- gla_boroughs
+  b$change <- seq(-6, 4, length.out = nrow(b))
+  m <- ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", steps = 3, labels = label_gla_percent(scale = 1), name = NULL) +
+    gla_labs(eyebrow = "Synthetic", title = "Change by borough", subtitle = "pp",
+             source = "Demo", note = "Made up") +
+    theme_gla_map()
+  x <- plotly::plotly_build(gla_plotly(m))$x
+  expect_match(x$layout$title$text, "Synthetic")
+  expect_match(x$layout$title$text, "Change by borough")
+  legend <- Filter(function(t) isTRUE(t$showlegend), x$data)
+  expect_equal(vapply(legend, function(t) t$name, character(1)),
+               c("4% to 6%", "2% to 4%", "0% to 2%", "-2% to 0%", "-4% to -2%", "-6% to -4%"))
+  footer <- x$layout$annotations[[length(x$layout$annotations)]]$text
+  expect_match(footer, "<b>Source:</b> Demo")
+  expect_match(footer, "<b>Note:</b> Made up")
+  # a chart with no stepped scale gets no legend traces added
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
+    scale_colour_gla() + gla_labs(title = "Lines") + theme_gla()
+  y <- plotly::plotly_build(gla_plotly(p))$x
+  expect_equal(length(y$data), 3)
+  expect_match(y$layout$title$text, "Lines")
+  d <- data.frame(name = c("A", "B", "C"), value = c(3, 2, 1))
+  t <- ggplot(d, aes(area = value, label = name)) + geom_gla_treemap() + theme_gla_map()
+  out <- convert(t)
+  expect_false(any(grepl("yet to be implemented", out$warnings)))
+})

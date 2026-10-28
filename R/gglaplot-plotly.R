@@ -142,6 +142,10 @@ to_basic.GeomGlaArea <- as_basic("GeomArea")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaConnector <- as_basic("GeomSegment")
 #' @exportS3Method plotly::to_basic
+to_basic.GeomGlaTreemap <- as_basic("GeomRect")
+#' @exportS3Method plotly::to_basic
+to_basic.GeomGlaTreemapLabel <- as_basic("GeomText")
+#' @exportS3Method plotly::to_basic
 to_basic.GeomGlaText <- as_basic("GeomText")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaEndlabel <- as_basic("GeomText")
