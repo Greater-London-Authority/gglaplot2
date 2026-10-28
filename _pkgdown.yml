@@ -58,6 +58,8 @@ navbar:
           href: articles/paired-dots.html
         - text: Small multiples
           href: articles/small-multiples.html
+        - text: Treemaps
+          href: articles/treemaps.html
         - text: Maps
           href: articles/maps.html
         - text: Mapping a change
@@ -84,6 +86,7 @@ articles:
       - articles/slope-charts
       - articles/paired-dots
       - articles/small-multiples
+      - articles/treemaps
       - articles/maps
       - articles/diverging-maps
 
@@ -134,6 +137,7 @@ reference:
       - annotate_gla_range
       - geom_gla_paired
       - facet_gla_rows
+      - geom_gla_treemap
       - annotate_gla_projection
       - geom_gla_sf
       - separate_labels
@@ -155,6 +159,7 @@ reference:
     desc: The old package's names, kept so its scripts run; see the migration guide.
     contents:
       - gglaplot-compat
+      - gla_plotly
       - ggla_plotly
       - gla_default
       - gla_colours

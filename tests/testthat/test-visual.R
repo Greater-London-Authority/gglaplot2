@@ -148,3 +148,17 @@ test_that("a paired dot plot and stacked small multiples", {
     theme_gla(legend = "none")
   vdiffr::expect_doppelganger("small multiples", r)
 })
+
+test_that("a treemap", {
+  d <- data.frame(
+    name = c("Camden", "Hackney", "Islington", "Barnet", "Brent", "Ealing", "Harrow", "Sutton"),
+    area = c("Inner", "Inner", "Inner", "Outer", "Outer", "Outer", "Outer", "Outer"),
+    value = c(42, 35, 28, 51, 44, 39, 22, 4)
+  )
+  p <- ggplot(d, aes(area = value, label = name, fill = area)) +
+    geom_gla_treemap() +
+    scale_fill_gla() +
+    gla_labs(title = "Treemap", subtitle = "Synthetic values", source = "Demo data") +
+    theme_gla_map(legend = "top")
+  vdiffr::expect_doppelganger("treemap", p)
+})
