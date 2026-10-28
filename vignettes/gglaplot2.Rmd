@@ -124,4 +124,4 @@ label_gla_date()(as.Date("2024-03-05"))
   [Palettes and colour](palettes.html) for the foundations.
 - A page per chart family under Charts, each with the code: start with
   [Line charts](line-charts.html).
-- The [reference](../reference/index.html) for every function.
+- The [reference](https://greater-london-authority.github.io/gglaplot2/reference/index.html) for every function.
