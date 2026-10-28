@@ -187,7 +187,7 @@ gg_map_chart <- ggplot(b) +
 gg_map_chart
 ```
 
-`gla_save("employment_map.png", gg_map_chart)` writes it at the house size.
+`gla_save(gg_map_chart, "employment_map.png")` writes it at the house size.
 For a dark surface, `gla_mode("dark")` before the chart recolours every
 layer, as the [Get started](../articles/gglaplot2.html) page shows.
 
@@ -198,7 +198,7 @@ plotly, with a hover label per borough. `ggplotly()` on its own drops the
 stepped legend, the eyebrow and the footer; this puts them back.
 
 ```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
-gla_plotly(finished)
+gla_plotly(gg_map_chart)
 ```
 
 ## Things that go wrong
