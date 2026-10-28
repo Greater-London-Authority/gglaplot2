@@ -199,12 +199,14 @@ ggplot(a, aes(month, value)) +
 
 ## Faceted
 
-Small multiples share the scales and take the strip as their title.
+One panel per series, stacked, each with its own axes and the series name
+as its heading: `facet_gla_rows()`. The Small multiples article covers
+shared against free scales.
 
-```{r facets, fig.height = 5.5}
+```{r facets, fig.height = 7}
 ggplot(gla_monthly, aes(month, value, colour = series)) +
   geom_gla_line() +
-  facet_wrap(vars(series), ncol = 1) +
+  facet_gla_rows(vars(series)) +
   scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
   scale_colour_gla() +
   gla_labs(title = "Each variable on its own", subtitle = "Monthly value, GBP", x = NULL) +

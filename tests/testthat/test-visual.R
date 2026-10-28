@@ -127,3 +127,24 @@ test_that("the swatch charts", {
   vdiffr::expect_doppelganger("palettes", gla_show_pal())
   vdiffr::expect_doppelganger("data tokens", gla_show_tokens("^data-"))
 })
+
+test_that("a paired dot plot and stacked small multiples", {
+  d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
+  d$year <- factor(d$year)
+  p <- ggplot(d, aes(average, series, colour = year)) +
+    geom_gla_paired() +
+    scale_x_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla() +
+    gla_labs(title = "Paired dots", subtitle = "Yearly average, 2015 and 2024", x = NULL,
+             y = NULL) +
+    theme_gla(gridlines = "x")
+  vdiffr::expect_doppelganger("paired dots", p)
+  r <- ggplot(gla_monthly, aes(month, value, colour = series)) +
+    geom_gla_line() +
+    facet_gla_rows(vars(series)) +
+    scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+    scale_colour_gla() +
+    gla_labs(title = "Small multiples", subtitle = "Monthly value, GBP", x = NULL) +
+    theme_gla(legend = "none")
+  vdiffr::expect_doppelganger("small multiples", r)
+})

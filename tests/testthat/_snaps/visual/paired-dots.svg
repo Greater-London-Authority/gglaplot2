@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.02; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNjUuNjl8NzA4LjA0fDY5LjAyfDU0OS45Mw=='>
+    <rect x='65.69' y='69.02' width='642.36' height='480.91' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNjUuNjl8NzA4LjA0fDY5LjAyfDU0OS45Mw==)'>
+<rect x='65.69' y='69.02' width='642.36' height='480.91' style='stroke-width: 1.02; stroke: none; fill: #FFFFFF;' />
+<polyline points='261.67,549.93 261.67,69.02 ' style='stroke-width: 0.56; stroke: #D6D8DA; stroke-linecap: butt;' />
+<polyline points='487.50,549.93 487.50,69.02 ' style='stroke-width: 0.56; stroke: #D6D8DA; stroke-linecap: butt;' />
+<line x1='673.62' y1='459.76' x2='149.16' y2='459.76' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<polyline points='159.06,454.50 149.16,459.76 159.06,465.02 ' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<line x1='485.97' y1='309.48' x2='100.12' y2='309.48' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<polyline points='110.01,304.21 100.12,309.48 110.01,314.74 ' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<line x1='298.59' y1='159.19' x2='101.46' y2='159.19' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<polyline points='111.36,153.93 101.46,159.19 111.36,164.45 ' style='stroke-width: 0.56; stroke: #BDC0C2; stroke-linecap: butt;' />
+<circle cx='678.85' cy='459.76' r='3.38' style='stroke-width: 1.42; stroke: #007ACC; fill: #FFFFFF;' />
+<circle cx='491.20' cy='309.48' r='3.38' style='stroke-width: 1.42; stroke: #007ACC; fill: #FFFFFF;' />
+<circle cx='303.82' cy='159.19' r='3.38' style='stroke-width: 1.42; stroke: #007ACC; fill: #FFFFFF;' />
+<circle cx='143.93' cy='459.76' r='3.38' style='stroke-width: 1.42; stroke: #9E0059; fill: #FFFFFF;' />
+<circle cx='94.89' cy='309.48' r='3.38' style='stroke-width: 1.42; stroke: #9E0059; fill: #FFFFFF;' />
+<circle cx='96.23' cy='159.19' r='3.38' style='stroke-width: 1.42; stroke: #9E0059; fill: #FFFFFF;' />
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='60.98' y='463.37' text-anchor='end' style='font-size: 10.50px; fill: #5F666B; font-family: sans;' textLength='48.45px' lengthAdjust='spacingAndGlyphs'>Variable A</text>
+<text x='60.98' y='313.09' text-anchor='end' style='font-size: 10.50px; fill: #5F666B; font-family: sans;' textLength='48.45px' lengthAdjust='spacingAndGlyphs'>Variable B</text>
+<text x='60.98' y='162.80' text-anchor='end' style='font-size: 10.50px; fill: #5F666B; font-family: sans;' textLength='49.03px' lengthAdjust='spacingAndGlyphs'>Variable C</text>
+<polyline points='65.69,549.93 708.04,549.93 ' style='stroke-width: 0.56; stroke: #353D43; stroke-linecap: butt;' />
+<text x='261.67' y='561.87' text-anchor='middle' style='font-size: 10.50px; fill: #5F666B; font-family: sans;' textLength='22.77px' lengthAdjust='spacingAndGlyphs'>£25k</text>
+<text x='487.50' y='561.87' text-anchor='middle' style='font-size: 10.50px; fill: #5F666B; font-family: sans;' textLength='22.77px' lengthAdjust='spacingAndGlyphs'>£35k</text>
+<circle cx='17.93' cy='54.07' r='3.38' style='stroke-width: 1.42; stroke: #007ACC; fill: #FFFFFF;' />
+<circle cx='70.43' cy='54.07' r='3.38' style='stroke-width: 1.42; stroke: #9E0059; fill: #FFFFFF;' />
+<text x='29.14' y='57.69' style='font-size: 10.50px; fill: #353D43; font-family: sans;' textLength='23.36px' lengthAdjust='spacingAndGlyphs'>2015</text>
+<text x='81.64' y='57.69' style='font-size: 10.50px; fill: #353D43; font-family: sans;' textLength='23.36px' lengthAdjust='spacingAndGlyphs'>2024</text>
+<text x='11.96' y='36.64' style='font-size: 12.00px; fill: #5F666B; font-family: sans;' textLength='167.48px' lengthAdjust='spacingAndGlyphs'>Yearly average, 2015 and 2024</text>
+<text x='11.96' y='22.28' style='font-size: 15.00px; fill: #353D43; font-family: sans;' textLength='75.89px' lengthAdjust='spacingAndGlyphs'>Paired dots</text>
+</g>
+</svg>

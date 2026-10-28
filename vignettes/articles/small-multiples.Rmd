@@ -1,0 +1,71 @@
+---
+title: "Small multiples"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 8.8, fig.height = 4.4, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(gglaplot2)
+gbp <- label_gla_pounds(short = TRUE)
+```
+
+Three series on one chart is the design ceiling. Past it, or when the
+series are on different scales, the web charts stack one panel per series
+in a single column, each a full chart with its own axes and the series name
+as its heading. `facet_gla_rows()` is that layout: `facet_wrap()` in one
+column with the axes on every panel.
+
+## Stacked panels
+
+Colour each panel by its own series and drop the legend, since the headings
+carry the names.
+
+```{r rows, fig.height = 7}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  facet_gla_rows(vars(series)) +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla() +
+  gla_labs(title = "Each variable on its own", subtitle = "Monthly value, GBP",
+           source = "LDN Viz Tools demo data", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+## Shared or free scales
+
+The web chart gives each panel its own y range, which is what
+`facet_gla_rows()` does by default. That shows the shape of each series
+but hides their size against one another: a 5% movement looks the same as
+a 50% one. When the panels are the same measure at a similar size, share
+the scales with `scales = "fixed"` so the eye can compare heights.
+
+```{r fixed, fig.height = 7}
+ggplot(gla_monthly, aes(month, value, colour = series)) +
+  geom_gla_line() +
+  facet_gla_rows(vars(series), scales = "fixed") +
+  scale_y_continuous(breaks = gla_breaks(), labels = gbp) +
+  scale_colour_gla() +
+  gla_labs(title = "The same, on one scale", subtitle = "Monthly value, GBP",
+           source = "LDN Viz Tools demo data", x = NULL) +
+  theme_gla(legend = "none")
+```
+
+## A grid
+
+For panels that are not a single series each, ggplot2's own facets work
+under `theme_gla()`: the strip takes the axis title role and sits left
+over its panel. Bars and histograms facet the same way; the bar charts and
+histograms articles each have an example.
+
+```{r grid, fig.height = 4.4}
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_gla_dot(size = 2.5) +
+  facet_wrap(vars(cyl), labeller = label_both) +
+  gla_labs(title = "Fuel economy by cylinders", subtitle = "Weight against miles per gallon",
+           x = "Weight (1,000 lb)", y = "Miles per gallon") +
+  theme_gla(gridlines = "both", axis_titles = "both")
+```
