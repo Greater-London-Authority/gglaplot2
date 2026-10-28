@@ -11,3 +11,18 @@ test_that("gla_save writes a 2:1 image at the web size, doubled", {
   gla_save(p, g, width = 400, height = 300, scale = 1)
   expect_equal(dim(png::readPNG(g))[1:2], c(300, 400))
 })
+
+test_that("an SVG declares Inter as a web font unless told not to", {
+  skip_if_not_installed("svglite")
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
+    scale_colour_gla() + gla_labs(title = "A title") + theme_gla()
+  f <- withr::local_tempfile(fileext = ".svg")
+  gla_save(p, f)
+  svg <- paste(readLines(f, warn = FALSE), collapse = "\n")
+  expect_match(svg, "@font-face")
+  expect_match(svg, "fontsource/inter")
+  expect_match(svg, "Inter SemiBold")
+  plain <- withr::local_tempfile(fileext = ".svg")
+  gla_save(p, plain, web_fonts = FALSE)
+  expect_no_match(paste(readLines(plain, warn = FALSE), collapse = "\n"), "@font-face")
+})

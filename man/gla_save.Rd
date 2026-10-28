@@ -11,6 +11,7 @@ gla_save(
   height = 440,
   scale = 2,
   theme = gla_mode(),
+  web_fonts = TRUE,
   ...
 )
 }
@@ -27,6 +28,8 @@ svg, pdf, jpeg.}
 \item{theme}{\code{"light"} or \code{"dark"}, for the background colour. Defaults
 to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 
+\item{web_fonts}{Whether an SVG declares Inter as a web font.}
+
 \item{...}{Passed to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}.}
 }
 \value{
@@ -38,6 +41,12 @@ width. This saves a plot at that size, doubled for a sharp image on a
 high density screen, on the chart surface colour, through ragg where it
 is installed so the bundled Inter is used. Any size in pixels works; the
 type sizes stay the design system's whatever the scale.
+}
+\details{
+An SVG, written through svglite, declares Inter as a web font from the
+Fontsource CDN, so it reads in the typeface in a browser or a document
+on a machine without Inter installed. \code{web_fonts = FALSE} leaves that
+out, for an SVG that must not reach the network.
 }
 \examples{
 library(ggplot2)

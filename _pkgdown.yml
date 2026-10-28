@@ -144,6 +144,7 @@ reference:
   - title: Saving
     contents:
       - gla_save
+      - gla_download
   - title: Data
     contents:
       - gla_monthly
