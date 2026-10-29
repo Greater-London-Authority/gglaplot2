@@ -1,5 +1,7 @@
 # gglaplot2 0.2.0.9000
 
+* Tokens refreshed to `@ldn-viz/themes` 9.1.0: 0 added, 0 removed, 3 changed.
+
 * `gla_plotly()` now converts every chart family the articles draw as the
   static chart draws it. `ggplotly()` builds each layer without the plot's
   theme, so a mark with nothing mapped took ggplot2's old defaults: the

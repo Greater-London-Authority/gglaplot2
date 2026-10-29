@@ -216,9 +216,6 @@
   --color-text-wash: var(--color-palette-grey-600, #757c80);
   --color-canvas: var(--color-container, #ffffff);
   --color-static-brand: var(--primitive-color-static-brand, #007acc);
-  --color-geo-interactive: var(--color-palette-blue-700, #0067b4);
-  --color-geo-interactive-hover: var(--color-palette-blue-800, #005194);
-  --color-geo-interactive-focus: var(--color-palette-blue-700, #0067b4);
   --color-geo-interactive-disabled: var(--color-interactive-disabled, #8c9295);
   --color-chart-axis: var(--color-text, #353d43);
   --color-chart-label: var(--color-text, #353d43);
@@ -235,6 +232,9 @@
   --color-label: var(--color-text, #353d43);
   --color-label-muted: var(--color-text-muted, #5f666b);
   --color-geo-feature-muted: var(--color-border-muted, #d6d8da);
+  --color-geo-interactive: var(--color-interactive-primary, #0067b4);
+  --color-geo-interactive-hover: var(--color-interactive-primary-hover, #005194);
+  --color-geo-interactive-focus: var(--color-interactive-focus, #0067b4);
   --color-geo-inverse-feature: var(--color-inverse-border, #ffffff);
   --color-geo-inverse-feature-muted: var(--color-inverse-border-muted, #8c9295);
   --color-geo-feature: var(--color-border, #5f666b);

@@ -1,5 +1,5 @@
 package: @ldn-viz/themes
-version: 9.2.0
-url: https://registry.npmjs.org/@ldn-viz/themes/-/themes-9.2.0.tgz
-date: 2026-10-22
+version: 9.1.0
+url: https://registry.npmjs.org/@ldn-viz/themes/-/themes-9.1.0.tgz
+date: 2026-10-29
 files: styles/light.css, styles/dark.css, styles/primitives.css, LICENSE.txt
