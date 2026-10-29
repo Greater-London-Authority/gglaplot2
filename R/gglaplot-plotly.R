@@ -129,8 +129,26 @@ as_basic <- function(parent) {
   }
 }
 
+# a forecast line is solid to the projected point and dashed from it: the
+# projected part becomes its own group in the projected line style, which
+# plotly draws as a second trace
 #' @exportS3Method plotly::to_basic
-to_basic.GeomGlaLine <- as_basic("GeomLine")
+to_basic.GeomGlaLine <- function(data, prestats_data, layout, params, p, ...) {
+  as_line <- function(d) {
+    class(d) <- c("GeomLine", class(data)[-1])
+    plotly::to_basic(d, prestats_data, layout, params, p, ...)
+  }
+  from <- params$projected_from
+  if (is.null(from) || !"x" %in% names(data)) return(as_line(data))
+  from <- as.numeric(from)
+  projected <- data[data$x >= from, , drop = FALSE]
+  actual <- data[data$x <= from, , drop = FALSE]
+  if (nrow(projected) < 2) return(as_line(data))
+  projected$linetype <- "twodash"
+  # two basic layers, so plotly draws two traces rather than one line
+  # with a dash pattern per point
+  list(as_line(actual), as_line(projected))
+}
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaDot <- as_basic("GeomPoint")
 #' @exportS3Method plotly::to_basic
@@ -147,8 +165,10 @@ to_basic.GeomGlaTreemap <- as_basic("GeomRect")
 to_basic.GeomGlaTreemapLabel <- as_basic("GeomText")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaText <- as_basic("GeomText")
+# an end label is placed by gla_plotly() as an annotation, off its point
+# and dodged from its neighbours; on its own ggplotly() leaves it off
 #' @exportS3Method plotly::to_basic
-to_basic.GeomGlaEndlabel <- as_basic("GeomText")
+to_basic.GeomGlaEndlabel <- as_basic("GeomBlank")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGLAAnnotate <- as_basic("GeomText")
 #' @exportS3Method plotly::to_basic
@@ -156,7 +176,8 @@ to_basic.GeomGlaHline <- as_basic("GeomHline")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaVline <- as_basic("GeomVline")
 # the labels on a reference line sit at the panel edge, which a plotly
-# trace has no position for; the line converts and the label is left off
+# trace has no position for; the line converts and gla_plotly() places the
+# label as an annotation
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaEdgelabel <- as_basic("GeomBlank")
 #' @exportS3Method plotly::to_basic

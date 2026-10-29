@@ -67,3 +67,13 @@ ggplot(gla_yearly, aes(year, average, colour = series)) +
   gla_labs(title = "Each variable's peak year", subtitle = "Yearly average value (GBP)", x = NULL) +
   theme_gla()
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A scatter plot converts with its dots, and a faceted one keeps its
+panels with the strips at the left of each.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

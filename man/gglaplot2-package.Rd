@@ -20,11 +20,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Micheal Slade \email{50627681+Micheal-Slade@users.noreply.github.com}
+\strong{Maintainer}: Micheal Slade \email{micheal.slade@london.gov.uk}
 
 Authors:
 \itemize{
-  \item Micheal Slade \email{50627681+Micheal-Slade@users.noreply.github.com}
+  \item Micheal Slade \email{micheal.slade@london.gov.uk}
 }
 
 }

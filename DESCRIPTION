@@ -2,7 +2,7 @@ Package: gglaplot2
 Title: GLA Design Tokens, Theme and Chart Marks for ggplot2
 Version: 0.2.0.9000
 Authors@R:
-    person("Micheal", "Slade", , "50627681+Micheal-Slade@users.noreply.github.com", role = c("aut", "cre"))
+    person("Micheal", "Slade", , "micheal.slade@london.gov.uk", role = c("aut", "cre"))
 Description: The Greater London Authority design tokens as R data, with a
     ggplot2 theme, colour palettes, scales and the chart marks the City
     Intelligence Unit's web charts draw, built on them. The successor to

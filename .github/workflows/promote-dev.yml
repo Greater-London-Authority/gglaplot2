@@ -117,6 +117,10 @@ jobs:
           branch="dev-after-$VERSION"
           git fetch origin dev
           git checkout -b "$branch" origin/dev
+          if grep -q "^Version: $VERSION.9000$" DESCRIPTION; then
+            echo "dev is already on $VERSION.9000; nothing to open."
+            exit 0
+          fi
           sed -i "s/^Version: .*/Version: $VERSION.9000/" DESCRIPTION
           { printf '# gglaplot2 %s.9000\n\n' "$VERSION"; cat NEWS.md; } > "$RUNNER_TEMP/NEWS.md"
           mv "$RUNNER_TEMP/NEWS.md" NEWS.md
