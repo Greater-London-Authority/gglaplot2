@@ -69,3 +69,13 @@ ggplot(mtcars, aes(wt, mpg)) +
            x = "Weight (1,000 lb)", y = "Miles per gallon") +
   theme_gla(gridlines = "both", axis_titles = "both")
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. Stacked panels convert with their strips and a y axis on every
+panel.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

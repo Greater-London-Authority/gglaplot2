@@ -33,3 +33,14 @@ ggplot(ends, aes(year, average, colour = series)) +
   theme_gla(gridlines = "none", legend = "none") +
   theme(axis.text.y = element_blank(), axis.line = element_blank())
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A slope chart converts with its two dates along the top, the lines
+and markers, and the labels at each end set off their points as the static
+chart sets them.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

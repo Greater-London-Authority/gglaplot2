@@ -242,3 +242,15 @@ with_gla_mode("dark", {
 
 Every function still takes `theme = "dark"` directly, which wins over the
 mode for that one call.
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A line chart converts with its series in the house colours, the
+reference line and its label, and a forecast dashed from its projected
+point. The hover label reads the date and the value as the axes do, and a
+chart drawn on the dark theme converts to a dark surface.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

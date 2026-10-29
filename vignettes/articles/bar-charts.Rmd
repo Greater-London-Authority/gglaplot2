@@ -135,3 +135,13 @@ ggplot(two, aes(average, factor(year), fill = series)) +
   gla_labs(title = "2015 against 2021", subtitle = "Average value (GBP)", x = NULL) +
   theme_gla(gridlines = "x")
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A bar chart converts with its bars, the zero line and the legend,
+and the hover label reads the category and the value as the axis does.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

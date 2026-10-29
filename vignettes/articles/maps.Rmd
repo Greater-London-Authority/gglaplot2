@@ -115,3 +115,13 @@ ggplot(b) +
   gla_labs(title = "A share by borough", subtitle = "On an inverse surface") +
   theme_gla_map(theme = "dark")
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A map converts with a hover label per area and a stepped scale as
+a legend; the diverging maps article walks through it.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

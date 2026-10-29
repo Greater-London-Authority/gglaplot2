@@ -60,3 +60,13 @@ A tile smaller than `min_label` of the whole (two per cent by default) gets
 no label, so the small tiles stay readable as shapes rather than as
 overlapping text. The tiles are squarified for the chart's shape; pass
 `aspect` if the chart is far from the web charts' 16 by 6.
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A treemap converts tile by tile with the labels in place; the
+tiles keep the hover label plotly gives a shape.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

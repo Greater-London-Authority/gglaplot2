@@ -189,3 +189,20 @@ test_that("gla_plotly places the end labels, splits a forecast and reads the the
   q <- p + theme(axis.text.y = element_blank())
   expect_false(plotly::plotly_build(gla_plotly(q))$x$layout$yaxis$showticklabels)
 })
+
+test_that("gla_plotly's hover label reads as the axes do", {
+  gbp <- scales::label_dollar(prefix = "£", scale = 1e-3, suffix = "k")
+  p <- ggplot(gla_monthly, aes(month, value, colour = series)) +
+    geom_gla_line() +
+    scale_y_continuous(labels = gbp) +
+    scale_colour_gla() +
+    labs(x = "Month", y = "Value") +
+    theme_gla()
+  x <- plotly::plotly_build(gla_plotly(p))$x
+  expect_equal(x$data[[1]]$text[1], "Variable A<br>Month: 1 January 2015<br>Value: £53.62k")
+  expect_equal(x$data[[1]]$hoverinfo, "text")
+  b <- ggplot(gla_yearly, aes(factor(year), average, fill = series)) + geom_gla_col() +
+    scale_fill_gla() + labs(x = "Year", y = "Average") + theme_gla()
+  y <- plotly::plotly_build(gla_plotly(b))$x
+  expect_equal(y$data[[1]]$text[1], "Variable A<br>Year: 2015<br>Average: 43,473")
+})

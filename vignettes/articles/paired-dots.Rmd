@@ -89,3 +89,13 @@ ggplot(change, aes(average, series, colour = year)) +
 
 `arrow = FALSE` joins the markers with a plain line, and `inset` sets how far
 the connector stops short of them, in pixels.
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A paired dot plot converts with the markers, the connectors in
+context grey and the benchmark line, without the arrowheads.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```

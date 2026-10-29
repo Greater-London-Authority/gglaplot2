@@ -52,6 +52,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
   out <- plotly_edge_labels(out, built, ct)
+  out$x$data <- plotly_hover(out$x$data, built)
   out <- plotly_chrome(out, labels, ct)
   out <- plotly_bin_legend(out, built, ct)
   out
@@ -200,6 +201,70 @@ plotly_traces <- function(traces, layout) {
     trace
   })
   Filter(function(trace) !is.null(trace$type), traces)
+}
+
+# the hover label in the chart's own words: the series, then each axis as
+# its title and the value formatted by that axis's scale, so a chart whose
+# axis reads in pounds or per cent hovers in pounds or per cent too. Marks
+# with a shape rather than a point (the polygons of a map, a treemap's
+# tiles) keep the label ggplotly gave them.
+plotly_hover <- function(traces, built) {
+  scales <- built$plot$scales
+  labels <- built$plot$labels
+  panel <- built$layout$panel_params[[1]]
+  axis <- function(aes) {
+    scale <- scales$get_scales(aes)
+    if (is.null(scale)) return(NULL)
+    title <- scale$name
+    if (is.null(title) || inherits(title, "waiver")) title <- labels[[aes]]
+    if (is.null(title) || inherits(title, "waiver")) title <- ""
+    discrete <- isTRUE(scale$is_discrete())
+    levels <- if (discrete) as.character(panel[[aes]]$get_labels())
+    date <- inherits(scale, "ScaleContinuousDate") && inherits(scale$labels, "waiver")
+    breaks <- panel[[aes]]$breaks
+    breaks <- breaks[is.finite(breaks)]
+    fmt <- function(values) {
+      values <- as.numeric(unclass(values))
+      if (discrete) {
+        at <- round(values)
+        ok <- !is.na(at) & at >= 1 & at <= length(levels)
+        out <- rep(NA_character_, length(values))
+        out[ok] <- levels[at[ok]]
+        return(out)
+      }
+      if (date) return(trimws(format(as.Date(values, origin = "1970-01-01"), "%e %B %Y")))
+      if (inherits(scale$labels, "waiver")) {
+        # a plain number at the axis's own precision
+        out <- label_gla_number()(c(values, breaks))
+        return(out[seq_along(values)])
+      }
+      # the axis's labels at four significant figures, as the web charts' tips
+      out <- tryCatch(as.character(scale$get_labels(signif(values, 4))), error = function(e) NULL)
+      if (length(out) != length(values)) return(format(values, big.mark = ",", trim = TRUE))
+      out
+    }
+    list(title = as.character(title), format = fmt)
+  }
+  x <- axis("x")
+  y <- axis("y")
+  line <- function(axis, values) {
+    values <- unclass(values)
+    if (is.null(axis) || !is.numeric(values)) return(NULL)
+    text <- axis$format(values)
+    if (all(is.na(text))) return(NULL)
+    if (nzchar(axis$title)) paste0(axis$title, ": ", text) else text
+  }
+  lapply(traces, function(trace) {
+    shape <- !is.null(trace$fill) || identical(trace$mode, "text") || !length(trace$x)
+    if (shape || is.null(trace$text)) return(trace)
+    series <- if (!is.null(trace$legendgroup) && !is.null(trace$name)) trace$name
+    parts <- list(rep(series, length(trace$x)), line(x, trace$x), line(y, trace$y))
+    parts <- Filter(Negate(is.null), parts)
+    if (!length(parts)) return(trace)
+    trace$text <- do.call(paste, c(parts, sep = "<br>"))
+    trace$hoverinfo <- "text"
+    trace
+  })
 }
 
 # the labels a trace has no position for become annotations: an end label

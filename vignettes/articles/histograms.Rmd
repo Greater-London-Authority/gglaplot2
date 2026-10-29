@@ -46,3 +46,13 @@ ggplot(vals, aes(x, fill = group)) +
            x = NULL, y = "Areas") +
   theme_gla(legend = "none", axis_titles = "y")
 ```
+
+## Interactive
+
+`gla_plotly()` turns the finished chart into an interactive one through
+plotly. A histogram converts with its bars and panels; the hover label
+reads the bin and the count.
+
+```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
+gla_plotly(last_plot())
+```
