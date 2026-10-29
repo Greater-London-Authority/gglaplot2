@@ -1,5 +1,15 @@
 # gglaplot2 0.2.0.9000
 
+* `gla_plotly()` now converts every chart family the articles draw as the
+  static chart draws it. `ggplotly()` builds each layer without the plot's
+  theme, so a mark with nothing mapped took ggplot2's old defaults: the
+  colours, widths and dash patterns now come from the theme. The theme's
+  legend and axis settings are kept, the facet strips are set in the
+  typeface at the left of their panel, a shaded range drawn to the panel
+  edge is drawn there rather than dropped, the end labels and the labels on
+  reference lines are placed as annotations (the end labels dodged apart as
+  the geom does), a forecast line is dashed from its projected point, and
+  a chart on the dark theme converts to a dark surface.
 * `geom_gla_treemap()` draws the web charts' treemap: tiles squarified
   largest first from the top left with a surface-colour gap, laid out
   group by group when `fill` is mapped, labels centred or top left and

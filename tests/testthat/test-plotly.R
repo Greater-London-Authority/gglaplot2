@@ -24,7 +24,8 @@ test_that("ggplotly draws the house marks as their base geoms", {
                   character(1))
   expect_true(any(grepl("scatter lines", types)))
   expect_true(any(grepl("scatter markers", types)))
-  expect_true(any(grepl("scatter text", types)))
+  # the end labels are placed by gla_plotly(); ggplotly() on its own leaves them off
+  expect_false(any(grepl("scatter text", types)))
 
   b <- ggplot(gla_yearly, aes(factor(year), average, fill = series)) + geom_gla_col() +
     scale_fill_gla() + theme_gla()
@@ -126,4 +127,65 @@ test_that("gla_plotly puts back the chrome and the stepped legend", {
   t <- ggplot(d, aes(area = value, label = name)) + geom_gla_treemap() + theme_gla_map()
   out <- convert(t)
   expect_false(any(grepl("yet to be implemented", out$warnings)))
+})
+
+test_that("gla_plotly keeps what ggplotly drops from the theme and the marks", {
+  d <- gla_monthly[gla_monthly$series == "Variable A", ]
+  p <- ggplot(d, aes(month, value)) +
+    annotate_gla_range(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-06-01")) +
+    geom_gla_line() +
+    gla_reference_line(y = 30000, label = "Average") +
+    theme_gla(legend = "none")
+  x <- plotly::plotly_build(gla_plotly(p))$x
+  primary <- grDevices::col2rgb(gla_token("data-primary"))
+  line <- Filter(function(t) identical(t$mode, "lines") && length(t$x) > 10, x$data)[[1]]
+  expect_equal(line$line$color, sprintf("rgba(%d,%d,%d,1)", primary[1], primary[2], primary[3]))
+  # the shaded range reaches the panel edge, not infinity
+  range <- Filter(function(t) !is.null(t$fill), x$data)[[1]]
+  expect_true(all(is.finite(range$y)))
+  # the reference line keeps the house dash and its label becomes an annotation
+  rule <- Filter(function(t) identical(t$mode, "lines") && length(t$x) == 2, x$data)[[1]]
+  expect_match(rule$line$dash, "^[0-9]+px,[0-9]+px$")
+  labels <- vapply(x$layout$annotations, function(a) a$text, character(1))
+  average <- x$layout$annotations[[match("Average", labels)]]
+  expect_equal(average$xref, "paper")
+  expect_equal(average$xanchor, "right")
+  expect_false(x$layout$showlegend)
+  expect_true(all(vapply(x$data, function(t) !is.null(t$type), logical(1))))
+})
+
+test_that("gla_plotly places the end labels, splits a forecast and reads the theme", {
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) +
+    geom_gla_line() +
+    geom_gla_endlabel(aes(label = series)) +
+    scale_colour_gla() +
+    theme_gla(legend = "none")
+  x <- plotly::plotly_build(gla_plotly(p))$x
+  ends <- Filter(function(a) identical(a$xanchor, "left") && isTRUE(a$xshift > 0),
+                 x$layout$annotations)
+  expect_equal(sort(vapply(ends, function(a) a$text, character(1))),
+               c("Variable A", "Variable B", "Variable C"))
+  expect_equal(vapply(ends, function(a) a$yref, character(1)), rep("y", 3))
+  d <- gla_monthly[gla_monthly$series == "Variable A", ]
+  from <- as.Date("2022-12-01")
+  f <- ggplot(d, aes(month, value)) +
+    geom_gla_line(projected_from = from) +
+    theme_gla()
+  y <- plotly::plotly_build(gla_plotly(f))$x
+  dashes <- vapply(y$data, function(t) t$line$dash %||% "solid", character(1))
+  expect_equal(sum(grepl("px", dashes)), 1)
+  expect_equal(sum(dashes == "solid"), 1)
+  # a faceted chart's strips sit at the left of their panel in the typeface,
+  # and a chart on the dark theme converts to a dark surface
+  s <- ggplot(mtcars, aes(wt, mpg)) + geom_gla_dot() + facet_wrap(vars(cyl)) + theme_gla()
+  z <- plotly::plotly_build(gla_plotly(s))$x
+  strips <- Filter(function(a) a$text %in% c("4", "6", "8"), z$layout$annotations)
+  expect_equal(length(strips), 3)
+  expect_true(all(vapply(strips, function(a) a$xanchor, character(1)) == "left"))
+  expect_true(all(grepl("Inter", vapply(strips, function(a) a$font$family, character(1)))))
+  dark <- plotly::plotly_build(gla_plotly(p + theme_gla(theme = "dark", legend = "none")))$x
+  expect_equal(dark$layout$paper_bgcolor, unname(gla_token("chart-surface", "dark")))
+  # the axis text a theme blanks stays blank
+  q <- p + theme(axis.text.y = element_blank())
+  expect_false(plotly::plotly_build(gla_plotly(q))$x$layout$yaxis$showticklabels)
 })

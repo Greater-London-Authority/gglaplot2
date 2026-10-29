@@ -4,13 +4,14 @@
 \alias{gla_plotly}
 \title{An interactive chart from a ggplot, with the chrome plotly drops}
 \usage{
-gla_plotly(plot, theme = gla_mode(), tooltip = "all", ...)
+gla_plotly(plot, theme = NULL, tooltip = "all", ...)
 }
 \arguments{
 \item{plot}{A ggplot.}
 
-\item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by
-\code{\link[=gla_mode]{gla_mode()}}.}
+\item{theme}{\code{"light"} or \code{"dark"}. By default the chart's own theme
+decides: a chart drawn with \code{theme_gla(theme = "dark")} converts to a
+dark surface.}
 
 \item{tooltip}{Passed to \code{\link[plotly:ggplotly]{plotly::ggplotly()}}.}
 
