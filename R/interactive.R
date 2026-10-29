@@ -275,9 +275,10 @@ plotly_edge_labels <- function(out, built, ct) {
   layers <- built$plot$layers
   for (i in seq_along(layers)) {
     geom <- layers[[i]]$geom
-    kind <- if (inherits(geom, "GeomGlaEndlabel")) "end" else if (inherits(geom, "GeomGlaEdgelabel")) {
-      "edge"
-    } else if (inherits(geom, "GeomGlaToplabel")) "top" else next
+    kinds <- c(GeomGlaEndlabel = "end", GeomGlaEdgelabel = "edge", GeomGlaToplabel = "top")
+    kind <- kinds[vapply(names(kinds), function(class) inherits(geom, class), logical(1))]
+    if (!length(kind)) next
+    kind <- kind[[1]]
     data <- built$data[[i]]
     if (!nrow(data)) next
     if (kind == "end" && isTRUE(layers[[i]]$geom_params$dodge %||% TRUE)) {
