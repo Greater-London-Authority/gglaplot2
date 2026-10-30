@@ -7,8 +7,11 @@
 # fails the refresh with the token's name, and the job fails with it.
 #
 # A pull request opened with the workflow token does not start the check on
-# its own, so the job dispatches it on the branch; the run shows against the
-# pull request's commit. A dispatch can name a release to refresh to.
+# its own, and GitHub holds the copy the pull request would trigger until a
+# maintainer approves it. So the job dispatches the check on the branch
+# first and writes that run's link into the pull request body, which is the
+# run to read; the held copy can be left alone. A dispatch can name a
+# release to refresh to.
 name: Upstream tokens
 on:
   schedule:
@@ -156,17 +159,33 @@ jobs:
           data-raw/refresh-tokens.R.
           EOF
           git push origin "$BRANCH"
+          # a pull request made with the workflow token does not start the
+          # check itself, and the copy GitHub holds for the pull request waits
+          # for approval: dispatch the check on the branch and link that run
+          gh workflow run R-CMD-check.yml --ref "$BRANCH"
+          run_url=""
+          for _ in $(seq 1 12); do
+            sleep 5
+            run_url=$(gh run list --branch "$BRANCH" --workflow R-CMD-check.yml --event workflow_dispatch \
+              --limit 1 --json url --jq '.[0].url // ""')
+            [ -n "$run_url" ] && break
+          done
+          if [ -n "$run_url" ]; then
+            check_line="Check: the job dispatched R-CMD-check on the branch, $run_url. The copy GitHub holds for this pull request can be left unapproved."
+          else
+            check_line="Check: the job dispatched R-CMD-check on the branch; find the run under Actions with the branch filter. The copy GitHub holds for this pull request can be left unapproved."
+          fi
           {
             echo "The weekly check found @ldn-viz/themes $VERSION on npm. This is data-raw/refresh-tokens.R run against it, with the documentation regenerated."
             echo
             cat "$RUNNER_TEMP/tokens.md"
+            echo "$check_line"
+            echo
             echo "Before merging:"
             echo
             echo "- [ ] If the reference leg fails on visual snapshots, review them with testthat::snapshot_review() and push"
-            echo "- [ ] Refresh the Rhino dashboard template from the same release so the two stay byte-identical (template issue #14)"
+            echo "- [ ] Refresh the Rhino dashboard template from the same release so the two stay byte-identical (Micheal-Slade/rhino-dashboard-template#14)"
           } > "$RUNNER_TEMP/body.md"
           gh pr create --base dev --head "$BRANCH" \
             --title "Refresh the tokens to @ldn-viz/themes $VERSION" \
             --body-file "$RUNNER_TEMP/body.md"
-          # a pull request made with the workflow token does not start the check itself
-          gh workflow run R-CMD-check.yml --ref "$BRANCH"
