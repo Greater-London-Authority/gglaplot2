@@ -1,8 +1,10 @@
 # Writes pkgdown/extra.scss, the documentation site's styling, from the
 # design tokens, so the site wears the same colours as the charts and the
-# visualisation team's Storybook without a value typed by hand. Bootstrap's
-# own variables (the accent, the fonts) are set in _pkgdown.yml because they
-# have to be known before Bootstrap compiles.
+# visualisation team's Storybook without a value typed by hand. The
+# hairlines are border-wash, the value border-muted had before themes 10
+# darkened it into a control's edge. Bootstrap's own variables (the accent,
+# the fonts) are set in _pkgdown.yml because they have to be known before
+# Bootstrap compiles.
 #
 #   Rscript data-raw/site.R
 
@@ -10,8 +12,8 @@ load(file.path("data", "gla_tokens.rda"))
 tk <- function(name, mode = "light") gla_tokens[[mode]][gla_tokens$token == name]
 
 vars <- function(mode) {
-  names <- c("canvas", "canvas-muted", "surface", "surface-muted", "container-level-1",
-             "border", "border-muted", "text", "text-muted", "text-wash",
+  names <- c("canvas", "canvas-muted", "surface", "surface-muted",
+             "border", "border-wash", "text", "text-muted", "text-wash",
              "interactive-primary-text", "interactive-primary-text-hover", "surface-accent",
              "surface-accent-muted", "chart-surface")
   paste(sprintf("  --gla-%s: %s;", names, vapply(names, tk, character(1), mode = mode)), collapse = "\n")
@@ -41,28 +43,28 @@ a:hover, .nav-link:hover { color: var(--gla-interactive-primary-text-hover); }
 
 .navbar {
   background: var(--gla-canvas-muted) !important;
-  border-bottom: 1px solid var(--gla-border-muted);
+  border-bottom: 1px solid var(--gla-border-wash);
 }
 .navbar .nav-link, .navbar .navbar-brand { color: var(--gla-text) !important; }
 .navbar .nav-link:hover, .navbar .nav-link.active { color: var(--gla-interactive-primary-text) !important; }
 .navbar .logo { height: 28px; width: auto; margin-right: 0.75rem; }
 
 pre, code { background: var(--gla-surface-muted); color: var(--gla-text); }
-pre { border: 1px solid var(--gla-border-muted); border-radius: 2px; }
-.page-header, .template-home .row > main > .section:first-child { border-color: var(--gla-border-muted); }
+pre { border: 1px solid var(--gla-border-wash); border-radius: 2px; }
+.page-header, .template-home .row > main > .section:first-child { border-color: var(--gla-border-wash); }
 .text-muted, .caption, figcaption { color: var(--gla-text-muted) !important; }
 
 // figures sit on the chart surface with the same hairline as a card
 img.figure, .figure img, .section img:not(.logo) {
   background: var(--gla-chart-surface);
-  border: 1px solid var(--gla-border-muted);
+  border: 1px solid var(--gla-border-wash);
   border-radius: 2px;
 }
 
 // the token swatch tables
 .token-swatch {
   display: inline-block; width: 1.1em; height: 1.1em; border-radius: 2px;
-  border: 1px solid var(--gla-border-muted); vertical-align: -0.2em; margin-right: 0.4em;
+  border: 1px solid var(--gla-border-wash); vertical-align: -0.2em; margin-right: 0.4em;
 }
 ', vars("light"), vars("dark"))
 

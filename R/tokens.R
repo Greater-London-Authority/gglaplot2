@@ -4,17 +4,29 @@
 #' a token name should fail at the call and not surface as a missing colour
 #' on a chart.
 #'
+#' A name an earlier release of the tokens used (`container-level-1`,
+#' `chart-inverse-axis`) reads the token that holds that colour now, with
+#' a message naming it; see `renamed_tokens()`.
+#'
 #' @param name One or more token names as in [gla_tokens], e.g. `"text"`,
 #'   `"chart-grid"`, `"data-primary"`.
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
-#' @return A character vector of hex colours, named by token.
+#' @return A character vector of hex colours, named by the token asked for.
 #' @examples
 #' gla_token("data-primary")
 #' gla_token(c("chart-axis", "chart-grid"), theme = "dark")
 #' @export
 gla_token <- function(name, theme = gla_mode()) {
   theme <- match_mode(theme)
-  hit <- match(name, gglaplot2::gla_tokens$token)
+  renamed <- renamed_tokens()
+  old <- name[name %in% names(renamed)]
+  if (length(old)) {
+    rlang::inform(paste0(
+      "Token ", old, " is now ", renamed[old], " in @ldn-viz/themes ",
+      gla_token_version()$version, "; reading ", renamed[old]
+    ))
+  }
+  hit <- match(ifelse(name %in% names(renamed), renamed[name], name), gglaplot2::gla_tokens$token)
   if (anyNA(hit)) {
     stop("Unknown token: ", paste(name[is.na(hit)], collapse = ", "), call. = FALSE)
   }

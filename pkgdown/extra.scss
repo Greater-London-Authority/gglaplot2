@@ -5,9 +5,8 @@
   --gla-canvas-muted: #f7f8f9;
   --gla-surface: #ffffff;
   --gla-surface-muted: #f0f1f2;
-  --gla-container-level-1: #f0f1f2;
   --gla-border: #5f666b;
-  --gla-border-muted: #d6d8da;
+  --gla-border-wash: #d6d8da;
   --gla-text: #353d43;
   --gla-text-muted: #5f666b;
   --gla-text-wash: #757c80;
@@ -23,9 +22,8 @@
   --gla-canvas-muted: #151b1e;
   --gla-surface: #0e1316;
   --gla-surface-muted: #192023;
-  --gla-container-level-1: #192023;
   --gla-border: #c5c8ca;
-  --gla-border-muted: #52595e;
+  --gla-border-wash: #52595e;
   --gla-text: #ffffff;
   --gla-text-muted: #c5c8ca;
   --gla-text-wash: #e0e1e2;
@@ -50,27 +48,27 @@ a:hover, .nav-link:hover { color: var(--gla-interactive-primary-text-hover); }
 
 .navbar {
   background: var(--gla-canvas-muted) !important;
-  border-bottom: 1px solid var(--gla-border-muted);
+  border-bottom: 1px solid var(--gla-border-wash);
 }
 .navbar .nav-link, .navbar .navbar-brand { color: var(--gla-text) !important; }
 .navbar .nav-link:hover, .navbar .nav-link.active { color: var(--gla-interactive-primary-text) !important; }
 .navbar .logo { height: 28px; width: auto; margin-right: 0.75rem; }
 
 pre, code { background: var(--gla-surface-muted); color: var(--gla-text); }
-pre { border: 1px solid var(--gla-border-muted); border-radius: 2px; }
-.page-header, .template-home .row > main > .section:first-child { border-color: var(--gla-border-muted); }
+pre { border: 1px solid var(--gla-border-wash); border-radius: 2px; }
+.page-header, .template-home .row > main > .section:first-child { border-color: var(--gla-border-wash); }
 .text-muted, .caption, figcaption { color: var(--gla-text-muted) !important; }
 
 // figures sit on the chart surface with the same hairline as a card
 img.figure, .figure img, .section img:not(.logo) {
   background: var(--gla-chart-surface);
-  border: 1px solid var(--gla-border-muted);
+  border: 1px solid var(--gla-border-wash);
   border-radius: 2px;
 }
 
 // the token swatch tables
 .token-swatch {
   display: inline-block; width: 1.1em; height: 1.1em; border-radius: 2px;
-  border: 1px solid var(--gla-border-muted); vertical-align: -0.2em; margin-right: 0.4em;
+  border: 1px solid var(--gla-border-wash); vertical-align: -0.2em; margin-right: 0.4em;
 }
 
