@@ -24,8 +24,10 @@ literals <- unlist(lapply(list.files("R", pattern = "\\.R$", full.names = TRUE),
   m <- regmatches(txt, gregexpr('"[a-z]+(-[a-z0-9]+)+"', txt, perl = TRUE))
   gsub('"', "", unlist(m))
 }))
-groups <- "^(chart|data|palette|text|canvas|surface|border|interactive|static|container)-"
+groups <- "^(chart|data|palette|text|canvas|surface|border|interactive|static|inverse)-"
 literals <- unique(literals[grepl(groups, literals) & !grepl("-$", literals)])
+# the names from before themes 10 are read through their replacements
+literals <- setdiff(literals, names(renamed_tokens()))
 check_required_tokens(gla_tokens$token, union(required_tokens(), literals))
 stopifnot(length(gla_brand) >= 12)
 

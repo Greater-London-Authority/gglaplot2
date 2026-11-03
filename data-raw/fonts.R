@@ -1,5 +1,5 @@
 # Fetches the Inter font files the package bundles under inst/fonts/. Inter
-# is the design system's typeface (the primitive-typography-font-family
+# is the design system's typeface (the primitive-typography-font-family-default
 # token) and is licensed under the SIL Open Font License, so it can ship with
 # the package; the licence text comes along with it. Bundling it means a
 # chart renders with the right face on any machine through ragg or svglite,

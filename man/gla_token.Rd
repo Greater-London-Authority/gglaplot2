@@ -13,12 +13,17 @@ gla_token(name, theme = gla_mode())
 \item{theme}{\code{"light"} or \code{"dark"}. Defaults to the mode set by \code{\link[=gla_mode]{gla_mode()}}.}
 }
 \value{
-A character vector of hex colours, named by token.
+A character vector of hex colours, named by the token asked for.
 }
 \description{
 Vectorised. An unknown name is an error rather than \code{NA}, because a typo in
 a token name should fail at the call and not surface as a missing colour
 on a chart.
+}
+\details{
+A name an earlier release of the tokens used (\code{container-level-1},
+\code{chart-inverse-axis}) reads the token that holds that colour now, with
+a message naming it; see \code{renamed_tokens()}.
 }
 \examples{
 gla_token("data-primary")

@@ -27,49 +27,73 @@ required_tokens <- function() {
     # the ramps the sequential and diverging palettes are built from
     paste0("palette-", rep(scales, each = 9), "-", rep(seq(100, 900, by = 100), length(scales))),
     # the documentation site
-    "canvas", "canvas-muted", "surface", "surface-muted", "container-level-1", "border",
-    "border-muted", "text-wash", "interactive-primary-text", "interactive-primary-text-hover",
-    "surface-accent", "surface-accent-muted", "static-brand"
+    "canvas", "canvas-muted", "surface", "surface-muted", "border", "border-wash",
+    "text-wash", "interactive-primary-text", "interactive-primary-text-hover",
+    "surface-accent", "surface-accent-muted", "static-brand",
+    # the names an earlier release used, which gla_token() still answers to
+    unname(renamed_tokens())
+  )
+}
+
+#' Tokens an earlier release of the token package named differently
+#'
+#' `@ldn-viz/themes` 10 renamed the container tokens to surface and canvas
+#' names and moved `inverse` to the front of the chart and geo inverse
+#' tokens. A script written against the old names still reads: the pairs
+#' here are the old name and the token that holds the same colour now, and
+#' [gla_token()] translates and says so.
+#'
+#' @return A named character vector, the old name to the current one.
+#' @keywords internal
+renamed_tokens <- function() {
+  c(
+    "container" = "surface", "container-level-1" = "surface-muted",
+    "container-level-2" = "palette-grey-200", "container-level-3" = "palette-grey-300",
+    "inverse-container" = "inverse-canvas", "inverse-container-level-1" = "inverse-surface",
+    "inverse-container-level-2" = "palette-grey-1000",
+    "inverse-container-level-3" = "palette-grey-900",
+    "chart-inverse-axis" = "inverse-chart-axis", "chart-inverse-grid" = "inverse-chart-grid",
+    "chart-inverse-label" = "inverse-chart-label",
+    "chart-inverse-label-muted" = "inverse-chart-label-muted",
+    "chart-inverse-surface" = "inverse-chart-surface",
+    "geo-inverse-feature" = "inverse-geo-feature",
+    "geo-inverse-feature-muted" = "inverse-geo-feature-muted"
   )
 }
 
 #' Read the vendored token files
 #'
 #' The visualisation team publish the tokens as `@ldn-viz/themes` on npm,
-#' whose `styles/` folder has `light.css`, `dark.css` and `primitives.css`
-#' as CSS custom properties. This reads those, resolving a `var()`
-#' reference to its fallback or to the property it names. It also reads the
-#' Sass form (`_colors.scss`, `_primitives.scss`) an older checkout vendored,
-#' so either regenerates.
+#' whose `styles/tokens.css` carries every token as a CSS custom property:
+#' the light mode and the primitives in a `:root` block and the dark mode
+#' in a `:root.dark, .dark` block after it. This reads the colour tokens
+#' out of both, resolving a `var()` reference to its fallback or to the
+#' property it names, and leaves the typography, spacing and shadow tokens
+#' in the file.
 #'
-#' @param dir The folder holding the files.
+#' @param dir The folder holding `tokens.css`.
 #' @return A list: `light`, `dark` and `primitives`, each a character vector
 #'   of hex colours named by token, and `version`, the package version
 #'   recorded by `data-raw/refresh-tokens.R` or `NA`.
 #' @keywords internal
 read_token_files <- function(dir) {
-  css <- file.path(dir, c("light.css", "dark.css", "primitives.css"))
-  scss <- file.path(dir, c("_colors.scss", "_primitives.scss"))
-  if (all(file.exists(css))) {
-    out <- list(
-      light = read_css_tokens(css[1]), dark = read_css_tokens(css[2]),
-      primitives = read_css_tokens(css[3])
-    )
-  } else if (all(file.exists(scss))) {
-    colours <- read_scss_tokens(scss[1])
-    is_dark <- grepl("-dark$", names(colours))
-    dark <- colours[is_dark]
-    names(dark) <- sub("-dark$", "", names(dark))
-    out <- list(light = colours[!is_dark], dark = dark, primitives = read_scss_tokens(scss[2]))
-  } else {
-    stop("No token package under ", dir, ": expected light.css, dark.css and primitives.css ",
-         "(or the Sass pair _colors.scss and _primitives.scss)", call. = FALSE)
+  path <- file.path(dir, "tokens.css")
+  if (!file.exists(path)) {
+    stop("No token package under ", dir, ": expected tokens.css", call. = FALSE)
   }
-  out$light <- strip_prefix(out$light, "^color-")
-  out$dark <- strip_prefix(out$dark, "^color-")
+  lines <- readLines(path, warn = FALSE)
+  root <- css_block(lines, "^:root\\s*\\{", path)
+  dark <- css_block(lines, "^:root\\.dark\\b.*\\{", path)
+  root <- read_css_tokens(root, path)
+  primitive <- grepl("^primitive-", names(root))
+  out <- list(
+    light = strip_prefix(root[!primitive], "^color-"),
+    dark = strip_prefix(read_css_tokens(dark, path), "^color-"),
+    primitives = root[primitive]
+  )
   for (part in c("light", "dark", "primitives")) {
     if (!length(out[[part]])) {
-      stop("No tokens read from the ", part, " file under ", dir, call. = FALSE)
+      stop("No ", part, " tokens read from ", path, call. = FALSE)
     }
   }
   version_file <- file.path(dir, "VERSION")
@@ -77,11 +101,23 @@ read_token_files <- function(dir) {
   out
 }
 
+# the lines inside the first rule set whose selector line matches
+css_block <- function(lines, selector, path) {
+  from <- grep(selector, lines)
+  if (!length(from)) {
+    stop(basename(path), " has no block matching ", selector, call. = FALSE)
+  }
+  from <- from[1]
+  to <- grep("^\\}", lines)
+  to <- to[to > from]
+  if (!length(to)) stop(basename(path), " has an unclosed block at line ", from, call. = FALSE)
+  lines[seq(from + 1, to[1] - 1)]
+}
+
 # "--color-text: #353d42;" and "--color-data-primary: var(--color-x, #007acc);"
 # both give a hex; "var(--color-x)" with no fallback is resolved against the
-# other properties in the same file
-read_css_tokens <- function(path) {
-  lines <- readLines(path, warn = FALSE)
+# other properties in the same block
+read_css_tokens <- function(lines, path = "tokens.css") {
   re <- "^\\s*--([a-z0-9-]+):\\s*(.+?);\\s*$"
   m <- regmatches(lines, regexec(re, lines, perl = TRUE))
   m <- m[lengths(m) == 3]
@@ -97,23 +133,14 @@ read_css_tokens <- function(path) {
     NA_character_
   }
   hex <- vapply(values, resolve, character(1))
-  # a reference that resolves to nothing is a broken file; a plain value
-  # that is not a colour (a font family, a weight) is just not a colour token
-  bad <- names(hex)[is.na(hex) & grepl("var(", values, fixed = TRUE)]
+  # a colour token that resolves to no colour is a broken file; a token of
+  # another kind (a font family, a shadow, a length) is just not a colour
+  bad <- names(hex)[is.na(hex) & grepl("^(color|primitive-color)-", names(hex))]
   if (length(bad)) {
-    stop(basename(path), " has ", length(bad), " token(s) whose reference resolves to no colour: ",
+    stop(basename(path), " has ", length(bad), " colour token(s) that resolve to no colour: ",
          paste(utils::head(bad, 5), collapse = ", "), call. = FALSE)
   }
   hex[!is.na(hex)]
-}
-
-# the Sass form: a $color-<name> variable declared !default with a hex value
-read_scss_tokens <- function(path) {
-  lines <- readLines(path, warn = FALSE)
-  re <- "^\\$([a-z0-9-]+):\\s*(#[0-9a-fA-F]{6,8})\\s*!default;"
-  m <- regmatches(lines, regexec(re, lines, perl = TRUE))
-  m <- m[lengths(m) == 3]
-  stats::setNames(tolower(vapply(m, `[[`, character(1), 3)), vapply(m, `[[`, character(1), 2))
 }
 
 strip_prefix <- function(x, prefix) {

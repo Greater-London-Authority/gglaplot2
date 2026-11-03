@@ -96,14 +96,16 @@ npm, vendored under `inst/tokens/` with the release recorded in
 `VERSION` (`gla_token_version()` reads it). To move to a new release:
 
 ``` r
-source("data-raw/refresh-tokens.R")   # or: Rscript data-raw/refresh-tokens.R 9.3.0
+source("data-raw/refresh-tokens.R")   # or: Rscript data-raw/refresh-tokens.R 10.0.1
 devtools::document()
 devtools::test()
 ```
 
-It fetches the release, copies the token files in unchanged, rebuilds
-`gla_tokens` and `gla_brand`, the gglaplot colour lists and the site
-styling, and prints every token that was added, removed or changed. It
+It fetches the release, copies `styles/tokens.css` and `styles/tokens.scss`
+in unchanged (the package reads the CSS; the Sass is carried for the
+dashboards that take their tokens from here), rebuilds `gla_tokens` and
+`gla_brand`, the gglaplot colour lists and the site styling, and prints
+every token that was added, removed or changed. It
 stops, naming the token, if the release has lost or renamed one this
 package reads, so a rename upstream is a build failure here and not a
 missing colour on a chart. The test suite checks the data against the

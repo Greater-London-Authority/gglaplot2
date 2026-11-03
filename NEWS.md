@@ -1,5 +1,18 @@
 # gglaplot2 0.2.0.9000
 
+* Tokens refreshed to `@ldn-viz/themes` 10.0.1, the release built from
+  the v4 Figma export. The package now ships one `tokens.css` with both
+  modes in it, and `tokens.scss` beside it for the dashboards, instead of
+  `light.css`, `dark.css` and `primitives.css`; `inst/tokens/` and the
+  reader follow. Fifteen tokens were renamed upstream (`container` and
+  its levels to `surface` and `surface-muted`, `inverse-container` to
+  `inverse-canvas` and `inverse-surface`, `chart-inverse-*` and
+  `geo-inverse-*` to `inverse-chart-*` and `inverse-geo-*`); `gla_token()`
+  still answers to the old names and says which token it read. One value
+  changed: `border-muted` is now a control's edge (grey 500) and the old
+  hairline is `border-wash`. No chart token moved, so no chart changes;
+  the documentation site's hairlines are on `border-wash`.
+
 * `gla_plotly()` now converts every chart family the articles draw as the
   static chart draws it. `ggplotly()` builds each layer without the plot's
   theme, so a mark with nothing mapped took ggplot2's old defaults: the
