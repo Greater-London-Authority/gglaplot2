@@ -62,15 +62,16 @@ ggla_plotly_layout <- function(plot, gla_theme = "default", x_axis_title = FALSE
   roles <- gla_type()
   size <- function(role) base_size * roles[[role]]$size / roles$tick$size
   family <- "Inter, Arial, sans-serif"
-  font <- function(colour, role, weight = 400) {
-    list(color = colour, family = family, size = size(role), weight = weight)
+  font <- function(colour, role) {
+    list(color = colour, family = family, size = size(role),
+         weight = css_weight(roles[[role]]$weight))
   }
   axis <- function(gridlines) {
     list(
       automargin = TRUE, ticks = "", showticklabels = TRUE, tickfont = font(ct$label_muted, "tick"),
       tickangle = 0, showline = !gridlines, linecolor = ct$axis, linewidth = 1,
       showgrid = gridlines, gridcolor = ct$grid, gridwidth = 1, zeroline = FALSE,
-      title = list(font = font(ct$text_muted, "axis_title", 500))
+      title = list(font = font(ct$text_muted, "axis_title"))
     )
   }
   has_title <- !is.null(plot$x$layout$title$text)
@@ -79,7 +80,7 @@ ggla_plotly_layout <- function(plot, gla_theme = "default", x_axis_title = FALSE
     margin = list(t = if (has_title) 4 * size("title") else 16, r = 16, b = 16, l = 16, pad = 0),
     plot_bgcolor = ct$surface, paper_bgcolor = ct$surface,
     font = font(ct$text, "tick"),
-    title = list(font = font(ct$text, "title", 600), x = 0, xref = "container", xanchor = "left"),
+    title = list(font = font(ct$text, "title"), x = 0, xref = "container", xanchor = "left"),
     xaxis = axis(xgridlines), yaxis = axis(TRUE),
     legend = list(bgcolor = ct$surface, bordercolor = "transparent", borderwidth = 0,
                   x = 0, y = 1, orientation = "h", xanchor = "left", yanchor = "bottom",

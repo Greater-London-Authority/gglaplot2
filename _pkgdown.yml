@@ -99,6 +99,7 @@ reference:
       - gla_token
       - gla_token_version
       - gla_show_tokens
+      - gla_type_roles
       - gla_type
       - gla_font
   - title: Palettes and scales

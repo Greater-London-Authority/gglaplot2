@@ -60,8 +60,16 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
 
 plotly_family <- "Inter, Arial, sans-serif"
 
-plotly_font <- function(colour, role, weight = 400) {
-  list(color = colour, family = plotly_family, size = gla_type()[[role]]$size, weight = weight)
+# a plotly font for a chart role: its size and, unless given, its weight
+plotly_font <- function(colour, role, weight = NULL) {
+  r <- gla_type()[[role]]
+  list(color = colour, family = plotly_family, size = r$size,
+       weight = weight %||% css_weight(r$weight))
+}
+
+# the CSS number for a weight name
+css_weight <- function(name) {
+  c(regular = 400, medium = 500, semibold = 600, bold = 700)[[name]]
 }
 
 # ggplotly() builds each layer again without the plot's theme, so a mark
@@ -136,7 +144,7 @@ plotly_layout <- function(layout, plot, theme, ct) {
     axis$automargin <- TRUE
     axis$title <- utils::modifyList(
       if (is.list(axis$title)) axis$title else list(text = axis$title),
-      list(font = plotly_font(ct$text_muted, "axis_title", 500))
+      list(font = plotly_font(ct$text_muted, "axis_title"))
     )
     layout[[key]] <- axis
   }
@@ -155,12 +163,12 @@ plotly_layout <- function(layout, plot, theme, ct) {
   for (a in layout$annotations) {
     if (isTRUE(a$legendTitle)) {
       if (inherits(theme$legend.title, "element_blank")) next
-      a$font <- plotly_font(ct$label, "label", 500)
+      a$font <- plotly_font(ct$label, "label")
     } else if (identical(a$annotationType, "axis")) {
-      a$font <- plotly_font(ct$text_muted, "axis_title", 500)
+      a$font <- plotly_font(ct$text_muted, "axis_title")
     } else if (identical(a$xref, "paper") && identical(a$yref, "paper")) {
       # a facet strip: set in the label role at the left edge of its panel
-      a$font <- plotly_font(ct$text, "label", 500)
+      a$font <- plotly_font(ct$text, "label")
       for (d in domains) {
         if (length(d) == 2 && a$x >= d[1] && a$x <= d[2]) {
           a$x <- d[1]
@@ -321,6 +329,8 @@ plotly_edge_labels <- function(out, built, ct) {
 plotly_chrome <- function(out, labels, ct) {
   roles <- gla_type()
   px <- function(role) roles[[role]]$size
+  lh <- function(role) roles[[role]]$size * roles[[role]]$line_height
+  weight <- function(role) css_weight(roles[[role]]$weight)
   esc <- function(x) {
     x <- gsub("&", "&amp;", x, fixed = TRUE)
     x <- gsub("<", "&lt;", x, fixed = TRUE)
@@ -334,10 +344,12 @@ plotly_chrome <- function(out, labels, ct) {
   eyebrow <- attr(title, "eyebrow")
   title <- if (is.null(title) || inherits(title, "waiver")) "" else as.character(title)
   lines <- c(
-    if (!is.null(eyebrow) && nzchar(eyebrow)) span(esc(eyebrow), px("eyebrow"), ct$text_muted, 500),
-    if (nzchar(title)) span(esc(title), px("title"), ct$text, 600),
+    if (!is.null(eyebrow) && nzchar(eyebrow)) {
+      span(esc(eyebrow), px("eyebrow"), ct$text_muted, weight("eyebrow"))
+    },
+    if (nzchar(title)) span(esc(title), px("title"), ct$text, weight("title")),
     if (!is.null(labels$subtitle) && !inherits(labels$subtitle, "waiver")) {
-      span(esc(as.character(labels$subtitle)), px("subtitle"), ct$text_muted)
+      span(esc(as.character(labels$subtitle)), px("subtitle"), ct$text_muted, weight("subtitle"))
     }
   )
   caption <- labels$caption
@@ -354,14 +366,18 @@ plotly_chrome <- function(out, labels, ct) {
     }, character(1))
     paste(parts, collapse = "<br>")
   }
-  n_lines <- length(lines)
-  top <- if (n_lines) 16 + sum(vapply(lines, function(x) 0, numeric(1))) +
-    (if (!is.null(eyebrow)) px("eyebrow") * 1.4 else 0) + px("title") * 1.3 +
-    (if (!is.null(labels$subtitle)) px("subtitle") * 1.4 else 0) + 12 else 16
+  # the title block's height on the roles' line heights, with the 4px step
+  # under the eyebrow and the container's 8px above the chart
+  top <- if (length(lines)) {
+    16 + (if (!is.null(eyebrow)) lh("eyebrow") + 4 else 0) + lh("title") +
+      (if (!is.null(labels$subtitle)) lh("subtitle") else 0) + 8
+  } else {
+    16
+  }
   out$x$layout$title <- list(
     text = paste(lines, collapse = "<br>"), x = 0, xref = "container", xanchor = "left",
     y = 1, yref = "container", yanchor = "top", pad = list(t = 16, l = 16),
-    font = plotly_font(ct$text, "title", 600)
+    font = plotly_font(ct$text, "title")
   )
   out$x$layout$margin$t <- top
   if (!is.null(footer)) {

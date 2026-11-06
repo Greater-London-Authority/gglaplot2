@@ -8,8 +8,9 @@ gla_font(weight = c("regular", "medium", "semibold", "bold"))
 }
 \arguments{
 \item{weight}{\code{"regular"}, \code{"medium"}, \code{"semibold"} or \code{"bold"}. The
-chart roles use regular for ticks and labels, medium for axis titles and
-semibold for the title.}
+chart roles use regular for ticks and the footer, medium for the
+eyebrow, axis titles and labels, and semibold for the title; see
+\code{\link[=gla_type]{gla_type()}}.}
 }
 \value{
 A family name for \code{ggplot2::element_text()}, or \code{""} for the

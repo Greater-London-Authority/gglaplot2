@@ -23,6 +23,22 @@
 #' @format A named character vector of hex colours.
 "gla_brand"
 
+#' The product type roles
+#'
+#' One row per role in the design system's product type set, at the `md`
+#' breakpoint: `title-md`, `subtitle-sm`, `label-md`, `caption-sm` and so
+#' on, with the size in CSS pixels, the weight as the CSS number, and the
+#' line height and letter spacing as multiples of the size. Generated from
+#' the vendored `@ldn-viz/themes` release by `data-raw/tokens.R` beside
+#' [gla_tokens]. [gla_type()] picks out the roles the chart text is set
+#' on.
+#'
+#' @format A data frame with columns `role`, `size`, `weight`,
+#'   `line_height` and `letter_spacing`.
+#' @seealso [gla_type()] for the chart roles, [theme_gla()] which sets its
+#'   text from them.
+"gla_type_roles"
+
 #' Demo data: three monthly series
 #'
 #' The series the visualisation team's Storybook demonstrates its line

@@ -56,8 +56,9 @@ chart_tokens <- function(theme = "light") {
 #' `options(gglaplot2.font = "sans")` to never use it.
 #'
 #' @param weight `"regular"`, `"medium"`, `"semibold"` or `"bold"`. The
-#'   chart roles use regular for ticks and labels, medium for axis titles and
-#'   semibold for the title.
+#'   chart roles use regular for ticks and the footer, medium for the
+#'   eyebrow, axis titles and labels, and semibold for the title; see
+#'   [gla_type()].
 #' @return A family name for `ggplot2::element_text()`, or `""` for the
 #'   device's sans when Inter is not available.
 #' @examples
@@ -87,24 +88,42 @@ inter_available <- function(family) {
 
 #' The chart typography roles
 #'
-#' The design system's chart type set, in CSS pixels: `title` 20 semibold,
-#' `subtitle` 16, `eyebrow` 14 medium, `axis_title` 14 medium, `label` 14,
-#' `tick` 14, `tick_sm` 12 and `caption` 12. [theme_gla()] sets its text
-#' from these.
+#' The design system describes type by role, and its stylesheet sets each
+#' piece of chart text on one of the product roles: the title on
+#' `title-md` (20px semibold), the subtitle on `subtitle-sm` (16px), the
+#' eyebrow on `eyebrow` (14px medium), axis titles and value labels on
+#' `label-md` (14px medium), tick labels on `caption-md` (14px) and the
+#' smaller tick tier and the footer on `caption-sm` (12px). This reads
+#' those roles from [gla_type_roles], the table generated from the
+#' vendored tokens, so a release that moves a size moves it here too.
+#' [theme_gla()] sets its text from these.
 #'
-#' @return A list of roles, each with `size` (px) and `weight`.
+#' @return A list of the eight chart roles, `title`, `subtitle`, `eyebrow`,
+#'   `axis_title`, `label`, `tick`, `tick_sm` and `caption`, each a list
+#'   with `size` (CSS px), `weight` (`"regular"`, `"medium"`, `"semibold"`
+#'   or `"bold"`), `line_height` (a multiple of the size) and `role`, the
+#'   product role it is set on.
 #' @examples
 #' gla_type()$title
 #' @export
 gla_type <- function() {
-  list(
-    title = list(size = 20, weight = "semibold"),
-    subtitle = list(size = 16, weight = "regular"),
-    eyebrow = list(size = 14, weight = "medium"),
-    axis_title = list(size = 14, weight = "medium"),
-    label = list(size = 14, weight = "regular"),
-    tick = list(size = 14, weight = "regular"),
-    tick_sm = list(size = 12, weight = "regular"),
-    caption = list(size = 12, weight = "regular")
+  roles <- gglaplot2::gla_type_roles
+  on <- c(
+    title = "title-md", subtitle = "subtitle-sm", eyebrow = "eyebrow",
+    axis_title = "label-md", label = "label-md", tick = "caption-md",
+    tick_sm = "caption-sm", caption = "caption-sm"
   )
+  lapply(on, function(role) {
+    r <- roles[roles$role == role, ]
+    list(size = r$size, weight = weight_name(r$weight), line_height = r$line_height,
+         role = role)
+  })
+}
+
+# a CSS font weight as the name gla_font() takes
+weight_name <- function(weight) {
+  if (weight >= 700) return("bold")
+  if (weight >= 600) return("semibold")
+  if (weight >= 500) return("medium")
+  "regular"
 }
