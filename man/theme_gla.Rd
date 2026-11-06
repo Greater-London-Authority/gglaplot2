@@ -46,14 +46,16 @@ A ggplot2 theme.
 }
 \description{
 The non-data ink of a chart, from the design system's \verb{chart-*} colour
-tokens and its chart typography roles. The plot sits on \code{chart-surface},
+tokens and its type roles. The plot sits on \code{chart-surface},
 gridlines are \code{chart-grid}, the axis line \code{chart-axis}, tick labels
-\code{chart-label-muted} and the title \code{text}. The sizes are the roles'
-pixel sizes (title 20, subtitle 16, ticks 14, caption 12) so a chart saved
-at 96 dpi matches a chart drawn by the visualisation team's web
-components pixel for pixel. These are the same tokens the dashboards
-draw their charts with, so a static chart and a live one on the same
-page read as one system.
+\code{chart-label-muted} and the title \code{text}. The sizes, weights and line
+heights are the roles' (\code{\link[=gla_type]{gla_type()}}: title 20px semibold, subtitle 16,
+ticks 14, caption 12) so a chart saved at 96 dpi matches a chart drawn
+by the visualisation team's web components pixel for pixel, and the
+space between the eyebrow, title, subtitle and footer is the chart
+container's. These are the same tokens the dashboards draw their charts
+with, so a static chart and a live one on the same page read as one
+system.
 }
 \details{
 Titles, subtitle and caption are left-aligned to the plot edge. One axis

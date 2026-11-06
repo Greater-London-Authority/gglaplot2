@@ -14,15 +14,21 @@ library(gglaplot2)
 
 The design system describes type by role rather than by size. A role names
 the job a piece of text does and carries the size, weight and line height
-that job needs. The chart set has eight roles, and `theme_gla()` sets its
-text from them.
+that job needs. The product set has `r nrow(gla_type_roles)` roles, held in
+`gla_type_roles`, and the design system's stylesheet sets each piece of
+chart text on one of them: the title on `title-md`, value labels on
+`label-md`, tick labels on `caption-md` and so on. `gla_type()` reads the
+eight chart roles from that table and `theme_gla()` sets its text from them,
+so a release of the tokens that moves a size moves the charts with it.
 
 ```{r roles, echo = FALSE}
 roles <- gla_type()
 knitr::kable(data.frame(
   Role = names(roles),
+  `Set on` = vapply(roles, function(r) r$role, character(1)),
   `Size (px)` = vapply(roles, function(r) r$size, numeric(1)),
   Weight = vapply(roles, function(r) r$weight, character(1)),
+  `Line height` = vapply(roles, function(r) r$line_height, numeric(1)),
   For = c("The chart's title", "A supporting line beneath the title",
           "A short label above the title: the place or series the chart is about",
           "Axis names, series and legend titles", "Value labels, annotations, legend entries",
@@ -35,7 +41,11 @@ knitr::kable(data.frame(
 Sizes are in CSS pixels, as on the web, so a chart saved at 96 dpi matches a
 chart drawn by the web components pixel for pixel. In points, which is what
 ggplot2 measures text in, 14px is 10.5pt. `base_size` is the tick size and
-the other roles scale from it.
+the other roles scale from it. The line heights set the spacing of a
+wrapped title or a multi-line footer, and the space between the eyebrow,
+title, subtitle and the chart is the chart container's: a 4px step under
+the eyebrow, the subtitle on the title's line height, 8px above the chart
+and 8px between the chart and its footer.
 
 ```{r sizes}
 ggplot(gla_yearly, aes(year, average, colour = series)) +
@@ -49,6 +59,10 @@ ggplot(gla_yearly, aes(year, average, colour = series)) +
   ) +
   theme_gla(axis_titles = "both")
 ```
+
+Value labels, annotations and legend entries are the label role, 14px
+medium, as the web charts set them; tick labels are 14px regular in
+`chart-label-muted`.
 
 ## Inter
 

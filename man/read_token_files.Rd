@@ -11,8 +11,9 @@ read_token_files(dir)
 }
 \value{
 A list: \code{light}, \code{dark} and \code{primitives}, each a character vector
-of hex colours named by token, and \code{version}, the package version
-recorded by \code{data-raw/refresh-tokens.R} or \code{NA}.
+of hex colours named by token; \code{type}, the roles from
+\code{\link[=read_css_type]{read_css_type()}}; and \code{version}, the package version recorded by
+\code{data-raw/refresh-tokens.R} or \code{NA}.
 }
 \description{
 The visualisation team publish the tokens as \verb{@ldn-viz/themes} on npm,
@@ -20,7 +21,8 @@ whose \code{styles/tokens.css} carries every token as a CSS custom property:
 the light mode and the primitives in a \verb{:root} block and the dark mode
 in a \verb{:root.dark, .dark} block after it. This reads the colour tokens
 out of both, resolving a \code{var()} reference to its fallback or to the
-property it names, and leaves the typography, spacing and shadow tokens
+property it names, and the product type roles at the \code{md} breakpoint,
+the one the dashboards read; it leaves the spacing and shadow tokens
 in the file.
 }
 \keyword{internal}

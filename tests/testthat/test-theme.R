@@ -28,6 +28,16 @@ test_that("the type sizes are the chart roles, in points", {
   # the semibold title is a named Inter family, not a bold face
   expect_equal(th$plot.title$family, "Inter SemiBold")
   expect_equal(th$axis.title$family, "Inter Medium")
+  # labels and legend entries are label-md, medium; ticks and the footer regular
+  expect_equal(th$legend.text$family, "Inter Medium")
+  expect_equal(th$geom@family, "Inter Medium")
+  expect_equal(th$text$family, "Inter")
+  expect_equal(calc_element("axis.text", th)$family, "Inter")
+  expect_equal(calc_element("plot.caption", th)$family, "Inter")
+  # line heights from the roles
+  expect_equal(th$plot.title$lineheight, roles$title$line_height)
+  expect_equal(th$plot.subtitle$lineheight, roles$subtitle$line_height)
+  expect_equal(th$plot.caption$lineheight, roles$caption$line_height)
   # scaled from the tick size
   expect_equal(theme_gla(base_size = 28)$plot.title$size, roles$title$size * 2 * 0.75)
 })

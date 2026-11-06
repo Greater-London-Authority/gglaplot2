@@ -7,13 +7,22 @@
 gla_type()
 }
 \value{
-A list of roles, each with \code{size} (px) and \code{weight}.
+A list of the eight chart roles, \code{title}, \code{subtitle}, \code{eyebrow},
+\code{axis_title}, \code{label}, \code{tick}, \code{tick_sm} and \code{caption}, each a list
+with \code{size} (CSS px), \code{weight} (\code{"regular"}, \code{"medium"}, \code{"semibold"}
+or \code{"bold"}), \code{line_height} (a multiple of the size) and \code{role}, the
+product role it is set on.
 }
 \description{
-The design system's chart type set, in CSS pixels: \code{title} 20 semibold,
-\code{subtitle} 16, \code{eyebrow} 14 medium, \code{axis_title} 14 medium, \code{label} 14,
-\code{tick} 14, \code{tick_sm} 12 and \code{caption} 12. \code{\link[=theme_gla]{theme_gla()}} sets its text
-from these.
+The design system describes type by role, and its stylesheet sets each
+piece of chart text on one of the product roles: the title on
+\code{title-md} (20px semibold), the subtitle on \code{subtitle-sm} (16px), the
+eyebrow on \code{eyebrow} (14px medium), axis titles and value labels on
+\code{label-md} (14px medium), tick labels on \code{caption-md} (14px) and the
+smaller tick tier and the footer on \code{caption-sm} (12px). This reads
+those roles from \link{gla_type_roles}, the table generated from the
+vendored tokens, so a release that moves a size moves it here too.
+\code{\link[=theme_gla]{theme_gla()}} sets its text from these.
 }
 \examples{
 gla_type()$title

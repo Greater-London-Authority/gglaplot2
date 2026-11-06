@@ -61,6 +61,21 @@ renamed_tokens <- function() {
   )
 }
 
+#' The type roles the chart text is set in
+#'
+#' The product type set names a role for each job a piece of text does.
+#' The chart text uses six of them, through the `chart-*` aliases the
+#' design system's stylesheet defines: `title-md` for the title,
+#' `subtitle-sm`, `eyebrow`, `label-md` for axis titles and value labels,
+#' `caption-md` for tick labels and `caption-sm` for the smaller tick tier
+#' and the footer. A refresh that drops one fails with its name.
+#'
+#' @return A character vector of role names.
+#' @keywords internal
+required_type_roles <- function() {
+  c("title-md", "subtitle-sm", "eyebrow", "label-md", "caption-md", "caption-sm")
+}
+
 #' Read the vendored token files
 #'
 #' The visualisation team publish the tokens as `@ldn-viz/themes` on npm,
@@ -68,13 +83,15 @@ renamed_tokens <- function() {
 #' the light mode and the primitives in a `:root` block and the dark mode
 #' in a `:root.dark, .dark` block after it. This reads the colour tokens
 #' out of both, resolving a `var()` reference to its fallback or to the
-#' property it names, and leaves the typography, spacing and shadow tokens
+#' property it names, and the product type roles at the `md` breakpoint,
+#' the one the dashboards read; it leaves the spacing and shadow tokens
 #' in the file.
 #'
 #' @param dir The folder holding `tokens.css`.
 #' @return A list: `light`, `dark` and `primitives`, each a character vector
-#'   of hex colours named by token, and `version`, the package version
-#'   recorded by `data-raw/refresh-tokens.R` or `NA`.
+#'   of hex colours named by token; `type`, the roles from
+#'   [read_css_type()]; and `version`, the package version recorded by
+#'   `data-raw/refresh-tokens.R` or `NA`.
 #' @keywords internal
 read_token_files <- function(dir) {
   path <- file.path(dir, "tokens.css")
@@ -84,18 +101,21 @@ read_token_files <- function(dir) {
   lines <- readLines(path, warn = FALSE)
   root <- css_block(lines, "^:root\\s*\\{", path)
   dark <- css_block(lines, "^:root\\.dark\\b.*\\{", path)
+  type <- read_css_type(root)
   root <- read_css_tokens(root, path)
   primitive <- grepl("^primitive-", names(root))
   out <- list(
     light = strip_prefix(root[!primitive], "^color-"),
     dark = strip_prefix(read_css_tokens(dark, path), "^color-"),
-    primitives = root[primitive]
+    primitives = root[primitive],
+    type = type
   )
   for (part in c("light", "dark", "primitives")) {
     if (!length(out[[part]])) {
       stop("No ", part, " tokens read from ", path, call. = FALSE)
     }
   }
+  if (!nrow(type)) stop("No type tokens read from ", path, call. = FALSE)
   version_file <- file.path(dir, "VERSION")
   out$version <- if (file.exists(version_file)) read_token_version(version_file)$version else NA
   out
@@ -148,6 +168,45 @@ strip_prefix <- function(x, prefix) {
   x
 }
 
+#' The product type roles in a block of CSS
+#'
+#' The `--typography-md-product-<role>-<property>` custom properties: the
+#' size as pixels at the browser's base of 16px (the property is a rem, or
+#' a `var()` with a rem fallback), the weight through its fallback, and the
+#' line height and letter spacing as the numbers they are. The roles the
+#' chart text uses are the same at every breakpoint; `md` is the one the
+#' dashboards built on the Rhino template read, so a chart's tick label
+#' and a card's caption come out one size.
+#'
+#' @param lines The lines of the `:root` block, from `css_block()`.
+#' @return A data frame with one row per role in file order: `role`,
+#'   `size` (px), `weight` (the CSS number), `line_height` and
+#'   `letter_spacing`.
+#' @keywords internal
+read_css_type <- function(lines) {
+  props <- c("font-size" = "size", "font-weight" = "weight", "line-height" = "line_height",
+             "letter-spacing" = "letter_spacing")
+  re <- sprintf("^\\s*--typography-md-product-([a-z-]+)-(%s):\\s*(.+?);\\s*$",
+                paste(names(props), collapse = "|"))
+  m <- regmatches(lines, regexec(re, lines, perl = TRUE))
+  m <- m[lengths(m) == 4]
+  number <- function(v) {
+    fallback <- regmatches(v, regexec("^var\\(--[a-z0-9-]+,\\s*(.+)\\)$", v))[[1]]
+    if (length(fallback) == 2) v <- fallback[2]
+    if (grepl("rem$", v)) return(as.numeric(sub("rem$", "", v)) * 16)
+    if (grepl("px$", v)) return(as.numeric(sub("px$", "", v)))
+    suppressWarnings(as.numeric(v))
+  }
+  roles <- unique(vapply(m, `[[`, character(1), 2))
+  blank <- rep(NA_real_, length(roles))
+  out <- data.frame(role = roles, size = blank, weight = blank, line_height = blank,
+                    letter_spacing = blank, stringsAsFactors = FALSE)
+  for (hit in m) {
+    out[out$role == hit[2], props[[hit[3]]]] <- number(hit[4])
+  }
+  out[stats::complete.cases(out), , drop = FALSE]
+}
+
 # the VERSION file data-raw/refresh-tokens.R writes: "key: value" lines
 read_token_version <- function(path) {
   lines <- readLines(path, warn = FALSE)
@@ -164,8 +223,9 @@ read_token_version <- function(path) {
 #' missing-colour branch), and the brand statics by short name.
 #'
 #' @param src What [read_token_files()] returned.
-#' @return A list of `gla_tokens` (a data frame) and `gla_brand` (a named
-#'   character vector).
+#' @return A list of `gla_tokens` (a data frame), `gla_brand` (a named
+#'   character vector) and `gla_type_roles` (a data frame, one row per
+#'   product type role).
 #' @keywords internal
 build_token_data <- function(src) {
   light <- src$light
@@ -177,7 +237,27 @@ build_token_data <- function(src) {
   rownames(tokens) <- NULL
   brand <- src$primitives[grepl("^primitive-color-static-gla-", names(src$primitives))]
   brand <- strip_prefix(brand, "^primitive-color-static-gla-")
-  list(gla_tokens = tokens, gla_brand = brand[order(names(brand))])
+  roles <- src$type[order(src$type$role), , drop = FALSE]
+  rownames(roles) <- NULL
+  list(gla_tokens = tokens, gla_brand = brand[order(names(brand))], gla_type_roles = roles)
+}
+
+#' Check a type role set has the roles the chart text uses
+#'
+#' @param roles The role names a build produced.
+#' @param required The names the package needs.
+#' @return `roles`, invisibly. Errors with the missing names.
+#' @keywords internal
+check_required_roles <- function(roles, required = required_type_roles()) {
+  missing <- setdiff(required, roles)
+  if (length(missing)) {
+    stop("The token package is missing ", length(missing), " type role(s) the chart text ",
+         "is set in: ", paste(missing, collapse = ", "),
+         ". Either the roles were renamed upstream, in which case update ",
+         "required_type_roles() and gla_type(), or the vendored files are incomplete.",
+         call. = FALSE)
+  }
+  invisible(roles)
 }
 
 #' Check a token set has everything the package reads

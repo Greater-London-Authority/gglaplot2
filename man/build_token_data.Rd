@@ -10,8 +10,9 @@ build_token_data(src)
 \item{src}{What \code{\link[=read_token_files]{read_token_files()}} returned.}
 }
 \value{
-A list of \code{gla_tokens} (a data frame) and \code{gla_brand} (a named
-character vector).
+A list of \code{gla_tokens} (a data frame), \code{gla_brand} (a named
+character vector) and \code{gla_type_roles} (a data frame, one row per
+product type role).
 }
 \description{
 One row per semantic token with its light and dark values (a token with

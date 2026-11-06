@@ -1,14 +1,16 @@
 #' The GLA ggplot2 theme
 #'
 #' The non-data ink of a chart, from the design system's `chart-*` colour
-#' tokens and its chart typography roles. The plot sits on `chart-surface`,
+#' tokens and its type roles. The plot sits on `chart-surface`,
 #' gridlines are `chart-grid`, the axis line `chart-axis`, tick labels
-#' `chart-label-muted` and the title `text`. The sizes are the roles'
-#' pixel sizes (title 20, subtitle 16, ticks 14, caption 12) so a chart saved
-#' at 96 dpi matches a chart drawn by the visualisation team's web
-#' components pixel for pixel. These are the same tokens the dashboards
-#' draw their charts with, so a static chart and a live one on the same
-#' page read as one system.
+#' `chart-label-muted` and the title `text`. The sizes, weights and line
+#' heights are the roles' ([gla_type()]: title 20px semibold, subtitle 16,
+#' ticks 14, caption 12) so a chart saved at 96 dpi matches a chart drawn
+#' by the visualisation team's web components pixel for pixel, and the
+#' space between the eyebrow, title, subtitle and footer is the chart
+#' container's. These are the same tokens the dashboards draw their charts
+#' with, so a static chart and a live one on the same page read as one
+#' system.
 #'
 #' Titles, subtitle and caption are left-aligned to the plot edge. One axis
 #' carries gridlines (the value axis, y on most charts) and the other the
@@ -75,6 +77,7 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
   roles <- gla_type()
   # roles in points, scaled from the tick role
   pt <- function(role) px_pt(base_size * roles[[role]]$size / roles$tick$size)
+  lh <- function(role) roles[[role]]$line_height
   # the family for a weight: a named Inter variant when it can be drawn,
   # else the base family with a face
   fam <- function(weight) {
@@ -84,9 +87,11 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
     }
     list(family = base_family, face = if (weight %in% c("semibold", "bold")) "bold" else "plain")
   }
-  title <- fam("semibold")
-  medium <- fam("medium")
-  body <- fam("regular")
+  title <- fam(roles$title$weight)
+  eyebrow <- fam(roles$eyebrow$weight)
+  axis_title <- fam(roles$axis_title$weight)
+  label <- fam(roles$label$weight)
+  body <- fam(roles$tick$weight)
   text <- function(role, colour, ...) {
     ggplot2::element_text(colour = colour, size = pt(role), ...)
   }
@@ -101,17 +106,20 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
       plot.background = ggplot2::element_rect(fill = ct$surface, colour = NA),
       panel.background = ggplot2::element_rect(fill = ct$surface, colour = NA),
       text = ggplot2::element_text(colour = ct$text, family = body$family),
+      # the title group as the chart container lays it out: the title one
+      # tight step (4px) under the eyebrow, the subtitle on the title's line
+      # height, and the group 8px above the chart; the footer 8px below it
       plot.title = element_gla_title(
         colour = ct$text, size = pt("title"), family = title$family, face = title$face,
-        lineheight = 1.2, margin = ggplot2::margin(b = gap(4)),
-        eyebrow = list(size = pt("eyebrow"), colour = ct$text_muted, family = medium$family,
-                       face = medium$face, gap = gap(2))
+        lineheight = lh("title"), margin = ggplot2::margin(b = gap(4)),
+        eyebrow = list(size = pt("eyebrow"), colour = ct$text_muted, family = eyebrow$family,
+                       face = eyebrow$face, gap = gap(4))
       ),
-      plot.subtitle = text("subtitle", ct$text_muted, lineheight = 1.3,
-                           margin = ggplot2::margin(b = gap(12))),
+      plot.subtitle = text("subtitle", ct$text_muted, lineheight = lh("subtitle"),
+                           margin = ggplot2::margin(b = gap(8))),
       plot.caption = element_gla_caption(
-        colour = ct$text_muted, size = pt("caption"), hjust = 0, lineheight = 1.35,
-        margin = ggplot2::margin(t = gap(12)),
+        colour = ct$text_muted, size = pt("caption"), hjust = 0, lineheight = lh("caption"),
+        margin = ggplot2::margin(t = gap(8)),
         label = list(family = body$family, face = "bold"), gap = gap(4)
       ),
       plot.title.position = "plot",
@@ -119,7 +127,8 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
       axis.text = text("tick", ct$label_muted),
       axis.text.x = ggplot2::element_text(margin = ggplot2::margin(t = gap(6))),
       axis.text.y = ggplot2::element_text(margin = ggplot2::margin(r = gap(8)), hjust = 1),
-      axis.title = text("axis_title", ct$text_muted, family = medium$family, face = medium$face),
+      axis.title = text("axis_title", ct$text_muted, family = axis_title$family,
+                        face = axis_title$face),
       axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = gap(8))),
       axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = gap(8)), angle = 90),
       axis.ticks = none,
@@ -133,21 +142,21 @@ theme_gla <- function(base_size = 14, base_family = gla_font(), theme = gla_mode
       axis.line.y = if (gridlines %in% c("x", "both")) none else axis_line,
       legend.position = legend,
       legend.title = none,
-      legend.text = text("label", ct$label),
+      legend.text = text("label", ct$label, family = label$family, face = label$face),
       legend.justification = if (legend %in% c("top", "bottom")) "left" else "center",
       legend.location = "plot",
       legend.key.size = grid::unit(gap(16), "pt"),
       legend.key.spacing.x = grid::unit(gap(16), "pt"),
       legend.margin = ggplot2::margin(0, 0, 0, 0),
       legend.box.spacing = grid::unit(gap(12), "pt"),
-      strip.text = text("axis_title", ct$text, family = medium$family, face = medium$face,
+      strip.text = text("axis_title", ct$text, family = axis_title$family, face = axis_title$face,
                         hjust = 0, margin = ggplot2::margin(b = gap(8))),
       panel.spacing = grid::unit(gap(24), "pt"),
       plot.margin = ggplot2::margin(gap(16), gap(16), gap(16), gap(16)),
       geom = ggplot2::element_geom(
         ink = ct$label, paper = ct$surface, accent = ct$primary,
         linewidth = px(2), borderwidth = px(1), linetype = 1, bordertype = 1,
-        family = body$family, fontsize = px_pt(roles$label$size),
+        family = label$family, fontsize = px_pt(roles$label$size),
         pointsize = 1.5, pointshape = 19
       )
     ) +
