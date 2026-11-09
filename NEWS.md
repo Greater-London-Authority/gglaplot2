@@ -1,5 +1,7 @@
 # gglaplot2 0.3.0
 
+* Tokens refreshed to `@ldn-viz/themes` 10.0.2: 0 added, 0 removed, 6 changed.
+
 The chart type now comes from the tokens. `@ldn-viz/themes` 10 retired
 the chart typeset and sets chart text on the product type roles, and this
 release reads those roles from the vendored release, as it already read
