@@ -1,3 +1,11 @@
+# gglaplot2 0.3.0.9000
+
+* Tokens refreshed to `@ldn-viz/themes` 10.0.2. Six colour tokens moved:
+  `text-wash` now takes `text-muted` and `inverse-text-wash` takes
+  `inverse-text-muted`, `interactive-off` is grey 500, and the three
+  `interactive-secondary-muted` states are a step darker. No chart token
+  moved, so no chart changes; the site's faint text is a shade darker.
+
 # gglaplot2 0.3.0
 
 The chart type now comes from the tokens. `@ldn-viz/themes` 10 retired
