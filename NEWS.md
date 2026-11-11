@@ -1,5 +1,31 @@
-# gglaplot2 0.3.0.9000
+# gglaplot2 0.3.1
 
+Interactive maps. `gla_plotly()` now names each area of a map in its hover
+label, and the stepped legend, which a browser was not drawing, is back.
+
+* An area of a map drawn with `geom_gla_sf()` hovers with its name and its
+  value anywhere inside its boundary, where it showed the raw column and
+  number on the boundary line alone. The value is written by the fill
+  scale's `labels`, to one more decimal than the legend, and a missing one
+  reads "No data". The name is a column called `name` or ending `_name` or
+  `NM`, or the column mapped as `aes(label = )`, which `geom_gla_sf()` now
+  takes. A `text` aesthetic with `tooltip = "text"` still replaces the
+  label.
+* The legend of a stepped scale is drawn in the browser. Its entries lost
+  their names when the widget printed, so the page showed no legend.
+* The legend's ranges take the decimals their steps need. With
+  `label_gla_percent()` and steps narrower than a whole percentage a range
+  read "0% to 0%"; it now reads "0% to 0.2%". `label_gla_number()` and
+  `label_gla_pounds()` at a fixed `accuracy` do the same. A label function
+  from elsewhere is used as given.
+* An end bin holding values beyond the scale's `limits` is labelled
+  "Below -4%" or "Above 4%", where it gave a range the values were outside.
+* A stepped scale with no `labels` marks its thousands: "0 to 20,000".
+* `gla_plotly()` puts the legend where the theme has it, `theme_gla(legend =
+  "right")` or `"bottom"`, and keeps the legend title when the theme shows
+  one. It was always along the top with no title.
+* The maps article shows the join of a table of figures onto
+  `gla_boroughs`.
 * Tokens refreshed to `@ldn-viz/themes` 10.0.2. Six colour tokens moved:
   `text-wash` now takes `text-muted` and `inverse-text-wash` takes
   `inverse-text-muted`, `interactive-off` is grey 500, and the three
