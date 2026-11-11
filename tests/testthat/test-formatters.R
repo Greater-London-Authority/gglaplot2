@@ -35,3 +35,18 @@ test_that("the labels work on a scale", {
   labels <- build(p)$layout$panel_params[[1]]$y$get_labels()
   expect_true(all(grepl("^£", labels[!is.na(labels)])))
 })
+
+test_that("a label function at a fixed accuracy can be asked for a finer one", {
+  f <- label_gla_percent(scale = 1)
+  expect_equal(f(2.5), scales::label_percent(1, scale = 1)(2.5))
+  refine <- attr(f, "gla_refine")
+  expect_equal(refine$accuracy, 1)
+  expect_equal(refine$at(0.1)(c(2.5, 3)), c("2.5%", "3%"))
+  expect_equal(attr(label_gla_pounds(accuracy = 1), "gla_refine")$at(0.01)(2.5), "\u00a32.5")
+  # left to scales, or cut short, there is nothing to refine
+  expect_null(attr(label_gla_number(), "gla_refine"))
+  expect_null(attr(label_gla_number(accuracy = 1, short = TRUE), "gla_refine"))
+  # an argument of the caller's survives the refinement
+  g <- label_gla_percent(scale = 1, suffix = " pts", drop0trailing = FALSE)
+  expect_equal(attr(g, "gla_refine")$at(0.1)(3), "3 pts")
+})
