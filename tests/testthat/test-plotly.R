@@ -292,3 +292,26 @@ test_that("the stepped legend survives the build a widget gets when it prints", 
   expect_equal(x$layout$legend$orientation, "v")
   expect_true(x$layout$showlegend)
 })
+
+test_that("gla_plotly puts the legend where the theme has it, with its title", {
+  base <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
+    scale_colour_gla() + labs(colour = "Series")
+  legend <- function(p) plotly::plotly_build(gla_plotly(p))$x$layout$legend
+  top <- legend(base + theme_gla())
+  expect_equal(top[c("orientation", "x", "y", "yanchor")],
+               list(orientation = "h", x = 0, y = 1, yanchor = "bottom"))
+  expect_equal(top$title$text, "")
+  right <- legend(base + theme_gla(legend = "right") + theme(legend.title = element_text()))
+  expect_equal(right$orientation, "v")
+  expect_gt(right$x, 1)
+  expect_equal(right$title$text, "Series")
+  # along the bottom the footer moves down to clear it
+  below <- plotly::plotly_build(gla_plotly(
+    base + gla_labs(source = "Demo") + theme_gla(legend = "bottom")
+  ))$x$layout
+  above <- plotly::plotly_build(gla_plotly(base + gla_labs(source = "Demo") + theme_gla()))$x$layout
+  expect_lt(below$legend$y, 0)
+  footer <- function(l) l$annotations[[length(l$annotations)]]$yshift
+  expect_lt(footer(below), footer(above))
+  expect_gt(below$margin$b, above$margin$b)
+})

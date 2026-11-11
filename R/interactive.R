@@ -161,18 +161,39 @@ plotly_layout <- function(layout, plot, theme, ct) {
   if (!is.null(x_scale) && identical(x_scale$position, "top")) {
     for (key in grep("^xaxis", axes, value = TRUE)) layout[[key]]$side <- "top"
   }
-  layout$showlegend <- !identical(theme$legend.position, "none")
-  layout$legend <- list(
-    bgcolor = ct$surface, bordercolor = "transparent", borderwidth = 0,
-    x = 0, y = 1, orientation = "h", xanchor = "left", yanchor = "bottom",
-    font = plotly_font(ct$label, "label"), title = list(text = "")
+  given <- layout$legend
+  position <- theme$legend.position
+  if (!is.character(position)) position <- "top"
+  layout$showlegend <- position != "none"
+  # where the theme put it: along the top or the bottom from the left edge,
+  # or down the right
+  place <- switch(
+    position,
+    right = list(x = 1.02, y = 1, orientation = "v", xanchor = "left", yanchor = "top"),
+    bottom = list(x = 0, y = -0.15, orientation = "h", xanchor = "left", yanchor = "top"),
+    list(x = 0, y = 1, orientation = "h", xanchor = "left", yanchor = "bottom")
   )
+  layout$legend <- c(
+    list(bgcolor = ct$surface, bordercolor = "transparent", borderwidth = 0),
+    place,
+    list(font = plotly_font(ct$label, "label"), title = list(text = ""))
+  )
+  # the legend's title, where the theme has one; ggplotly() carries it on
+  # the legend or, in older releases, as an annotation beside it
+  titled <- !inherits(theme$legend.title, "element_blank")
+  title <- if (is.list(given)) given$title$text
+  if (titled && is.character(title) && nzchar(title)) {
+    layout$legend$title <- list(text = title, font = plotly_font(ct$label, "label"))
+  }
   domains <- lapply(grep("^xaxis", axes, value = TRUE), function(key) layout[[key]]$domain)
   keep <- list()
   for (a in layout$annotations) {
     if (isTRUE(a$legendTitle)) {
-      if (inherits(theme$legend.title, "element_blank")) next
-      a$font <- plotly_font(ct$label, "label")
+      # as an annotation it would stay where ggplotly() had its own legend
+      if (titled) {
+        layout$legend$title <- list(text = a$text, font = plotly_font(ct$label, "label"))
+      }
+      next
     } else if (identical(a$annotationType, "axis")) {
       a$font <- plotly_font(ct$text_muted, "axis_title")
     } else if (identical(a$xref, "paper") && identical(a$yref, "paper")) {
@@ -480,10 +501,13 @@ plotly_chrome <- function(out, labels, ct) {
   if (!is.null(footer)) {
     out$x$layout$margin$b <- (out$x$layout$margin$b %||% 16) + 32 + 16 * length(parts)
   }
+  # a legend along the bottom sits between the plot and the footer
+  below <- isTRUE(out$x$layout$showlegend) && isTRUE(out$x$layout$legend$y < 0)
+  if (below) out$x$layout$margin$b <- (out$x$layout$margin$b %||% 16) + 32
   if (!is.null(footer)) {
     out$x$layout$annotations <- c(out$x$layout$annotations, list(list(
       text = footer, x = 0, y = 0, xref = "paper", yref = "paper", xanchor = "left",
-      yanchor = "top", yshift = -36, showarrow = FALSE, align = "left",
+      yanchor = "top", yshift = if (below) -76 else -36, showarrow = FALSE, align = "left",
       font = plotly_font(ct$text_muted, "caption")
     )))
   }
