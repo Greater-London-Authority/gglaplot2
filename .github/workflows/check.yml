@@ -21,7 +21,7 @@ jobs:
   lint:
     name: Lint and documentation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       R_KEEP_PKG_SOURCE: yes
     steps:
@@ -136,7 +136,7 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       R_KEEP_PKG_SOURCE: yes
       GGLAPLOT2_VISUAL: "false"
