@@ -233,14 +233,15 @@ test_that("gla_plotly names each area of a map and gives its value as the scale 
   text <- texts(out)
   expect_false(any(grepl(plotly_mark, text, fixed = TRUE)))
   # the name from the name column, the value one figure finer than the legend
-  expect_true("<b>Barking and Dagenham</b><br>-6%" %in% text)
+  # and every area to the same place
+  expect_true("<b>Barking and Dagenham</b><br>-6.0%" %in% text)
   expect_true("<b>Barnet</b><br>-5.7%" %in% text)
-  expect_true("<b>Westminster</b><br>4%" %in% text)
+  expect_true("<b>Westminster</b><br>4.0%" %in% text)
   expect_true("<b>Camden</b><br>No data" %in% text)
   # each name beside its own value
   expected <- paste0("<b>", b$name, "</b><br>",
                      ifelse(is.na(b$change), "No data",
-                            label_gla_percent(0.1, scale = 1, drop0trailing = TRUE)(b$change)))
+                            label_gla_percent(0.1, scale = 1)(b$change)))
   expect_setequal(text, expected)
 
   # a label aesthetic names the areas, without a warning, and a scale name
@@ -423,7 +424,14 @@ test_that("a map's hover label holds across facets, shared fills and the caller'
   expect_no_warning(
     own <- ggplot(b) + geom_gla_sf(aes(fill = change, text = code)) + stepped() + theme_gla_map()
   )
-  expect_true("E09000002" %in% unlist(lapply(areas(own, tooltip = "text"), `[[`, "text")))
+  shown <- areas(own, tooltip = "text")
+  expect_true("E09000002" %in% unlist(lapply(shown, `[[`, "text")))
+  # and shows anywhere inside its area, as the label made for it would
+  expect_equal(length(shown), nrow(b))
+  expect_true(all(vapply(shown, function(t) identical(t$hoveron, "fills"), logical(1))))
+  # asked for beside the other aesthetics, it is left as ggplotly() writes it
+  beside <- unlist(lapply(areas(own, tooltip = "all"), `[[`, "text"))
+  expect_true(any(grepl("change:", beside, fixed = TRUE) & grepl("E09000002", beside)))
   inherited <- ggplot(b, aes(text = code)) + geom_gla_sf(aes(fill = change)) + stepped() +
     theme_gla_map()
   expect_true("E09000002" %in% unlist(lapply(areas(inherited, tooltip = "text"), `[[`, "text")))

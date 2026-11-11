@@ -54,7 +54,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   theme <- match_mode(theme)
   ct <- chart_tokens(theme)
   labels <- plot$labels
-  baked <- plotly_area_text(plotly_bake_defaults(plot, plot_theme), built)
+  baked <- plotly_area_text(plotly_bake_defaults(plot, plot_theme), built, tooltip)
   out <- plotly::ggplotly(baked, tooltip = tooltip, ...)
   out <- ggla_plotly_style(out, gla_theme = if (theme == "dark") "inverse" else "default")
   out <- ggla_plotly_config(out)
@@ -246,10 +246,10 @@ plotly_traces <- function(traces, layout) {
 # and hover text and so loses which row a trace came from; the label is
 # worked out here from the built data and carried through the conversion as
 # a text aesthetic between two invisible marks, which plotly_hover() reads
-# back. A layer with a text aesthetic of its own is left alone.
+# back. A layer with a text aesthetic of its own keeps that text.
 plotly_mark <- "\u2063"
 
-plotly_area_text <- function(plot, built) {
+plotly_area_text <- function(plot, built, tooltip = "all") {
   for (i in seq_along(plot$layers)) {
     layer <- plot$layers[[i]]
     if (!inherits(layer$geom, "GeomSf")) next
@@ -257,10 +257,19 @@ plotly_area_text <- function(plot, built) {
     if (isTRUE(layer$inherit.aes)) {
       mapping <- utils::modifyList(as.list(plot$mapping), as.list(mapping))
     }
-    if ("text" %in% names(mapping)) next
+    own <- "text" %in% names(mapping)
+    # a text aesthetic of the caller's is theirs to show as they asked; when
+    # it is all they asked for it is carried the same way, so it too shows
+    # anywhere inside its area
+    if (own && !identical(tooltip, "text")) next
     data <- layer$layer_data(plot$data)
     if (!is.data.frame(data) || nrow(data) != nrow(built$data[[i]])) next
-    text <- area_text(data, mapping, built$plot$scales)
+    text <- if (own) {
+      given <- tryCatch(rlang::eval_tidy(mapping$text, data), error = function(e) NULL)
+      if (length(given) == nrow(data)) as.character(given)
+    } else {
+      area_text(data, mapping, built$plot$scales)
+    }
     if (is.null(text)) next
     data$.gla_hover <- paste0(plotly_mark, text, plotly_mark)
     layer$data <- data
@@ -328,7 +337,7 @@ area_value_labels <- function(scale, values) {
   }
   labels <- scale_labels(scale)
   refine <- attr(labels, "gla_refine")
-  if (!is.null(refine)) return(refine$at(refine$accuracy / 10)(values))
+  if (!is.null(refine)) return(refine$at(refine$accuracy / 10, drop0trailing = FALSE)(values))
   if (is.function(labels)) {
     out <- tryCatch(as.character(labels(signif(values, 4))), error = function(e) NULL)
     if (length(out) == length(values)) return(out)

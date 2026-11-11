@@ -92,10 +92,14 @@ refinable <- function(make, accuracy, scale, ...) {
   out <- make(accuracy, ...)
   if (is.null(accuracy) || is.na(scale)) return(out)
   dots <- list(...)
-  dots$drop0trailing <- TRUE
+  # a legend's ranges drop the zeros a round edge does not need ("0% to
+  # 0.2%"); a hover label keeps them, so every area reads to the same place
   attr(out, "gla_refine") <- list(
     accuracy = accuracy, scale = scale,
-    at = function(accuracy) rlang::exec(make, accuracy, !!!dots)
+    at = function(accuracy, drop0trailing = TRUE) {
+      dots$drop0trailing <- drop0trailing
+      rlang::exec(make, accuracy, !!!dots)
+    }
   )
   out
 }
