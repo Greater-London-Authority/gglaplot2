@@ -84,3 +84,22 @@ test_that("the bins guide is the stepped scales' default and draws", {
     theme_gla_map()
   expect_no_error(draw(m))
 })
+
+test_that("the end labels follow what the scale does with values beyond its limits", {
+  d <- data.frame(x = 1:7, y = 1, v = c(-5, -3, -1, 0.5, 1.5, 2.5, -4.5))
+  # censored values are drawn as missing, so the end bins keep their ranges
+  cens <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", steps = 2, limits = c(-4, 2), oob = scales::censor)
+  expect_equal(bin_key(cens)$.label[c(1, 4)], c("1 to 2", "-4 to -2"))
+  # a reversed scale: the bin of the lowest values is the one that reads Below
+  rev <- ggplot(d, aes(x, y, fill = v + 10)) + geom_point(shape = 21) +
+    scale_fill_gla_b(transform = "reverse", limits = c(11, 7), breaks = c(8, 9, 10))
+  labels <- bin_key(rev)$.label
+  expect_true("Below 8" %in% labels)
+  expect_true("Above 10" %in% labels)
+  # nothing to label: no error from the accuracy
+  none <- data.frame(x = 1:2, y = 1, v = NA_real_)
+  empty <- ggplot(none, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(labels = label_gla_percent())
+  expect_no_error(suppressWarnings(draw(empty)))
+})

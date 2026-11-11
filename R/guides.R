@@ -62,6 +62,7 @@ GuideGlaBins <- ggplot2::ggproto(
   # middle and labelled by its two ends; highest bin first so the legend
   # reads top to bottom as the stepped bar would
   extract_key = function(scale, aesthetic, sep = " to ", ...) {
+    if (length(scale$get_breaks()) == 0) return(NULL)
     bins <- bin_ranges(scale, sep)
     if (is.null(bins)) return(NULL)
     key <- data.frame(scale$map(bins$mid), stringsAsFactors = FALSE)
@@ -78,7 +79,6 @@ GuideGlaBins <- ggplot2::ggproto(
 # the values in it are outside.
 bin_ranges <- function(scale, sep = " to ") {
   breaks <- scale$get_breaks()
-  if (length(breaks) == 0) return(NULL)
   limits <- scale$get_limits()
   edges <- sort(unique(c(limits[1], breaks[is.finite(breaks)], limits[2])))
   n <- length(edges) - 1
@@ -86,10 +86,18 @@ bin_ranges <- function(scale, sep = " to ") {
   labels <- bin_edge_labels(scale, edges)
   ranges <- paste0(labels[-length(labels)], sep, labels[-1])
   data <- scale$range$range
-  if (n > 1 && length(data) == 2) {
+  # only where the scale squishes such values into the end bin; one that
+  # censors them draws them as missing
+  beyond <- edges[c(1, n + 1)] + c(-1, 1)
+  squished <- !anyNA(tryCatch(scale$oob(beyond, range = edges[c(1, n + 1)]),
+                              error = function(e) NA))
+  if (n > 1 && length(data) == 2 && all(is.finite(c(data, edges))) && squished) {
     tol <- 1e-8 * max(abs(edges), 1)
-    if (data[1] < edges[1] - tol) ranges[1] <- paste("Below", labels[2])
-    if (data[2] > edges[n + 1] + tol) ranges[n] <- paste("Above", labels[n])
+    # on a reversed scale the first bin holds the highest values
+    ends <- scale$get_transformation()$inverse(edges[c(1, n + 1)])
+    words <- if (isTRUE(ends[1] > ends[2])) c("Above", "Below") else c("Below", "Above")
+    if (data[1] < edges[1] - tol) ranges[1] <- paste(words[1], labels[2])
+    if (data[2] > edges[n + 1] + tol) ranges[n] <- paste(words[2], labels[n])
   }
   list(mid = (edges[-1] + edges[-length(edges)]) / 2, label = ranges)
 }
@@ -101,7 +109,7 @@ bin_edge_labels <- function(scale, edges) {
   labels <- scale_labels(scale)
   refine <- attr(labels, "gla_refine")
   values <- scale$get_transformation()$inverse(edges)
-  if (!is.null(refine)) {
+  if (!is.null(refine) && all(is.finite(values)) && length(unique(values)) > 1) {
     accuracy <- bin_accuracy(values * refine$scale, refine$accuracy)
     if (accuracy < refine$accuracy) return(refine$at(accuracy)(values))
   }
