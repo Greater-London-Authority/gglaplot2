@@ -41,11 +41,14 @@ A guide for a binned colour or fill scale.
 The legend the stepped scales draw by default: a swatch for every bin,
 labelled with the bin's range, \verb{-6\% to -4\%}, highest bin at the top.
 The ends are always labelled, since the first and last bins run to the
-limits. The labels come from the scale's \code{labels} function, so
-\code{labels = label_gla_percent(scale = 1)} on the scale puts the sign on
-both ends of each range. The web maps' legends read this way; ggplot2's
-\code{guide_coloursteps()} draws a bar labelled at the cuts instead, and
-remains a \code{guide} away.
+limits; where the scale's \code{limits} leave values outside them, the end bin
+those values take reads \verb{Below -4\%} or \verb{Above 4\%}. The labels come from
+the scale's \code{labels} function, so \code{labels = label_gla_percent(scale = 1)}
+on the scale puts the sign on both ends of each range. A house label
+function (\code{\link[=label_gla_percent]{label_gla_percent()}} and the rest) set to whole numbers gains
+the decimals narrow steps need, so steps of 0.2 read \verb{0\% to 0.2\%}. The
+web maps' legends read this way; ggplot2's \code{guide_coloursteps()} draws a
+bar labelled at the cuts instead, and remains a \code{guide} away.
 }
 \examples{
 library(ggplot2)

@@ -119,7 +119,9 @@ ggplot(b) +
 ```
 
 Set `limits` to the range that shows the rest, and the outlier takes the
-end step. The chart has to say so, which is what `note` is for.
+end step. The legend labels that step "Below -4", since it now holds a
+value outside its range, and the chart has to say which area it is, which
+is what `note` is for.
 
 ```{r outlier-held}
 ggplot(b) +
@@ -158,6 +160,12 @@ cent, takes `label_gla_percent()` as it is. `guide_gla_bins(sep = )`
 changes what joins the two ends, and `guide = "coloursteps"` swaps the
 swatches for ggplot2's stepped bar labelled at the cuts.
 
+The ranges are never rounded past their own steps. `label_gla_percent()`
+rounds to whole percentages, and where the steps are narrower than that,
+as the rises are beside one large fall, the legend takes the decimals it
+needs: "0% to 0.2%", not "0% to 0%". That holds for the `label_gla_*()`
+functions; a label function from elsewhere is used as it is given.
+
 ```{r labels}
 ggplot(b) +
   geom_gla_sf(aes(fill = change)) +
@@ -194,11 +202,40 @@ layer, as the [Get started](../articles/gglaplot2.html) page shows.
 ## Interactive
 
 `gla_plotly()` turns the finished chart into an interactive one through
-plotly, with a hover label per borough. `ggplotly()` on its own drops the
-stepped legend, the eyebrow and the footer; this puts them back.
+plotly. `ggplotly()` on its own drops the stepped legend, the eyebrow and
+the footer; this puts them back.
 
 ```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
 gla_plotly(gg_map_chart)
+```
+
+Hovering anywhere inside a borough shows its name and its value. The value
+is written by the scale's `labels`, to one more decimal than the legend,
+so a borough in the "-4% to -2%" step reads "-3.2%". A borough with no
+value reads "No data".
+
+The name comes from the column called `name`, which `gla_boroughs` has. A
+boundary file from the ONS names its areas in a column ending `NM`, such
+as `WD24NM`, and that is found too. For any other column, map it as the
+label:
+
+```{r interactive-label, eval = FALSE}
+ggplot(wards) +
+  geom_gla_sf(aes(fill = change, label = ward_title)) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3) +
+  theme_gla_map()
+```
+
+To write the whole label yourself, map a `text` aesthetic and pass
+`tooltip = "text"`. Line breaks are `<br>`.
+
+```{r interactive-text, eval = FALSE}
+gg_own <- ggplot(b) +
+  geom_gla_sf(aes(fill = change,
+                  text = paste0(name, "<br>", change, " points on the year"))) +
+  scale_fill_gla_b("diverging", name = NULL, steps = 3) +
+  theme_gla_map()
+gla_plotly(gg_own, tooltip = "text")
 ```
 
 ## Things that go wrong

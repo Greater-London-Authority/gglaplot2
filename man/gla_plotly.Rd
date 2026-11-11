@@ -32,6 +32,14 @@ scale's bins as a legend, highest bin first, labelled with the ranges
 the tokens as \code{\link[=ggla_plotly_settings]{ggla_plotly_settings()}} sets them.
 }
 \details{
+The hover label is written in the chart's own words. A point reads its
+series and each axis's title and value, formatted by that axis's scale.
+An area of a map drawn with \code{\link[=geom_gla_sf]{geom_gla_sf()}} reads its name and its
+value, formatted by the fill scale's \code{labels}, anywhere inside its
+boundary. The name is the layer's \code{label} aesthetic or, without one, a
+\code{name} column in the data. To write the label yourself, map a \code{text}
+aesthetic and pass \code{tooltip = "text"}.
+
 Interactive charts on a GLA site belong to the visualisation team's web
 components; this is for a notebook, a Shiny app or a one-off.
 }

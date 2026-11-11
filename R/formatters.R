@@ -57,25 +57,51 @@ gla_short_scale <- function() c(0, k = 1e3, m = 1e6, bn = 1e9)
 #' @export
 label_gla_number <- function(accuracy = NULL, scale = 1, prefix = "", suffix = "",
                              short = FALSE, ...) {
-  args <- list(accuracy = accuracy, scale = scale, prefix = prefix, suffix = suffix,
-               big.mark = ",", decimal.mark = ".", trim = TRUE, ...)
-  if (short) {
-    args$scale_cut <- gla_short_scale()
-    # one decimal where it says something, so 1.2bn and 45k rather than 1bn
-    # and 45.0k; scales would pick one accuracy for every value at once
-    if (is.null(accuracy)) {
-      args$accuracy <- 0.1
-      args$drop0trailing <- TRUE
+  make <- function(accuracy, ...) {
+    args <- list(accuracy = accuracy, scale = scale, prefix = prefix, suffix = suffix,
+                 big.mark = ",", decimal.mark = ".", trim = TRUE, ...)
+    if (short) {
+      args$scale_cut <- gla_short_scale()
+      # one decimal where it says something, so 1.2bn and 45k rather than 1bn
+      # and 45.0k; scales would pick one accuracy for every value at once
+      if (is.null(accuracy)) {
+        args$accuracy <- 0.1
+        args$drop0trailing <- TRUE
+      }
     }
+    rlang::exec(scales::label_number, !!!args)
   }
-  rlang::exec(scales::label_number, !!!args)
+  refinable(make, accuracy, scale * if (short) NA else 1, ...)
 }
 
 #' @rdname label_gla
 #' @export
 label_gla_percent <- function(accuracy = 1, scale = 100, ...) {
-  scales::label_percent(accuracy = accuracy, scale = scale, big.mark = ",", decimal.mark = ".",
-                        trim = TRUE, ...)
+  make <- function(accuracy, ...) {
+    scales::label_percent(accuracy = accuracy, scale = scale, big.mark = ",",
+                          decimal.mark = ".", trim = TRUE, ...)
+  }
+  refinable(make, accuracy, scale, ...)
+}
+
+# a label function that remembers how it was made, so a stepped legend or a
+# hover label can ask for the same labels at a finer accuracy: a legend whose
+# steps are 0.2 wide cannot print its ranges in whole numbers. Only a fixed
+# accuracy is remembered; left to scales, the labels already follow the values.
+refinable <- function(make, accuracy, scale, ...) {
+  out <- make(accuracy, ...)
+  if (is.null(accuracy) || is.na(scale)) return(out)
+  dots <- list(...)
+  # a legend's ranges drop the zeros a round edge does not need ("0% to
+  # 0.2%"); a hover label keeps them, so every area reads to the same place
+  attr(out, "gla_refine") <- list(
+    accuracy = accuracy, scale = scale,
+    at = function(accuracy, drop0trailing = TRUE) {
+      dots$drop0trailing <- drop0trailing
+      rlang::exec(make, accuracy, !!!dots)
+    }
+  )
+  out
 }
 
 #' @rdname label_gla

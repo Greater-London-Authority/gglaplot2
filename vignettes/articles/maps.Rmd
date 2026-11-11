@@ -30,6 +30,31 @@ ggplot(gla_boroughs) +
   theme_gla_map()
 ```
 
+## Your own figures
+
+A table of figures by borough has to be joined to the boundaries before it
+can be drawn. Load sf first: without it the boundaries are a plain table
+with a column R cannot join or draw. Join on the code where the table has
+one. Names work too, but have to match exactly, and `gla_boroughs` writes
+them as the ONS does: "Barking and Dagenham", not "Barking & Dagenham".
+
+```{r join}
+library(sf)
+figures <- data.frame(
+  code = c("E09000007", "E09000012", "E09000033"),
+  rate = c(4.1, 6.3, 3.8)
+)
+joined <- merge(gla_boroughs, figures, by = "code", all.x = TRUE)
+head(joined[, c("name", "rate")], 4)
+```
+
+`all.x = TRUE` keeps every borough, so one with no figure is drawn in the
+`data-empty` grey, not left out of the map. `dplyr::left_join(gla_boroughs,
+figures, by = "code")` does the same. The boundaries go first in either:
+the result is then still a map. `gla_boroughs` has 33 rows, the 32 boroughs
+and the City of London, so a table of 32 leaves the City grey, and the
+chart's note should say so.
+
 ## Choropleth
 
 A sequential ramp for a quantity. The web maps draw it in steps, which
@@ -92,7 +117,8 @@ ggplot(b) +
 ```
 
 Where one area sits so far out that it takes the detail from the rest, set
-`limits`. Values beyond them take the end step, and the chart should say so.
+`limits`. Values beyond them take the end step, which the legend then
+labels "Below" its upper edge, and the chart should say which area it is.
 
 ```{r squished}
 ggplot(b) +
@@ -119,8 +145,11 @@ ggplot(b) +
 ## Interactive
 
 `gla_plotly()` turns the finished chart into an interactive one through
-plotly. A map converts with a hover label per area and a stepped scale as
-a legend; the diverging maps article walks through it.
+plotly. Each area's hover label is its name and its value, written as the
+scale's `labels` write it and shown anywhere inside the boundary, and a
+stepped scale converts as a legend. The name is the column called `name`,
+or the one mapped as `aes(label = )` in `geom_gla_sf()`.
+[Mapping a change](diverging-maps.html#interactive) has more on the label.
 
 ```{r interactive, eval = requireNamespace("plotly", quietly = TRUE)}
 gla_plotly(last_plot())
