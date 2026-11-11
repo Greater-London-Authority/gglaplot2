@@ -8,6 +8,10 @@
 # other legs still draw every chart, they just do not diff the pixels.
 # Coverage is measured on the reference platform with covr: the figure goes
 # in the run summary, and a fall below the floor fails the check.
+#
+# Every job has a time limit several times its usual run. A job that stalls,
+# as the Ubuntu legs did when the runners could not reach the package
+# mirrors, is stopped there and not at GitHub's six hours.
 name: Check
 on:
   workflow_call:
@@ -17,6 +21,7 @@ jobs:
   lint:
     name: Lint and documentation
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       R_KEEP_PKG_SOURCE: yes
     steps:
@@ -76,6 +81,7 @@ jobs:
   check:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +136,7 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       R_KEEP_PKG_SOURCE: yes
       GGLAPLOT2_VISUAL: "false"
