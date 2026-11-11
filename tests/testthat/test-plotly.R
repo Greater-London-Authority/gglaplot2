@@ -206,3 +206,89 @@ test_that("gla_plotly's hover label reads as the axes do", {
   y <- plotly::plotly_build(gla_plotly(b))$x
   expect_equal(y$data[[1]]$text[1], "Variable A<br>Year: 2015<br>Average: 43,473")
 })
+
+test_that("gla_plotly names each area of a map and gives its value as the scale writes it", {
+  skip_if_not_installed("sf")
+  areas <- function(p, ...) {
+    x <- plotly::plotly_build(gla_plotly(p, ...))$x
+    Filter(function(t) !is.null(t$fill), x$data)
+  }
+  texts <- function(traces) unlist(lapply(traces, function(t) t$text))
+  b <- gla_boroughs
+  b$change <- seq(-6, 4, length.out = nrow(b))
+  b$change[b$name == "Camden"] <- NA
+  m <- ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", steps = 3, labels = label_gla_percent(scale = 1), name = NULL) +
+    theme_gla_map()
+  out <- areas(m)
+  # every area its own trace, hovered anywhere inside it
+  expect_equal(length(out), nrow(b))
+  expect_true(all(vapply(out, function(t) identical(t$hoveron, "fills"), logical(1))))
+  expect_true(all(vapply(out, function(t) identical(t$hoverinfo, "text"), logical(1))))
+  text <- texts(out)
+  expect_false(any(grepl(plotly_mark, text, fixed = TRUE)))
+  # the name from the name column, the value one figure finer than the legend
+  expect_true("<b>Barking and Dagenham</b><br>-6%" %in% text)
+  expect_true("<b>Barnet</b><br>-5.7%" %in% text)
+  expect_true("<b>Westminster</b><br>4%" %in% text)
+  expect_true("<b>Camden</b><br>No data" %in% text)
+  # each name beside its own value
+  expected <- paste0("<b>", b$name, "</b><br>",
+                     ifelse(is.na(b$change), "No data",
+                            label_gla_percent(0.1, scale = 1, drop0trailing = TRUE)(b$change)))
+  expect_setequal(text, expected)
+
+  # a label aesthetic names the areas, without a warning, and a scale name
+  # heads the value
+  expect_no_warning(
+    coded <- ggplot(b) +
+      geom_gla_sf(aes(fill = change, label = code)) +
+      scale_fill_gla_b("diverging", steps = 3, name = "Change") +
+      theme_gla_map()
+  )
+  expect_true("<b>E09000002</b><br>Change: -6" %in% texts(areas(coded)))
+  expect_no_error(draw(coded))
+
+  # ONS column names are found; a smooth scale and plain numbers
+  ons <- b
+  names(ons)[names(ons) == "name"] <- "LAD24NM"
+  ons$count <- seq(1200, 98765.4, length.out = nrow(ons))
+  smooth <- ggplot(ons) + geom_gla_sf(aes(fill = count)) + scale_fill_gla_c(name = NULL) +
+    theme_gla_map()
+  expect_true("<b>Westminster</b><br>98,770" %in% texts(areas(smooth)))
+
+  # no name to be found: the value alone; nothing mapped: the name alone
+  bare <- ons[, "count"]
+  expect_true("1,200" %in% texts(areas(ggplot(bare) + geom_gla_sf(aes(fill = count)) +
+                                         scale_fill_gla_c(name = NULL) + theme_gla_map())))
+  outline <- areas(ggplot(b) + geom_gla_sf() + theme_gla_map())
+  expect_true("<b>Barnet</b>" %in% texts(outline))
+
+  # a text aesthetic of the caller's own is left alone
+  own <- suppressWarnings(
+    ggplot(b) + geom_gla_sf(aes(fill = change, text = paste("Mine:", name))) +
+      scale_fill_gla_b("diverging", steps = 3, name = NULL) + theme_gla_map()
+  )
+  expect_true("Mine: Barnet" %in% texts(areas(own, tooltip = "text")))
+})
+
+test_that("the stepped legend survives the build a widget gets when it prints", {
+  skip_if_not_installed("sf")
+  b <- gla_boroughs
+  b$change <- c(-38, seq(-3, 0.5, length.out = nrow(b) - 1))
+  m <- ggplot(b) +
+    geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", steps = 3, limits = c(-3, 3),
+                     labels = label_gla_percent(scale = 1), name = NULL) +
+    theme_gla_map()
+  # htmlwidgets builds the object once more on the way to the page
+  x <- plotly::plotly_build(plotly::plotly_build(gla_plotly(m)))$x
+  keys <- Filter(function(t) isTRUE(t$showlegend), x$data)
+  expect_equal(vapply(keys, function(t) t$name, character(1)),
+               c("2% to 3%", "1% to 2%", "0% to 1%", "-1% to 0%", "-2% to -1%", "Below -2%"))
+  # an entry is only drawn for a trace with a point, here an empty one
+  expect_true(all(vapply(keys, function(t) length(t$x) == 1 && is.na(t$x), logical(1))))
+  expect_equal(x$layout$legend$orientation, "v")
+  expect_true(x$layout$showlegend)
+})

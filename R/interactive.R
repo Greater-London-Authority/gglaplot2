@@ -10,6 +10,14 @@
 #' [guide_gla_bins()] shows. The surface, type and hover label come from
 #' the tokens as [ggla_plotly_settings()] sets them.
 #'
+#' The hover label is written in the chart's own words. A point reads its
+#' series and each axis's title and value, formatted by that axis's scale.
+#' An area of a map drawn with [geom_gla_sf()] reads its name and its
+#' value, formatted by the fill scale's `labels`, anywhere inside its
+#' boundary. The name is the layer's `label` aesthetic or, without one, a
+#' `name` column in the data. To write the label yourself, map a `text`
+#' aesthetic and pass `tooltip = "text"`.
+#'
 #' Interactive charts on a GLA site belong to the visualisation team's web
 #' components; this is for a notebook, a Shiny app or a one-off.
 #'
@@ -46,7 +54,8 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   theme <- match_mode(theme)
   ct <- chart_tokens(theme)
   labels <- plot$labels
-  out <- plotly::ggplotly(plotly_bake_defaults(plot, plot_theme), tooltip = tooltip, ...)
+  baked <- plotly_area_text(plotly_bake_defaults(plot, plot_theme), built)
+  out <- plotly::ggplotly(baked, tooltip = tooltip, ...)
   out <- ggla_plotly_style(out, gla_theme = if (theme == "dark") "inverse" else "default")
   out <- ggla_plotly_config(out)
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
@@ -211,11 +220,90 @@ plotly_traces <- function(traces, layout) {
   Filter(function(trace) !is.null(trace$type), traces)
 }
 
+# the hover label of each area of a map: its name, then its value in the
+# fill scale's own labels. ggplotly() joins areas into traces by their fill
+# and hover text and so loses which row a trace came from; the label is
+# worked out here from the built data and carried through the conversion as
+# a text aesthetic between two invisible marks, which plotly_hover() reads
+# back. A layer with a text aesthetic of its own is left alone.
+plotly_mark <- "\u2063"
+
+plotly_area_text <- function(plot, built) {
+  for (i in seq_along(plot$layers)) {
+    layer <- plot$layers[[i]]
+    if (!inherits(layer$geom, "GeomSf") || "text" %in% names(layer$mapping)) next
+    data <- layer$layer_data(plot$data)
+    drawn <- built$data[[i]]
+    if (!is.data.frame(data) || nrow(data) != nrow(drawn)) next
+    mapping <- layer$mapping
+    if (isTRUE(layer$inherit.aes)) {
+      mapping <- utils::modifyList(as.list(plot$mapping), as.list(mapping))
+    }
+    text <- area_text(data, drawn$label, mapping, built$plot$scales)
+    if (is.null(text)) next
+    data$.gla_hover <- paste0(plotly_mark, text, plotly_mark)
+    layer$data <- data
+    layer$mapping$text <- ggplot2::aes(text = .data$.gla_hover)$text
+  }
+  plot
+}
+
+area_text <- function(data, name, mapping, scales) {
+  name <- name %||% area_names(data)
+  value <- NULL
+  for (aes in c("fill", "colour")) {
+    scale <- scales$get_scales(aes)
+    values <- if (!is.null(scale) && !is.null(mapping[[aes]])) {
+      tryCatch(rlang::eval_tidy(mapping[[aes]], data), error = function(e) NULL)
+    }
+    if (length(values) != nrow(data)) next
+    value <- area_value_labels(scale, values)
+    title <- scale$name
+    if (is.character(title) && nzchar(title)) value <- paste0(title, ": ", value)
+    value[is.na(values)] <- NA
+    break
+  }
+  if (is.null(name) && is.null(value)) return(NULL)
+  esc <- function(x) {
+    gsub("<", "&lt;", gsub("&", "&amp;", as.character(x), fixed = TRUE), fixed = TRUE)
+  }
+  if (is.null(name)) return(ifelse(is.na(value), "No data", value))
+  name <- paste0("<b>", esc(name), "</b>")
+  if (is.null(value)) return(name)
+  paste(name, ifelse(is.na(value), "No data", value), sep = "<br>")
+}
+
+# a column of names to call the areas by: one called name, or ending in it
+# or in the NM of an ONS boundary file
+area_names <- function(data) {
+  cols <- grep("(^|_)name$|nm$", names(data), ignore.case = TRUE, value = TRUE)
+  text <- vapply(cols, function(col) is.character(data[[col]]) || is.factor(data[[col]]),
+                 logical(1))
+  if (any(text)) as.character(data[[cols[text][1]]])
+}
+
+# a mapped value as the scale's labels write it. A house label function set
+# to a fixed accuracy gives one more figure than it gives the legend, as the
+# web charts' tips give one more than their axes; a scale with no labels of
+# its own gives the number to four significant figures.
+area_value_labels <- function(scale, values) {
+  if (!is.numeric(values)) return(as.character(values))
+  labels <- scale_labels(scale)
+  refine <- attr(labels, "gla_refine")
+  if (!is.null(refine)) return(refine$at(refine$accuracy / 10)(values))
+  if (is.function(labels)) {
+    out <- tryCatch(as.character(labels(signif(values, 4))), error = function(e) NULL)
+    if (length(out) == length(values)) return(out)
+  }
+  vapply(signif(values, 4), function(v) format(v, big.mark = ",", trim = TRUE), character(1))
+}
+
 # the hover label in the chart's own words: the series, then each axis as
 # its title and the value formatted by that axis's scale, so a chart whose
-# axis reads in pounds or per cent hovers in pounds or per cent too. Marks
-# with a shape rather than a point (the polygons of a map, a treemap's
-# tiles) keep the label ggplotly gave them.
+# axis reads in pounds or per cent hovers in pounds or per cent too. An
+# area of a map takes the label plotly_area_text() made for it. Other marks
+# with a shape rather than a point (a treemap's tiles, a map with a text
+# aesthetic of its own) keep the label ggplotly gave them.
 plotly_hover <- function(traces, built) {
   scales <- built$plot$scales
   labels <- built$plot$labels
@@ -262,7 +350,16 @@ plotly_hover <- function(traces, built) {
     if (all(is.na(text))) return(NULL)
     if (nzchar(axis$title)) paste0(axis$title, ": ", text) else text
   }
+  marked <- paste0(plotly_mark, "(.*?)", plotly_mark)
   lapply(traces, function(trace) {
+    if (is.character(trace$text) && any(grepl(plotly_mark, trace$text, fixed = TRUE))) {
+      # an area of a map: the label made for it, shown anywhere inside it
+      found <- regmatches(trace$text, regexpr(marked, trace$text, perl = TRUE))
+      trace$text <- gsub(plotly_mark, "", found, fixed = TRUE)
+      trace$hoverinfo <- "text"
+      if (!is.null(trace$fill) && length(trace$text) == 1) trace$hoveron <- "fills"
+      return(trace)
+    }
     shape <- !is.null(trace$fill) || identical(trace$mode, "text") || !length(trace$x)
     if (shape || is.null(trace$text)) return(trace)
     series <- if (!is.null(trace$legendgroup) && !is.null(trace$name)) trace$name
@@ -398,26 +495,27 @@ plotly_chrome <- function(out, labels, ct) {
 plotly_bin_legend <- function(out, built, ct) {
   scale <- built$plot$scales$get_scales("fill") %||% built$plot$scales$get_scales("colour")
   if (is.null(scale) || !inherits(scale, "ScaleBinned")) return(out)
-  limits <- scale$get_limits()
-  breaks <- scale$get_breaks()
-  edges <- sort(unique(c(limits[1], breaks, limits[2])))
-  if (length(edges) < 2) return(out)
-  mids <- edges[-length(edges)] + diff(edges) / 2
-  colours <- scale$map(mids)
-  labels <- scale$get_labels(edges)
-  ranges <- paste0(labels[-length(labels)], " to ", labels[-1])
-  order <- rev(seq_along(ranges))
-  for (i in order) {
-    out <- plotly::add_trace(
-      out, x = list(NULL), y = list(NULL), type = "scatter", mode = "markers",
+  bins <- bin_ranges(scale)
+  if (is.null(bins)) return(out)
+  colours <- scale$map(bins$mid)
+  ranges <- bins$label
+  # set on the built object itself: a trace added with plotly::add_trace()
+  # is built again when the widget prints and loses its name and its point,
+  # and a trace with neither draws no legend entry
+  axis <- out$x$data[[1]]
+  keys <- lapply(rev(seq_along(ranges)), function(i) {
+    list(
+      x = I(NA_real_), y = I(NA_real_), type = "scatter", mode = "markers",
       marker = list(color = colours[i], symbol = "square", size = 14),
-      name = ranges[i], showlegend = TRUE, hoverinfo = "none", inherit = FALSE
+      name = ranges[i], showlegend = TRUE, hoverinfo = "none",
+      xaxis = axis$xaxis %||% "x", yaxis = axis$yaxis %||% "y"
     )
-  }
-  plotly::layout(
-    out, showlegend = TRUE,
-    legend = list(orientation = "v", x = 1, y = 0.5, xanchor = "left", yanchor = "middle",
-                  traceorder = "normal", itemclick = FALSE, itemdoubleclick = FALSE,
-                  bgcolor = ct$surface)
-  )
+  })
+  out$x$data <- c(out$x$data, keys)
+  out$x$layout$showlegend <- TRUE
+  out$x$layout$legend <- utils::modifyList(out$x$layout$legend %||% list(), list(
+    orientation = "v", x = 1, y = 0.5, xanchor = "left", yanchor = "middle",
+    traceorder = "normal", itemclick = FALSE, itemdoubleclick = FALSE, bgcolor = ct$surface
+  ))
+  out
 }

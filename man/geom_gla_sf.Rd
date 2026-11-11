@@ -60,8 +60,14 @@ A list of a ggplot2 layer and a coord.
 \description{
 \code{\link[ggplot2:geom_sf]{ggplot2::geom_sf()}} with the design system's defaults: a \code{data-empty}
 fill, a 1px \code{chart-surface} edge between areas, and no graticule. Map
-\code{fill} and add \code{\link[=scale_fill_gla_c]{scale_fill_gla_c()}} for a choropleth. Needs the sf
+\code{fill} and add \code{\link[=scale_fill_gla_b]{scale_fill_gla_b()}} for a choropleth. Needs the sf
 package.
+}
+\details{
+Map \code{label} to the column that names each area and \code{\link[=gla_plotly]{gla_plotly()}} heads
+the area's hover label with it. A column called \code{name}, as
+\link{gla_boroughs} has, is found without being mapped. The static chart
+ignores it.
 }
 \examples{
 library(ggplot2)

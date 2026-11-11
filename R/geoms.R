@@ -779,8 +779,13 @@ annotate_gla_projection <- function(from, to = Inf, label = "Projected \u2192",
 #'
 #' [ggplot2::geom_sf()] with the design system's defaults: a `data-empty`
 #' fill, a 1px `chart-surface` edge between areas, and no graticule. Map
-#' `fill` and add [scale_fill_gla_c()] for a choropleth. Needs the sf
+#' `fill` and add [scale_fill_gla_b()] for a choropleth. Needs the sf
 #' package.
+#'
+#' Map `label` to the column that names each area and [gla_plotly()] heads
+#' the area's hover label with it. A column called `name`, as
+#' [gla_boroughs] has, is found without being mapped. The static chart
+#' ignores it.
 #'
 #' @inheritParams ggplot2::geom_sf
 #' @param theme `"light"` or `"dark"`. Defaults to the mode set by [gla_mode()].
@@ -801,9 +806,13 @@ geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = gla_
   }
   if (is.null(dots$colour)) dots$colour <- unname(gla_token("chart-surface", theme))
   if (is.null(dots$linewidth)) dots$linewidth <- px(1)
-  list(
-    do.call(ggplot2::geom_sf, c(list(mapping = mapping, data = data, na.rm = na.rm,
-                                     show.legend = show.legend, inherit.aes = inherit.aes), dots)),
-    ggplot2::coord_sf(datum = NULL)
-  )
+  # geom_sf() has no label aesthetic and would warn of one; it is set on the
+  # layer afterwards, where gla_plotly() finds it
+  label <- mapping$label
+  mapping$label <- NULL
+  layers <- do.call(ggplot2::geom_sf, c(list(mapping = mapping, data = data, na.rm = na.rm,
+                                             show.legend = show.legend,
+                                             inherit.aes = inherit.aes), dots))
+  if (!is.null(label)) layers[[1]]$mapping$label <- label
+  list(layers, ggplot2::coord_sf(datum = NULL))
 }
