@@ -66,8 +66,9 @@ package.
 \details{
 Map \code{label} to the column that names each area and \code{\link[=gla_plotly]{gla_plotly()}} heads
 the area's hover label with it. A column called \code{name}, as
-\link{gla_boroughs} has, is found without being mapped. The static chart
-ignores it.
+\link{gla_boroughs} has, is found without being mapped. Map \code{text} to write
+the whole hover label yourself, with \code{gla_plotly(tooltip = "text")}. The
+static chart ignores both.
 }
 \examples{
 library(ggplot2)

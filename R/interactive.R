@@ -62,8 +62,8 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
   out <- plotly_edge_labels(out, built, ct)
   out$x$data <- plotly_hover(out$x$data, built)
-  out <- plotly_chrome(out, labels, ct)
   out <- plotly_bin_legend(out, built, ct)
+  out <- plotly_chrome(out, labels, ct)
   out
 }
 
@@ -252,15 +252,15 @@ plotly_mark <- "\u2063"
 plotly_area_text <- function(plot, built) {
   for (i in seq_along(plot$layers)) {
     layer <- plot$layers[[i]]
-    if (!inherits(layer$geom, "GeomSf") || "text" %in% names(layer$mapping)) next
-    data <- layer$layer_data(plot$data)
-    drawn <- built$data[[i]]
-    if (!is.data.frame(data) || nrow(data) != nrow(drawn)) next
+    if (!inherits(layer$geom, "GeomSf")) next
     mapping <- layer$mapping
     if (isTRUE(layer$inherit.aes)) {
       mapping <- utils::modifyList(as.list(plot$mapping), as.list(mapping))
     }
-    text <- area_text(data, drawn$label, mapping, built$plot$scales)
+    if ("text" %in% names(mapping)) next
+    data <- layer$layer_data(plot$data)
+    if (!is.data.frame(data) || nrow(data) != nrow(built$data[[i]])) next
+    text <- area_text(data, mapping, built$plot$scales)
     if (is.null(text)) next
     data$.gla_hover <- paste0(plotly_mark, text, plotly_mark)
     layer$data <- data
@@ -269,15 +269,21 @@ plotly_area_text <- function(plot, built) {
   plot
 }
 
-area_text <- function(data, name, mapping, scales) {
-  name <- name %||% area_names(data)
+# every part of the label is read from the layer's own data, row by row:
+# the built data is sorted by panel, so nothing in it can be paired with a
+# row here by position
+area_text <- function(data, mapping, scales) {
+  evaluate <- function(aes) {
+    if (is.null(mapping[[aes]])) return(NULL)
+    out <- tryCatch(rlang::eval_tidy(mapping[[aes]], data), error = function(e) NULL)
+    if (length(out) == nrow(data)) out
+  }
+  name <- evaluate("label") %||% area_names(data)
   value <- NULL
   for (aes in c("fill", "colour")) {
     scale <- scales$get_scales(aes)
-    values <- if (!is.null(scale) && !is.null(mapping[[aes]])) {
-      tryCatch(rlang::eval_tidy(mapping[[aes]], data), error = function(e) NULL)
-    }
-    if (length(values) != nrow(data)) next
+    values <- if (!is.null(scale)) evaluate(aes)
+    if (is.null(values)) next
     value <- area_value_labels(scale, values)
     title <- scale$name
     if (is.character(title) && nzchar(title)) value <- paste0(title, ": ", value)
@@ -288,10 +294,13 @@ area_text <- function(data, name, mapping, scales) {
   esc <- function(x) {
     gsub("<", "&lt;", gsub("&", "&amp;", as.character(x), fixed = TRUE), fixed = TRUE)
   }
-  if (is.null(name)) return(ifelse(is.na(value), "No data", value))
+  if (!is.null(value)) value <- ifelse(is.na(value), "No data", value)
+  if (is.null(name)) return(value)
+  # an area with no name is its value alone
+  named <- !is.na(name)
   name <- paste0("<b>", esc(name), "</b>")
-  if (is.null(value)) return(name)
-  paste(name, ifelse(is.na(value), "No data", value), sep = "<br>")
+  if (is.null(value)) return(ifelse(named, name, ""))
+  ifelse(named, paste(name, value, sep = "<br>"), value)
 }
 
 # a column of names to call the areas by: one called name, or ending in it
@@ -308,7 +317,15 @@ area_names <- function(data) {
 # web charts' tips give one more than their axes; a scale with no labels of
 # its own gives the number to four significant figures.
 area_value_labels <- function(scale, values) {
-  if (!is.numeric(values)) return(as.character(values))
+  if (!is.numeric(values)) {
+    # a level as the scale's legend names it
+    values <- as.character(values)
+    breaks <- scale$get_breaks()
+    named <- tryCatch(as.character(scale$get_labels(breaks)), error = function(e) NULL)
+    at <- match(values, as.character(breaks))
+    if (length(named) != length(breaks)) return(values)
+    return(ifelse(is.na(at), values, named[at]))
+  }
   labels <- scale_labels(scale)
   refine <- attr(labels, "gla_refine")
   if (!is.null(refine)) return(refine$at(refine$accuracy / 10)(values))
@@ -317,6 +334,60 @@ area_value_labels <- function(scale, values) {
     if (length(out) == length(values)) return(out)
   }
   vapply(signif(values, 4), function(v) format(v, big.mark = ",", trim = TRUE), character(1))
+}
+
+# the traces of a map with the labels plotly_area_text() made read back
+# out of them. A filled trace can show one label inside its boundary, and
+# ggplotly() draws every area of one value as one trace with a label per
+# vertex, so such a trace is split into a trace per area, the parts of one
+# area kept together.
+plotly_area_traces <- function(traces) {
+  marked <- paste0("^.*", plotly_mark, "(.*?)", plotly_mark, ".*$")
+  out <- list()
+  for (trace in traces) {
+    made <- is.character(trace$text) & grepl(plotly_mark, trace$text, fixed = TRUE)
+    if (!any(made)) {
+      # the graticule is not drawn but its points still take the pointer,
+      # and an area under a meridian would show no label
+      if (isTRUE(trace[["_isGraticule"]])) trace$hoverinfo <- "skip"
+      out <- c(out, list(trace))
+      next
+    }
+    # a gap between two parts has no label
+    text <- ifelse(made, sub(marked, "\\1", trace$text, perl = TRUE), NA_character_)
+    trace$hoverinfo <- "text"
+    trace$.gla_area <- TRUE
+    labels <- unique(text[made])
+    if (is.null(trace$fill)) {
+      trace$text <- text
+      out <- c(out, list(trace))
+      next
+    }
+    trace$hoveron <- "fills"
+    if (length(labels) == 1 || length(text) != length(trace$x)) {
+      # one area, or a trace whose labels cannot be placed: the first label
+      trace$text <- labels[1]
+      out <- c(out, list(trace))
+      next
+    }
+    # a gap takes the label of the part before it
+    gap <- !made
+    part <- cumsum(gap) - gap
+    text[gap] <- text[match(part[gap], part)]
+    for (label in labels) {
+      rows <- which(text == label)
+      # the key the trace had in the legend stays with its first area
+      if (label != labels[1]) trace$showlegend <- FALSE
+      # no gap left at the end of an area
+      if (gap[rows[length(rows)]]) rows <- rows[-length(rows)]
+      area <- trace
+      area$x <- trace$x[rows]
+      area$y <- trace$y[rows]
+      area$text <- label
+      out <- c(out, list(area))
+    }
+  }
+  out
 }
 
 # the hover label in the chart's own words: the series, then each axis as
@@ -329,17 +400,20 @@ plotly_hover <- function(traces, built) {
   scales <- built$plot$scales
   labels <- built$plot$labels
   panel <- built$layout$panel_params[[1]]
-  axis <- function(aes) {
+  # under coord_flip() the scales keep their names and the panel swaps its
+  # views, so a trace's x is the y scale read through the panel's x
+  flipped <- inherits(built$layout$coord, "CoordFlip")
+  axis <- function(aes, view = aes) {
     scale <- scales$get_scales(aes)
     if (is.null(scale)) return(NULL)
     title <- scale$name
     if (is.null(title) || inherits(title, "waiver")) title <- labels[[aes]]
     if (is.null(title) || inherits(title, "waiver")) title <- ""
     discrete <- isTRUE(scale$is_discrete())
-    levels <- if (discrete) as.character(panel[[aes]]$get_labels())
+    levels <- if (discrete) as.character(panel[[view]]$get_labels())
     date <- inherits(scale, "ScaleContinuousDate") && inherits(scale$labels, "waiver")
-    breaks <- panel[[aes]]$breaks
-    breaks <- breaks[is.finite(breaks)]
+    breaks <- panel[[view]]$breaks
+    breaks <- if (is.numeric(breaks)) breaks[is.finite(breaks)] else numeric()
     fmt <- function(values) {
       values <- as.numeric(unclass(values))
       if (discrete) {
@@ -362,8 +436,8 @@ plotly_hover <- function(traces, built) {
     }
     list(title = as.character(title), format = fmt)
   }
-  x <- axis("x")
-  y <- axis("y")
+  x <- if (flipped) axis("y", "x") else axis("x")
+  y <- if (flipped) axis("x", "y") else axis("y")
   line <- function(axis, values) {
     values <- unclass(values)
     if (is.null(axis) || !is.numeric(values)) return(NULL)
@@ -371,20 +445,40 @@ plotly_hover <- function(traces, built) {
     if (all(is.na(text))) return(NULL)
     if (nzchar(axis$title)) paste0(axis$title, ": ", text) else text
   }
-  marked <- paste0(plotly_mark, "(.*?)", plotly_mark)
+  traces <- plotly_area_traces(traces)
+  sideways <- function(trace) {
+    !flipped && identical(trace$type, "bar") && !is.null(trace$width) && !is.null(trace$base) &&
+      isTRUE(scales$get_scales("y")$is_discrete()) &&
+      !isTRUE(scales$get_scales("x")$is_discrete())
+  }
   lapply(traces, function(trace) {
-    if (is.character(trace$text) && any(grepl(plotly_mark, trace$text, fixed = TRUE))) {
-      # an area of a map: the label made for it, shown anywhere inside it
-      found <- regmatches(trace$text, regexpr(marked, trace$text, perl = TRUE))
-      trace$text <- gsub(plotly_mark, "", found, fixed = TRUE)
-      trace$hoverinfo <- "text"
-      if (!is.null(trace$fill) && length(trace$text) == 1) trace$hoveron <- "fills"
+    if (isTRUE(trace$.gla_area)) {
+      trace$.gla_area <- NULL
       return(trace)
     }
     shape <- !is.null(trace$fill) || identical(trace$mode, "text") || !length(trace$x)
     if (shape || is.null(trace$text)) return(trace)
     series <- if (!is.null(trace$legendgroup) && !is.null(trace$name)) trace$name
     parts <- list(rep(series, length(trace$x)), line(x, trace$x), line(y, trace$y))
+    if (identical(trace$type, "bar") && !is.null(trace$base)) {
+      # a bar's value is its length from its base, which is below zero for
+      # a fall
+      along <- if (flipped) "x" else "y"
+      length <- unclass(trace[[along]])
+      fall <- unclass(trace$base) < 0 & unclass(trace$base) + length <= 1e-9
+      value <- line(if (flipped) x else y, ifelse(fall, -length, length))
+      parts[[if (flipped) 2 else 3]] <- value
+    }
+    # the category before its value, as an upright chart reads
+    if (flipped) parts <- parts[c(1, 3, 2)]
+    if (sideways(trace)) {
+      # ggplotly() draws a horizontal bar as an upright one turned over: x
+      # is the middle of its length, width the length, and base and y its
+      # place and thickness on the category axis
+      length <- abs(unclass(trace$width)) * sign(unclass(trace$x))
+      level <- unclass(trace$base) + unclass(trace$y) / 2
+      parts <- list(rep(series, length(trace$x)), line(y, level), line(x, length))
+    }
     parts <- Filter(Negate(is.null), parts)
     if (!length(parts)) return(trace)
     trace$text <- do.call(paste, c(parts, sep = "<br>"))
@@ -492,9 +586,19 @@ plotly_chrome <- function(out, labels, ct) {
   } else {
     16
   }
+  # plotly sets the first line's baseline, not its top, at the pad, so the
+  # pad carries that line's cap height to leave 16px clear above it
+  first <- if (!is.null(eyebrow) && nzchar(eyebrow)) {
+    "eyebrow"
+  } else if (nzchar(title)) {
+    "title"
+  } else {
+    "subtitle"
+  }
   out$x$layout$title <- list(
     text = paste(lines, collapse = "<br>"), x = 0, xref = "container", xanchor = "left",
-    y = 1, yref = "container", yanchor = "top", pad = list(t = 16, l = 16),
+    y = 1, yref = "container", yanchor = "top",
+    pad = list(t = 16 + round(0.72 * px(first)), l = 16),
     font = plotly_font(ct$text, "title")
   )
   out$x$layout$margin$t <- top
@@ -502,7 +606,8 @@ plotly_chrome <- function(out, labels, ct) {
     out$x$layout$margin$b <- (out$x$layout$margin$b %||% 16) + 32 + 16 * length(parts)
   }
   # a legend along the bottom sits between the plot and the footer
-  below <- isTRUE(out$x$layout$showlegend) && isTRUE(out$x$layout$legend$y < 0)
+  keyed <- any(vapply(out$x$data, function(trace) isTRUE(trace$showlegend), logical(1)))
+  below <- keyed && isTRUE(out$x$layout$showlegend) && isTRUE(out$x$layout$legend$y < 0)
   if (below) out$x$layout$margin$b <- (out$x$layout$margin$b %||% 16) + 32
   if (!is.null(footer)) {
     out$x$layout$annotations <- c(out$x$layout$annotations, list(list(
@@ -519,6 +624,7 @@ plotly_chrome <- function(out, labels, ct) {
 plotly_bin_legend <- function(out, built, ct) {
   scale <- built$plot$scales$get_scales("fill") %||% built$plot$scales$get_scales("colour")
   if (is.null(scale) || !inherits(scale, "ScaleBinned")) return(out)
+  if (identical(built$plot$theme$legend.position, "none")) return(out)
   bins <- bin_ranges(scale)
   if (is.null(bins)) return(out)
   colours <- scale$map(bins$mid)

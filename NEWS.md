@@ -2,6 +2,8 @@
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
 label, and the stepped legend, which a browser was not drawing, is back.
+Checked in a browser on the 33 boroughs, the 679 wards and a layer of
+5,000 areas.
 
 * An area of a map drawn with `geom_gla_sf()` hovers with its name and its
   value anywhere inside its boundary, where it showed the raw column and
@@ -24,6 +26,14 @@ label, and the stepped legend, which a browser was not drawing, is back.
 * `gla_plotly()` puts the legend where the theme has it, `theme_gla(legend =
   "right")` or `"bottom"`, and keeps the legend title when the theme shows
   one. It was always along the top with no title.
+* The title block of an interactive chart clears the top edge by 16px. It
+  sat against the edge, and a chart with no eyebrow lost the top of its
+  title.
+* A horizontal bar hovers with its own category and its whole length. It
+  showed half its length and the first category on every bar. A falling
+  bar, upright or horizontal, hovers with its sign.
+* `gla_plotly()` converts a chart drawn with `coord_flip()`, which stopped
+  with an error.
 * The maps article shows the join of a table of figures onto
   `gla_boroughs`.
 * Tokens refreshed to `@ldn-viz/themes` 10.0.2. Six colour tokens moved:

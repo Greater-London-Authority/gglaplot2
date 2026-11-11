@@ -224,6 +224,10 @@ test_that("gla_plotly names each area of a map and gives its value as the scale 
   out <- areas(m)
   # every area its own trace, hovered anywhere inside it
   expect_equal(length(out), nrow(b))
+  # the graticule's points do not take the pointer from the area under them
+  all_traces <- plotly::plotly_build(gla_plotly(m))$x$data
+  graticule <- Filter(function(t) isTRUE(t[["_isGraticule"]]), all_traces)
+  expect_true(all(vapply(graticule, function(t) t$hoverinfo == "skip", logical(1))))
   expect_true(all(vapply(out, function(t) identical(t$hoveron, "fills"), logical(1))))
   expect_true(all(vapply(out, function(t) identical(t$hoverinfo, "text"), logical(1))))
   text <- texts(out)
@@ -314,4 +318,145 @@ test_that("gla_plotly puts the legend where the theme has it, with its title", {
   footer <- function(l) l$annotations[[length(l$annotations)]]$yshift
   expect_lt(footer(below), footer(above))
   expect_gt(below$margin$b, above$margin$b)
+})
+
+test_that("a horizontal bar hovers with its own category and its whole length", {
+  bars <- function(p) {
+    data <- plotly::plotly_build(gla_plotly(p))$x$data
+    lapply(Filter(function(t) identical(t$type, "bar"), data), function(t) as.character(t$text))
+  }
+  d <- data.frame(answer = factor(c("A", "B", "C")), value = c(10, -40, 20))
+  flat <- ggplot(d, aes(value, answer)) + geom_gla_col() +
+    scale_x_continuous(labels = label_gla_percent(scale = 1)) + theme_gla()
+  expect_equal(bars(flat)[[1]],
+               c("answer: A<br>value: 10%", "answer: B<br>value: -40%", "answer: C<br>value: 20%"))
+  # stacked and dodged: each segment its own length, on its own row
+  two <- rbind(cbind(d, g = "x"), cbind(d, g = "y"))
+  two$value <- abs(two$value) / ifelse(two$g == "y", 2, 1)
+  stacked <- ggplot(two, aes(value, answer, fill = g)) + geom_gla_col() + scale_fill_gla() +
+    theme_gla()
+  expect_setequal(unlist(bars(stacked)),
+                  c(paste0("x<br>answer: ", c("A", "B", "C"), "<br>value: ", c(10, 40, 20)),
+                    paste0("y<br>answer: ", c("A", "B", "C"), "<br>value: ", c(5, 20, 10))))
+  dodged <- ggplot(two, aes(value, answer, fill = g)) + geom_gla_col(position = "dodge") +
+    scale_fill_gla() + theme_gla()
+  expect_setequal(unlist(bars(dodged)), unlist(bars(stacked)))
+  # an upright bar is as it was, and coord_flip() converts
+  upright <- ggplot(d, aes(answer, value)) + geom_gla_col() + theme_gla()
+  expect_equal(bars(upright)[[1]],
+               c("answer: A<br>value: 10", "answer: B<br>value: -40", "answer: C<br>value: 20"))
+  expect_equal(bars(upright + coord_flip())[[1]], bars(upright)[[1]])
+})
+
+test_that("areas of one value are still a trace each, the parts of an area together", {
+  skip_if_not_installed("sf")
+  square <- function(x, y) {
+    sf::st_polygon(list(rbind(c(x, y), c(x + 1, y), c(x + 1, y + 1), c(x, y + 1), c(x, y))))
+  }
+  d <- sf::st_sf(
+    name = c("One", "Two & more", "Three"),
+    value = factor(c("Low", "Low", "Low")),
+    geometry = sf::st_sfc(sf::st_multipolygon(list(square(0, 0))),
+                          sf::st_multipolygon(list(square(2, 0), square(4, 0))),
+                          sf::st_multipolygon(list(square(6, 0))), crs = 4326)
+  )
+  p <- ggplot(d) + geom_gla_sf(aes(fill = value)) + scale_fill_gla(name = NULL) +
+    theme_gla_map()
+  x <- plotly::plotly_build(gla_plotly(p))$x
+  areas <- Filter(function(t) !is.null(t$fill), x$data)
+  expect_equal(length(areas), 3)
+  text <- vapply(areas, function(t) t$text, character(1))
+  expect_setequal(text, paste0("<b>", c("One", "Two &amp; more", "Three"), "</b><br>Low"))
+  expect_true(all(vapply(areas, function(t) t$hoveron, character(1)) == "fills"))
+  # the two parts of the second area, one gap between them, drawn where they are
+  two <- areas[[which(text == "<b>Two &amp; more</b><br>Low")]]
+  expect_equal(sum(is.na(two$x)), 1)
+  expect_equal(range(two$x, na.rm = TRUE), c(2, 5))
+  one <- areas[[which(text == "<b>One</b><br>Low")]]
+  expect_false(anyNA(one$x))
+  expect_equal(range(one$x), c(0, 1))
+})
+
+test_that("the title block clears the top edge by the cap height of its first line", {
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) + geom_gla_line() +
+    scale_colour_gla() + theme_gla()
+  pad <- function(...) plotly::plotly_build(gla_plotly(p + gla_labs(...)))$x$layout$title$pad$t
+  expect_equal(pad(title = "T"), 16 + round(0.72 * gla_type()$title$size))
+  expect_equal(pad(eyebrow = "E", title = "T"), 16 + round(0.72 * gla_type()$eyebrow$size))
+})
+
+test_that("a map's hover label holds across facets, shared fills and the caller's own text", {
+  skip_if_not_installed("sf")
+  areas <- function(p, ...) {
+    Filter(function(t) !is.null(t$fill), plotly::plotly_build(gla_plotly(p, ...))$x$data)
+  }
+  texts <- function(traces) vapply(traces, function(t) t$text[1], character(1))
+  b <- gla_boroughs
+  b$change <- seq(-6, 4, length.out = nrow(b))
+  stepped <- function(...) scale_fill_gla_b("diverging", steps = 3, name = NULL, ...)
+
+  # shuffled rows over two panels: a label aesthetic stays with its own row
+  both <- rbind(cbind(b, yr = "2020"), cbind(b, yr = "2021"))
+  set.seed(1)
+  both <- both[sample(nrow(both)), ]
+  faceted <- ggplot(both) + geom_gla_sf(aes(fill = change, label = code)) + facet_wrap(~yr) +
+    stepped() + theme_gla_map()
+  expected <- paste0("<b>", b$code, "</b><br>", vapply(signif(b$change, 4), format, ""))
+  expect_setequal(texts(areas(faceted)), expected)
+  expect_equal(length(areas(faceted)), 2 * nrow(b))
+
+  # a discrete fill: an area each, the scale's own names, one key per level
+  b$part <- factor(rep(c("a", "b", "c"), 11))
+  discrete <- ggplot(b) + geom_gla_sf(aes(fill = part)) +
+    scale_fill_gla("categorical", labels = c(a = "Alpha", b = "Beta", c = "Gamma")) +
+    theme_gla_map()
+  out <- areas(discrete)
+  expect_equal(length(out), nrow(b))
+  expect_true("<b>Barnet</b><br>Beta" %in% texts(out))
+  expect_equal(sum(vapply(out, function(t) isTRUE(t$showlegend), logical(1))), 3)
+
+  # nothing mapped: every borough still its own trace and name
+  outline <- areas(ggplot(b) + geom_gla_sf() + theme_gla_map())
+  expect_setequal(texts(outline), paste0("<b>", b$name, "</b>"))
+
+  # a text aesthetic on the plot or the layer is the caller's, without a warning
+  expect_no_warning(
+    own <- ggplot(b) + geom_gla_sf(aes(fill = change, text = code)) + stepped() + theme_gla_map()
+  )
+  expect_true("E09000002" %in% unlist(lapply(areas(own, tooltip = "text"), `[[`, "text")))
+  inherited <- ggplot(b, aes(text = code)) + geom_gla_sf(aes(fill = change)) + stepped() +
+    theme_gla_map()
+  expect_true("E09000002" %in% unlist(lapply(areas(inherited, tooltip = "text"), `[[`, "text")))
+
+  # an area with no name is its value alone
+  b$name[1] <- NA
+  unnamed <- ggplot(b) + geom_gla_sf(aes(fill = change)) + stepped() + theme_gla_map()
+  expect_false(any(grepl("<b>NA</b>", texts(areas(unnamed)))))
+})
+
+test_that("the footer moves only for a legend that is along the bottom", {
+  skip_if_not_installed("sf")
+  footer <- function(p) {
+    l <- plotly::plotly_build(gla_plotly(p))$x$layout
+    l$annotations[[length(l$annotations)]]$yshift
+  }
+  b <- gla_boroughs
+  b$change <- seq(-6, 4, length.out = nrow(b))
+  m <- ggplot(b) + geom_gla_sf(aes(fill = change)) +
+    scale_fill_gla_b("diverging", steps = 3, name = NULL) + gla_labs(title = "T", source = "Demo")
+  # the stepped legend stands on the right whatever the theme says
+  expect_equal(footer(m + theme_gla_map(legend = "bottom")), footer(m + theme_gla_map()))
+  one <- ggplot(gla_yearly[gla_yearly$series == gla_yearly$series[1], ], aes(year, average)) +
+    geom_gla_line() + gla_labs(source = "Demo")
+  expect_equal(footer(one + theme_gla(legend = "bottom")), footer(one + theme_gla()))
+  # and legend = "none" hides the stepped legend
+  none <- plotly::plotly_build(gla_plotly(m + theme_gla_map(legend = "none")))$x
+  expect_false(any(vapply(none$data, function(t) isTRUE(t$showlegend), logical(1))))
+  # a single bin is still a legend entry
+  b$up <- b$change + 10
+  single <- plotly::plotly_build(gla_plotly(
+    ggplot(b) + geom_gla_sf(aes(fill = up)) + scale_fill_gla_b(steps = 1, name = NULL) +
+      theme_gla_map()
+  ))$x
+  expect_equal(sum(vapply(single$data, function(t) isTRUE(t$showlegend), logical(1))), 1)
 })
