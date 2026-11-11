@@ -97,9 +97,10 @@ test_that("the end labels follow what the scale does with values beyond its limi
   labels <- bin_key(rev)$.label
   expect_true("Below 8" %in% labels)
   expect_true("Above 10" %in% labels)
-  # nothing to label: no error from the accuracy
-  none <- data.frame(x = 1:2, y = 1, v = NA_real_)
-  empty <- ggplot(none, aes(x, y, fill = v)) + geom_point(shape = 21) +
-    scale_fill_gla_b(labels = label_gla_percent())
-  expect_no_error(suppressWarnings(draw(empty)))
+  # a scale with nothing in it has no finite edges: the labels are the
+  # scale's own, with no error from working out an accuracy. Asked of the
+  # scale directly, since whether such a chart draws is ggplot2's and R's.
+  empty <- scale_fill_gla_b(labels = label_gla_percent())
+  expect_equal(bin_edge_labels(empty, c(-Inf, Inf)), c("-Inf", "Inf"))
+  expect_equal(bin_edge_labels(empty, c(2, 2)), c("200%", "200%"))
 })
