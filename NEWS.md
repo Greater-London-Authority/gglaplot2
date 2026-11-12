@@ -134,6 +134,13 @@
   DESCRIPTION declares utils and tools, which the package calls, and the
   svglite floor.
 
+* `gla_describe()` and `gla_alt()` write true alt text for more charts:
+  grouped bars drawn with `position = "dodge"` are a grouped bar chart, one
+  series reads "a single series" where it read "a single serie", a log or
+  reversed x axis gives its range in the data's units, a treemap and a
+  paired dot plot are named as such, and a chart with no data gives no
+  range where it said "between 0 and 1".
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
