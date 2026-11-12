@@ -154,6 +154,10 @@
   one as a list or several as a list of lists. Several were drawn as four
   blank labels, and one was drawn four times.
 
+* `gla_plotly()` draws the third line style of `scale_linetype_gla()`,
+  dotted, as dots. Mapped, it reached plotly as "12" and was drawn as 12px
+  dashes.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

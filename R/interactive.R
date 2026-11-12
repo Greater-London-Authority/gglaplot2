@@ -233,9 +233,16 @@ plotly_traces <- function(traces, layout) {
     trace$y <- finite(trace$y, axis_key(trace$yaxis, "y"))
     dash <- trace$line$dash
     name <- if (length(dash) == 1) plotly_dash_names[dash] else NA
-    if (!is.na(name)) {
+    # a named dash, or a pattern ggplotly() passed on as ggplot2 wrote it
+    # (a mapped "12", which plotly would read as a 12px dash)
+    pattern <- if (!is.na(name)) {
+      plotly_dashes[[name]]
+    } else if (length(dash) == 1 && grepl("^([0-9a-fA-F]{2}){1,4}$", dash)) {
+      dash
+    }
+    if (!is.null(pattern)) {
       width <- max(trace$line$width %||% 1, 1)
-      digits <- strtoi(strsplit(plotly_dashes[[name]], "")[[1]], 16L)
+      digits <- strtoi(strsplit(pattern, "")[[1]], 16L)
       trace$line$dash <- paste0(round(digits * width), "px", collapse = ",")
     }
     trace

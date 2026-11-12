@@ -564,3 +564,10 @@ test_that("ggla_plotly_layout takes one annotation or a list of them", {
   expect_equal(a$font$color, unname(gla_token("chart-label")))
   expect_equal(a$arrowhead, 0)
 })
+
+test_that("a mapped line style converts to the pattern the static chart draws", {
+  w <- plotly::plotly_build(gla_plotly(ggplot(gla_yearly, aes(year, average, linetype = series)) +
+                                         geom_gla_line() + scale_linetype_gla() + theme_gla()))
+  dashes <- vapply(w$x$data, function(t) t$line$dash, character(1))
+  expect_equal(dashes, c("solid", "4px,4px", "2px,4px"))
+})
