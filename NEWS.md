@@ -78,6 +78,13 @@
   take the decimals their steps need in their own unit: "1m to 1.025m",
   where every range read "1m to 1m". A map's hover label is unchanged.
 
+* `gla_plotly()` on a faceted chart places the end labels and the labels
+  of reference lines on each panel's own axes. They were put on an axis
+  numbered by the panel, which ggplotly() had not made when the panels
+  share one, so plotly drew stray axes and left panels empty. The hover
+  label reads each panel through its own scales: on a free category axis
+  the second panel's bars hovered with the first panel's names.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

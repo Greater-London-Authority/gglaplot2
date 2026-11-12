@@ -403,18 +403,18 @@ plotly_area_traces <- function(traces) {
 
 # the hover label in the chart's own words: the series, then each axis as
 # its title and the value formatted by that axis's scale, so a chart whose
-# axis reads in pounds or per cent hovers in pounds or per cent too. An
-# area of a map takes the label plotly_area_text() made for it. Other marks
-# with a shape rather than a point (a treemap's tiles, a map with a text
-# aesthetic of its own) keep the label ggplotly gave them.
+# axis reads in pounds or per cent hovers in pounds or per cent too. Each
+# trace is read through its own panel, whose free scale may differ from the
+# first. An area of a map takes the label plotly_area_text() made for it.
+# Other marks with a shape rather than a point (a treemap's tiles, a map
+# with a text aesthetic of its own) keep the label ggplotly gave them.
 plotly_hover <- function(traces, built) {
   scales <- built$plot$scales
   labels <- built$plot$labels
-  panel <- built$layout$panel_params[[1]]
   # under coord_flip() the scales keep their names and the panel swaps its
   # views, so a trace's x is the y scale read through the panel's x
   flipped <- inherits(built$layout$coord, "CoordFlip")
-  axis <- function(aes, view = aes) {
+  axis <- function(panel, aes, view = aes) {
     scale <- scales$get_scales(aes)
     if (is.null(scale)) return(NULL)
     title <- scale$name
@@ -447,8 +447,15 @@ plotly_hover <- function(traces, built) {
     }
     list(title = as.character(title), format = fmt)
   }
-  x <- if (flipped) axis("y", "x") else axis("x")
-  y <- if (flipped) axis("x", "y") else axis("y")
+  views <- lapply(built$layout$panel_params, function(panel) {
+    list(x = if (flipped) axis(panel, "y", "x") else axis(panel, "x"),
+         y = if (flipped) axis(panel, "x", "y") else axis(panel, "y"))
+  })
+  axes <- plotly_panel_axes(built)
+  panel_of <- function(trace) {
+    hit <- which(axes$x == (trace$xaxis %||% "x") & axes$y == (trace$yaxis %||% "y"))
+    if (length(hit)) hit[1] else 1L
+  }
   line <- function(axis, values) {
     values <- unclass(values)
     if (is.null(axis) || !is.numeric(values)) return(NULL)
@@ -469,6 +476,9 @@ plotly_hover <- function(traces, built) {
     }
     shape <- !is.null(trace$fill) || identical(trace$mode, "text") || !length(trace$x)
     if (shape || is.null(trace$text)) return(trace)
+    view <- views[[panel_of(trace)]]
+    x <- view$x
+    y <- view$y
     series <- if (!is.null(trace$legendgroup) && !is.null(trace$name)) trace$name
     parts <- list(rep(series, length(trace$x)), line(x, trace$x), line(y, trace$y))
     if (identical(trace$type, "bar") && !is.null(trace$base)) {
@@ -504,6 +514,7 @@ plotly_hover <- function(traces, built) {
 # paper on one side and to the data on the other
 plotly_edge_labels <- function(out, built, ct) {
   layers <- built$plot$layers
+  axes <- plotly_panel_axes(built)
   for (i in seq_along(layers)) {
     geom <- layers[[i]]$geom
     kinds <- c(GeomGlaEndlabel = "end", GeomGlaEdgelabel = "edge", GeomGlaToplabel = "top")
@@ -523,19 +534,19 @@ plotly_edge_labels <- function(out, built, ct) {
     }
     dx <- layers[[i]]$geom_params$dx %||% 8
     for (r in seq_len(nrow(data))) {
-      suffix <- if (as.integer(data$PANEL[r]) > 1) as.integer(data$PANEL[r]) else ""
+      on <- axes[as.integer(data$PANEL[r]), ]
       alpha <- if (is.null(data$alpha) || is.na(data$alpha[r])) 1 else data$alpha[r]
       colour <- ggplot2::alpha(data$colour[r], alpha)
       a <- switch(kind,
         end = {
           right <- (data$hjust[r] %||% 0) >= 0.5
-          list(text = data$label[r], x = as.numeric(data$x[r]), xref = paste0("x", suffix),
+          list(text = data$label[r], x = as.numeric(data$x[r]), xref = on$x,
                xanchor = if (right) "right" else "left", xshift = dx,
-               y = data$y[r], yref = paste0("y", suffix), yanchor = "middle")
+               y = data$y[r], yref = on$y, yanchor = "middle")
         },
         edge = list(text = data$label[r], x = 1, xref = "paper", xanchor = "right", xshift = -4,
-                    y = data$y[r], yref = paste0("y", suffix), yanchor = "bottom", yshift = 4),
-        top = list(text = data$label[r], x = as.numeric(data$x[r]), xref = paste0("x", suffix),
+                    y = data$y[r], yref = on$y, yanchor = "bottom", yshift = 4),
+        top = list(text = data$label[r], x = as.numeric(data$x[r]), xref = on$x,
                    xanchor = "left", xshift = 4, y = 1, yref = "paper", yanchor = "top",
                    yshift = -4)
       )
@@ -545,6 +556,23 @@ plotly_edge_labels <- function(out, built, ct) {
     }
   }
   out
+}
+
+# the axes ggplotly() draws each panel on, named as it names them: an x
+# axis per column and a y axis per row, or one per panel for a scale that
+# facet_wrap() frees. One row per panel, in panel order.
+plotly_panel_axes <- function(built) {
+  lay <- built$layout$layout
+  x <- lay$COL
+  y <- lay$ROW
+  free <- built$plot$facet$params$free
+  if (inherits(built$plot$facet, "FacetWrap")) {
+    if (isTRUE(free$x)) x <- as.integer(lay$PANEL)
+    if (isTRUE(free$y)) y <- as.integer(lay$PANEL)
+  }
+  id <- function(prefix, i) paste0(prefix, ifelse(i == 1, "", i))
+  out <- data.frame(x = id("x", x), y = id("y", y), stringsAsFactors = FALSE)
+  out[order(as.integer(lay$PANEL)), , drop = FALSE]
 }
 
 # the eyebrow and title as one title block, the subtitle under it, and the

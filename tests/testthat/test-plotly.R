@@ -468,3 +468,31 @@ test_that("the footer moves only for a legend that is along the bottom", {
   ))$x
   expect_equal(sum(vapply(single$data, function(t) isTRUE(t$showlegend), logical(1))), 1)
 })
+
+test_that("a faceted chart's labels and hover are read through each panel's own axes", {
+  refs <- function(w) {
+    a <- Filter(function(a) !identical(a$xref, "paper") || !identical(a$yref, "paper"),
+                w$x$layout$annotations)
+    vapply(a, function(a) paste(a$text, a$xref, a$yref), character(1))
+  }
+  wrap <- gla_plotly(ggplot(gla_monthly, aes(month, value, colour = series)) +
+                       geom_gla_line() + geom_gla_endlabel(aes(label = series)) +
+                       gla_reference_line(30000, "Target") + facet_wrap(vars(series)) +
+                       scale_colour_gla() + theme_gla(legend = "none"))
+  axes <- grep("^[xy]axis", names(wrap$x$layout), value = TRUE)
+  expect_setequal(axes, c("xaxis", "xaxis2", "xaxis3", "yaxis"))
+  expect_equal(refs(wrap), c("Variable A x y", "Variable B x2 y", "Variable C x3 y",
+                             "Target paper y", "Target paper y", "Target paper y"))
+  rows <- gla_plotly(ggplot(gla_monthly, aes(month, value, colour = series)) +
+                       geom_gla_line() + geom_gla_endlabel(aes(label = series)) +
+                       facet_gla_rows(vars(series)) + scale_colour_gla() +
+                       theme_gla(legend = "none"))
+  expect_equal(refs(rows), c("Variable A x y", "Variable B x y2", "Variable C x y3"))
+  # a free category axis names each panel's own bars
+  fd <- data.frame(g = rep(c("Inner", "Outer"), each = 3), v = (1:6) / 10,
+                   b = c("Camden", "Hackney", "Islington", "Barnet", "Brent", "Ealing"))
+  bars <- gla_plotly(ggplot(fd, aes(b, v)) + geom_gla_col() +
+                       facet_wrap(vars(g), scales = "free_x") + theme_gla())
+  text <- unlist(lapply(Filter(function(t) identical(t$type, "bar"), bars$x$data), `[[`, "text"))
+  expect_equal(sub("<br>.*", "", text), paste("b:", fd$b))
+})
