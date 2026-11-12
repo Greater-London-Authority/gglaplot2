@@ -517,3 +517,14 @@ test_that("the hover label gives dates, times and transformed values as they are
                       scale_x_log10(labels = scales::label_comma()) + theme_gla())
   expect_match(labelled[1], "^disp: 160(\\.0)?<br>")
 })
+
+test_that("a tooltip the caller chose is the one the marks show", {
+  p <- ggplot(mtcars, aes(wt, mpg, text = paste("Car:", rownames(mtcars)))) +
+    geom_gla_dot() + theme_gla()
+  own <- plotly::plotly_build(gla_plotly(p, tooltip = "text"))$x$data[[1]]$text
+  expect_equal(own[1:2], c("Car: Mazda RX4", "Car: Mazda RX4 Wag"))
+  bars <- ggplot(gla_yearly, aes(factor(year), average, fill = series, text = series)) +
+    geom_gla_col() + scale_fill_gla() + theme_gla()
+  b <- plotly::plotly_build(gla_plotly(bars, tooltip = "text"))$x$data[[1]]$text
+  expect_true(all(b == "Variable A"))
+})

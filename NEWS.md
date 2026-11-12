@@ -91,6 +91,10 @@
   labels of its own read "1,767,225,600". A log or reversed axis hovers in
   the data's units, 160 rather than 2.20412 and 110 rather than -110.
 
+* `gla_plotly(tooltip = "text")` shows the caller's `text` aesthetic on
+  points, lines and bars as well as on maps. The house hover label was
+  written over it.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

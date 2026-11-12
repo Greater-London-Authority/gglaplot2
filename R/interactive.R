@@ -16,7 +16,8 @@
 #' value, formatted by the fill scale's `labels`, anywhere inside its
 #' boundary. The name is the layer's `label` aesthetic or, without one, a
 #' `name` column in the data. To write the label yourself, map a `text`
-#' aesthetic and pass `tooltip = "text"`.
+#' aesthetic and pass `tooltip = "text"`; any `tooltip` other than `"all"`
+#' is ggplotly()'s, written from the aesthetics it names.
 #'
 #' Interactive charts on a GLA site belong to the visualisation team's web
 #' components; this is for a notebook, a Shiny app or a one-off.
@@ -61,7 +62,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
   out <- plotly_edge_labels(out, built, ct)
-  out$x$data <- plotly_hover(out$x$data, built)
+  out$x$data <- plotly_hover(out$x$data, built, tooltip)
   out <- plotly_bin_legend(out, built, ct)
   out <- plotly_chrome(out, labels, ct)
   out
@@ -407,10 +408,18 @@ plotly_area_traces <- function(traces) {
 # trace is read through its own panel, whose free scale may differ from the
 # first, and a value is written in the data's units, not the transformed
 # ones a log or reversed axis is drawn in. An area of a map takes the label
-# plotly_area_text() made for it.
-# Other marks with a shape rather than a point (a treemap's tiles, a map
-# with a text aesthetic of its own) keep the label ggplotly gave them.
-plotly_hover <- function(traces, built) {
+# plotly_area_text() made for it. Other marks with a shape rather than a
+# point (a treemap's tiles, a map with a text aesthetic of its own) keep
+# the label ggplotly gave them, as does every mark when the caller chose
+# the tooltip.
+plotly_hover <- function(traces, built, tooltip = "all") {
+  traces <- plotly_area_traces(traces)
+  if (!identical(tooltip, "all")) {
+    return(lapply(traces, function(trace) {
+      trace$.gla_area <- NULL
+      trace
+    }))
+  }
   scales <- built$plot$scales
   labels <- built$plot$labels
   # under coord_flip() the scales keep their names and the panel swaps its
@@ -482,7 +491,6 @@ plotly_hover <- function(traces, built) {
     if (all(is.na(text))) return(NULL)
     if (nzchar(axis$title)) paste0(axis$title, ": ", text) else text
   }
-  traces <- plotly_area_traces(traces)
   sideways <- function(trace) {
     !flipped && identical(trace$type, "bar") && !is.null(trace$width) && !is.null(trace$base) &&
       isTRUE(scales$get_scales("y")$is_discrete()) &&

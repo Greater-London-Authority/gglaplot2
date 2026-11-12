@@ -38,7 +38,8 @@ An area of a map drawn with \code{\link[=geom_gla_sf]{geom_gla_sf()}} reads its 
 value, formatted by the fill scale's \code{labels}, anywhere inside its
 boundary. The name is the layer's \code{label} aesthetic or, without one, a
 \code{name} column in the data. To write the label yourself, map a \code{text}
-aesthetic and pass \code{tooltip = "text"}.
+aesthetic and pass \code{tooltip = "text"}; any \code{tooltip} other than \code{"all"}
+is ggplotly()'s, written from the aesthetics it names.
 
 Interactive charts on a GLA site belong to the visualisation team's web
 components; this is for a notebook, a Shiny app or a one-off.
