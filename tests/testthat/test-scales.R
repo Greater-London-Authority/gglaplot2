@@ -441,3 +441,21 @@ test_that("a value on a break falls in the same bin as the legend says, every ti
   expect_identical(fill_scale(s)$get_breaks(), c(-0.32, -0.3, -0.28, -0.26, -0.24, -0.22))
   expect_equal(length(unique(fills(s))), 6)
 })
+
+test_that("limits on one side of the midpoint are cut into the steps asked for", {
+  v <- c(-12, -3, 0, 1, 3.9, 4, 9, 9.5, 10.5)
+  d <- data.frame(x = seq_along(v), y = 1, v = v)
+  above <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(2, 10), steps = 3)
+  expect_equal(fill_scale(above)$get_breaks(), c(4.666667, 7.333333), tolerance = 1e-6)
+  key <- get_guide_data(above, "fill")
+  expect_equal(nrow(key), 3)
+  expect_equal(rev(tolower(key$fill)), tolower(ramp_steps("blue", 3)))
+  narrow <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(9, 11), steps = 3)
+  expect_equal(nrow(get_guide_data(narrow, "fill")), 3)
+  below <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(-12, -3), steps = 3)
+  expect_equal(fill_scale(below)$get_breaks(), c(-9, -6))
+  expect_equal(nrow(get_guide_data(below, "fill")), 3)
+})

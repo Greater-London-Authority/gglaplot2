@@ -56,6 +56,12 @@
   0.1 fell in the bin below, and a bin could read "0.1 to 0.2" and hold
   neither. Every value on a break now falls in the bin that ends at it.
 
+* `steps` with `limits` wholly on one side of the midpoint cuts the limits
+  into that side's count of equal bins. `limits = c(2, 10), steps = 3`
+  gave bins 1.3, 3.3 and 3.3 wide, and `limits = c(9, 11)` one colour and
+  no legend. The help now gives the step widths `steps` rounds to as they
+  are: 1, 2, 2.5, 3, 4 or 5 times a power of ten.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

@@ -29,11 +29,13 @@
 #' which a note on the chart should say. `steps` fixes how many bins each
 #' side has: `steps = 3` is three below and three above, `steps = c(2, 4)`
 #' two below and four above. Each side then takes its own step width,
-#' rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
-#' large fall gets narrow blue steps rather than being stretched; with
-#' `limits` set, the steps divide them exactly. The count holds as the data
-#' changes, where `breaks` would need resetting. Equal steps are cut in the
-#' data's units, so on a log scale they need `limits` above zero.
+#' rounded up to 1, 2, 2.5, 3, 4 or 5 times a power of ten, so a small rise
+#' beside a large fall gets narrow blue steps rather than being stretched;
+#' with `limits` set, the steps divide them exactly, and limits wholly on
+#' one side of the midpoint are cut into that side's count. The count holds
+#' as the data changes, where `breaks` would need resetting. Equal steps
+#' are cut in the data's units, so on a log scale they need `limits` above
+#' zero.
 #'
 #' `method` classes the bins by the distribution instead of in equal
 #' steps: `"jenks"` natural breaks, `"quantile"`, `"boxplot"`, `"sd"`,
@@ -263,14 +265,17 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (!is.null(self$steps)) {
       n <- rep_len(self$steps, 2)
       fixed <- !is.null(self$limits)
+      # limits set wholly on one side of the midpoint leave the other side
+      # no bins, and the side they hold is counted from its edge
+      from <- if (fixed) min(max(mid, lim[1]), lim[2]) else mid
       width <- function(extent, k) if (fixed) extent / k else nice_step(extent / k)
-      down <- width(max(mid - lim[1], 0), n[1])
-      up <- width(max(lim[2] - mid, 0), n[2])
+      down <- width(max(from - lim[1], 0), n[1])
+      up <- width(max(lim[2] - from, 0), n[2])
       if (!fixed) {
         lim <- snap(c(mid - n[1] * down, mid + n[2] * up), max(down, up))
         self$limits <- held_limits(transformation, lim)
       }
-      breaks <- c(mid - down * seq_len(n[1] - 1), mid, mid + up * seq_len(n[2] - 1))
+      breaks <- c(from - down * seq_len(n[1] - 1), from, from + up * seq_len(n[2] - 1))
       widths <- c(down, up)
       breaks <- snap(breaks, min(widths[widths > 0], Inf))
       breaks <- sort(unique(breaks[breaks > lim[1] & breaks < lim[2]]))
