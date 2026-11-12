@@ -151,6 +151,8 @@ to_basic.GeomGlaLine <- function(data, prestats_data, layout, params, p, ...) {
   list(as_line(actual), as_line(projected))
 }
 #' @exportS3Method plotly::to_basic
+to_basic.GeomGlaSf <- as_basic("GeomSf")
+#' @exportS3Method plotly::to_basic
 to_basic.GeomGlaDot <- as_basic("GeomPoint")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaMarker <- as_basic("GeomPoint")

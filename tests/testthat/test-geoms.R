@@ -324,3 +324,27 @@ test_that("a treemap draws a tile whose group is missing, in the missing colour"
   expect_equal(tolower(tiles$fill[tiles$label == "d"]), tolower(unname(gla_token("data-empty"))))
   expect_equal(sum((tiles$xmax - tiles$xmin) * (tiles$ymax - tiles$ymin)), 1)
 })
+
+test_that("geom_gla_sf's house fill, edge and width give way to any mapping", {
+  skip_if_not_installed("sf")
+  bo <- gla_boroughs
+  bo$val <- seq_len(nrow(bo))
+  bo$grp <- rep(c("a", "b"), length.out = nrow(bo))
+  data_of <- function(p) build(p)$data[[1]]
+  # a fill mapped on the plot, as gglaplot's choropleths were written
+  expect_equal(length(unique(data_of(ggplot(bo, aes(fill = val)) + geom_gla_sf())$fill)), 33)
+  expect_equal(length(unique(data_of(ggplot(bo) + geom_gla_sf(aes(colour = grp)))$colour)), 2)
+  expect_gt(length(unique(data_of(ggplot(bo) + geom_gla_sf(aes(linewidth = val)))$linewidth)), 1)
+  # unmapped, the house defaults; fixed, the caller's
+  plain <- data_of(ggplot(bo) + geom_gla_sf())
+  expect_equal(unique(tolower(plain$fill)), tolower(unname(gla_token("data-empty"))))
+  expect_equal(unique(tolower(plain$colour)), tolower(unname(gla_token("chart-surface"))))
+  expect_equal(unique(plain$linewidth), px(1))
+  fixed <- data_of(ggplot(bo, aes(fill = val)) + geom_gla_sf(fill = "red", color = "blue"))
+  expect_equal(unique(fixed$fill), "red")
+  expect_equal(unique(fixed$colour), "blue")
+  # the legend keys keep the house edge
+  p <- ggplot(bo, aes(fill = val)) + geom_gla_sf() + scale_fill_gla_b() + theme_gla_map()
+  expect_equal(nrow(get_guide_data(p, "fill")), 4)
+  expect_no_error(draw(p))
+})

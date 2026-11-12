@@ -112,6 +112,12 @@
   group in the colour for missing values. It drew nothing, with a
   "Computation failed" warning.
 
+* `geom_gla_sf()` takes a `fill` mapped in `ggplot()`, as gglaplot's
+  choropleths were written, and a mapped `colour` or `linewidth`. The house
+  fill, edge and width were fixed on the layer, which drew every area grey
+  with no legend and no message; they are now defaults that a mapping
+  replaces.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

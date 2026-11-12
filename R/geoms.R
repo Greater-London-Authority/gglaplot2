@@ -848,18 +848,37 @@ geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = gla_
                         na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
   theme <- match_mode(theme)
   dots <- list(...)
-  if (is.null(dots$fill) && !"fill" %in% names(mapping)) {
-    dots$fill <- unname(gla_token("data-empty", theme))
-  }
-  if (is.null(dots$colour)) dots$colour <- unname(gla_token("chart-surface", theme))
-  if (is.null(dots$linewidth)) dots$linewidth <- px(1)
+  names(dots) <- ggplot2::standardise_aes_names(names(dots))
+  # the house fill, edge and width are the geom's defaults, not fixed on
+  # the layer, so a mapping of the plot's as well as the layer's wins
+  geom <- ggplot2::ggproto(NULL, GeomGlaSf, house = list(
+    fill = unname(gla_token("data-empty", theme)),
+    colour = unname(gla_token("chart-surface", theme)), linewidth = px(1)
+  ))
   # geom_sf() has no label or text aesthetic and would warn of one; they are
   # set on the layer afterwards, where gla_plotly() finds them
   hover <- mapping[intersect(names(mapping), c("label", "text"))]
   mapping[names(hover)] <- NULL
-  layers <- do.call(ggplot2::geom_sf, c(list(mapping = mapping, data = data, na.rm = na.rm,
-                                             show.legend = show.legend,
-                                             inherit.aes = inherit.aes), dots))
-  for (aes in names(hover)) layers[[1]]$mapping[[aes]] <- hover[[aes]]
-  list(layers, ggplot2::coord_sf(datum = NULL))
+  layer <- ggplot2::layer_sf(
+    geom = geom, data = data, mapping = mapping, stat = "sf", position = "identity",
+    show.legend = show.legend, inherit.aes = inherit.aes,
+    params = c(list(na.rm = na.rm), Filter(Negate(is.null), dots))
+  )
+  for (aes in names(hover)) layer$mapping[[aes]] <- hover[[aes]]
+  list(layer, ggplot2::coord_sf(datum = NULL))
 }
+
+# geom_sf() with the house fill, edge and width as defaults: each is used
+# where the data does not map it and the caller did not fix it
+GeomGlaSf <- ggplot2::ggproto(
+  "GeomGlaSf", ggplot2::GeomSf,
+  house = list(),
+  use_defaults = function(self, data, params = list(), modifiers = ggplot2::aes(),
+                          default_aes = NULL, theme = NULL, ...) {
+    unset <- setdiff(names(self$house), c(names(data), names(params)))
+    params[unset] <- self$house[unset]
+    ggplot2::ggproto_parent(ggplot2::GeomSf, self)$use_defaults(
+      data, params, modifiers, default_aes = default_aes, theme = theme, ...
+    )
+  }
+)
