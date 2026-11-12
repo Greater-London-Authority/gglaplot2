@@ -141,9 +141,9 @@ to_basic.GeomGlaLine <- function(data, prestats_data, layout, params, p, ...) {
   }
   from <- params$projected_from
   if (is.null(from) || !"x" %in% names(data)) return(as_line(data))
-  from <- as.numeric(from)
-  projected <- data[data$x >= from, , drop = FALSE]
-  actual <- data[data$x <= from, , drop = FALSE]
+  parts <- split_projected(data, projected_x(from, layout$panel_params[[1]], layout$coord))
+  actual <- parts$actual
+  projected <- parts$projected
   if (nrow(projected) < 2) return(as_line(data))
   projected$linetype <- "twodash"
   # two basic layers, so plotly draws two traces rather than one line

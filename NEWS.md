@@ -100,6 +100,14 @@
   sit centred or at the top left of their tile as the static chart has
   them.
 
+* `geom_gla_line(projected_from = )` draws when the projection starts
+  past the data, or on a reversed or log x axis; each stopped with
+  "replacement has 1 row, data has 0". The start is read through the x
+  scale, so on a reversed axis the years before it are still the solid
+  part. A start between two points no longer breaks the line: both parts
+  meet at it, on the line between its neighbours. The interactive chart
+  splits the same way.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

@@ -97,6 +97,33 @@ test_that("a projected line goes dashed from the point, through it", {
   expect_s3_class(ggplot2::layer_grob(r, 1)[[1]], "polyline")
 })
 
+test_that("a projection starting off the data, past it or on a turned axis still draws", {
+  base <- ggplot(gla_yearly, aes(year, average, colour = series)) + theme_gla()
+  # a start between two years: both runs reach it, so the line does not break
+  between <- ggplot2::layer_grob(base + geom_gla_line(projected_from = 2021.5), 1)[[1]]
+  expect_equal(length(between), 2)
+  runs <- ggplot2::layer_data(base + geom_gla_line(projected_from = 2021.5), 1)
+  parts <- split_projected(runs, list(x = 2021.5, rising = TRUE))
+  expect_equal(nrow(parts$actual), 3 * 8)
+  expect_equal(nrow(parts$projected), 3 * 4)
+  expect_true(all(c(max(parts$actual$x), min(parts$projected$x)) == 2021.5))
+  a <- gla_yearly[gla_yearly$series == "Variable A", ]
+  mid <- parts$actual[parts$actual$x == 2021.5 & parts$actual$group == 1, "y"]
+  expect_equal(mid, mean(a$average[a$year %in% 2021:2022]))
+  # a start past the data, or on a reversed or log axis, draws without error
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2030)))
+  rev <- base + geom_gla_line(projected_from = 2022) + scale_x_reverse()
+  expect_no_error(draw(rev))
+  # on the reversed axis the years to 2022 are still the solid run
+  b <- build(rev)
+  at <- projected_x(2022, b$layout$panel_params[[1]], b$layout$coord)
+  expect_equal(at, list(x = -2022, rising = FALSE))
+  solid <- split_projected(b$data[[1]], at)$actual
+  expect_equal(sort(unique(-solid$x)), 2015:2022)
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2022) + scale_x_log10()))
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2022) + coord_flip()))
+})
+
 test_that("the projection annotation is a wash, a rule and a label", {
   layers <- annotate_gla_projection(from = 2022, label = "Projected")
   expect_equal(length(layers), 3)

@@ -65,16 +65,62 @@ GeomGlaLine <- ggplot2::ggproto(
     if (is.null(projected_from)) return(draw(data))
     # the web's forecast line: solid to the point, dashed from it, both
     # passing through it so the line does not break
-    from <- as.numeric(projected_from)
-    actual <- data[data$x <= from, , drop = FALSE]
-    projected <- data[data$x >= from, , drop = FALSE]
-    projected$linetype <- gla_linetypes()[["projected"]]
+    parts <- split_projected(data, projected_x(projected_from, panel_params, coord))
+    projected <- parts$projected
+    if (nrow(projected)) projected$linetype <- gla_linetypes()[["projected"]]
     grid::gList(
-      if (nrow(actual) > 1) draw(actual),
+      if (nrow(parts$actual) > 1) draw(parts$actual),
       if (nrow(projected) > 1) draw(projected)
     )
   }
 )
+
+# where a projection starts in the units the panel draws x in, read
+# through the x scale so a log or reversed axis splits where the data's own
+# x passes it, and whether x there grows with the data
+projected_x <- function(from, panel_params, coord) {
+  view <- if (inherits(coord, "CoordFlip")) panel_params$y else panel_params$x
+  transformation <- tryCatch(view$scale$get_transformation(), error = function(e) NULL)
+  at <- function(v) {
+    out <- if (!is.null(transformation)) {
+      tryCatch(suppressWarnings(as.numeric(transformation$transform(v))),
+               error = function(e) NULL)
+    }
+    out %||% as.numeric(v)
+  }
+  x <- at(from)
+  list(x = x, rising = !isTRUE(at(from + 1) < x))
+}
+
+# each line in two parts, the actual up to the projection's start and the
+# projected from it. Where no point falls on the start, one is put there on
+# the line between its neighbours, so the two parts meet.
+split_projected <- function(data, at) {
+  x <- at$x
+  before <- if (at$rising) data$x <= x else data$x >= x
+  after <- if (at$rising) data$x >= x else data$x <= x
+  parts <- lapply(split(seq_len(nrow(data)), data$group), function(rows) {
+    d <- data[rows, , drop = FALSE]
+    a <- d[before[rows], , drop = FALSE]
+    b <- d[after[rows], , drop = FALSE]
+    if (nrow(a) && nrow(b) && !any(d$x == x)) {
+      p <- a[which.min(abs(a$x - x)), , drop = FALSE]
+      q <- b[which.min(abs(b$x - x)), , drop = FALSE]
+      m <- p
+      m$x <- x
+      m$y <- p$y + (q$y - p$y) * (x - p$x) / (q$x - p$x)
+      a <- rbind(a, m)
+      b <- rbind(m, b)
+    }
+    list(actual = a, projected = b)
+  })
+  bind <- function(which) {
+    out <- do.call(rbind, c(lapply(parts, `[[`, which), list(data[0, , drop = FALSE])))
+    rownames(out) <- NULL
+    out[order(out$PANEL, out$group, out$x), , drop = FALSE]
+  }
+  list(actual = bind("actual"), projected = bind("projected"))
+}
 
 #' Dots and markers in the house style
 #'
