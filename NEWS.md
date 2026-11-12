@@ -1,5 +1,12 @@
 # gglaplot2 0.3.1.9000
 
+* S7 0.2.0 or later is required. It is the release that lets `@` read an
+  S7 object on R before 4.3, which ggplot2 4 and this package both rely
+  on; ggplot2 does not ask for a version, so an older S7 installed without
+  complaint and every chart then stopped in `plot_clone()` with "trying to
+  get slot "scales" ... not an S4 object". The floor turns that into a
+  clear message at install.
+
 * A chart with `gla_labs()` or `theme_gla()` draws on R 4.1 and 4.2. It
   stopped with "trying to get slot "margin" from an object ... that is not
   an S4 object": the theme elements are S7 objects, and base R only
