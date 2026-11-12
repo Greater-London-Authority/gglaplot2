@@ -1,5 +1,12 @@
 # gglaplot2 0.3.1.9000
 
+* A chart with `gla_labs()` or `theme_gla()` draws on R 4.1 and 4.2. It
+  stopped with "trying to get slot "margin" from an object ... that is not
+  an S4 object": the theme elements are S7 objects, and base R only
+  dispatches `@` to S7 from 4.3.0, so the package now imports S7's own `@`
+  on older versions, as ggplot2 does. The check matrix gains a leg on R
+  4.1, the floor in DESCRIPTION, so this is held.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
