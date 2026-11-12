@@ -392,3 +392,37 @@ test_that("the continuous diverging neutral sits at the midpoint on a transforme
   expect_equal(got[2], tolower(unname(gla_token("data-neutral-0"))))
   expect_equal(got[1], tolower(gla_pal("diverging")[2]))
 })
+
+test_that("a reversed stepped scale spreads its colours, and log steps say where they fail", {
+  v <- c(-12, -7.5, -3, 0, 1, 4, 9)
+  d <- data.frame(x = seq_along(v), y = 1, v = v)
+  for (sc in list(scale_fill_gla_b("diverging", transform = "reverse"),
+                  scale_fill_gla_b("diverging", transform = "reverse", steps = 2),
+                  scale_fill_gla_b(transform = "reverse", steps = 3))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc
+    lim <- fill_scale(p)$get_limits()
+    expect_true(lim[1] < lim[2])
+    expect_gt(length(unique(fills(p))), 2)
+  }
+  # the falls stay red and the rises blue, the deepest at the far ends
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", transform = "reverse", steps = 2)
+  red <- tolower(ramp_steps("red", 2))
+  blue <- tolower(ramp_steps("blue", 2))
+  expect_equal(fills(p)[c(1, 3, 6, 7)], c(red[2], red[1], blue[1], blue[2]))
+  # the ranges read from their low end
+  key <- get_guide_data(p, "fill")
+  expect_true("-10 to 0" %in% key$.label)
+  # equal steps below zero on a log scale stop with a message; limits inside it draw
+  logged <- data.frame(x = 1:5, y = 1, v = c(1, 5, 10, 100, 1000))
+  bad <- ggplot(logged, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(transform = "log10", steps = 3)
+  expect_error(build(bad), "outside what the log-10 transformation takes")
+  good <- ggplot(logged, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(transform = "log10", steps = 3, limits = c(1, 1000))
+  expect_equal(length(unique(fills(good))), 2)
+  # a classed scale on a log transform stops its limits at the data
+  classed <- ggplot(transform(logged, v = c(0.5, 2, 8, 30, 120)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(transform = "log10", method = "geometric", steps = 3)
+  expect_equal(fill_scale(classed)$get_limits(), log10(c(0.5, 120)))
+})

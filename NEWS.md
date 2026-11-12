@@ -42,6 +42,14 @@
   from 1 to 120 ran 0 to 121, and a diverging scale whose values started
   at the midpoint gained an empty red bin below it.
 
+* A stepped scale with `transform = "reverse"` colours each value by its
+  bin. The diverging scale, and the sequential one with `steps`, held their
+  limits the wrong way round and painted every area one colour. The
+  legend's ranges on a reversed scale read from their low end. `steps` on
+  a log scale, where the equal steps run down to zero, stops with a message
+  saying so; it painted every area as missing. A classed scale on a log
+  scale ends its limits at the data rather than at zero.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

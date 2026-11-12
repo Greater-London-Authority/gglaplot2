@@ -74,9 +74,9 @@ GuideGlaBins <- ggplot2::ggproto(
 )
 
 # the bins of a stepped scale, lowest first: the middle of each and the
-# label of its range. An end bin that holds values beyond the limits (the
-# scale squishes them in) says so, "Below -4%", rather than giving a range
-# the values in it are outside.
+# label of its range, read from its low end. An end bin that holds values
+# beyond the limits (the scale squishes them in) says so, "Below -4%",
+# rather than giving a range the values in it are outside.
 bin_ranges <- function(scale, sep = " to ") {
   breaks <- scale$get_breaks()
   limits <- scale$get_limits()
@@ -84,7 +84,12 @@ bin_ranges <- function(scale, sep = " to ") {
   n <- length(edges) - 1
   if (n < 1) return(NULL)
   labels <- bin_edge_labels(scale, edges)
-  ranges <- paste0(labels[-length(labels)], sep, labels[-1])
+  # on a reversed scale the first bin holds the highest values
+  ends <- scale$get_transformation()$inverse(edges[c(1, n + 1)])
+  reversed <- isTRUE(ends[1] > ends[2])
+  low <- labels[-length(labels)]
+  high <- labels[-1]
+  ranges <- if (reversed) paste0(high, sep, low) else paste0(low, sep, high)
   data <- scale$range$range
   # only where the scale squishes such values into the end bin; one that
   # censors them draws them as missing
@@ -93,9 +98,7 @@ bin_ranges <- function(scale, sep = " to ") {
                               error = function(e) NA))
   if (n > 1 && length(data) == 2 && all(is.finite(c(data, edges))) && squished) {
     tol <- 1e-8 * max(abs(edges), 1)
-    # on a reversed scale the first bin holds the highest values
-    ends <- scale$get_transformation()$inverse(edges[c(1, n + 1)])
-    words <- if (isTRUE(ends[1] > ends[2])) c("Above", "Below") else c("Below", "Above")
+    words <- if (reversed) c("Above", "Below") else c("Below", "Above")
     if (data[1] < edges[1] - tol) ranges[1] <- paste(words[1], labels[2])
     if (data[2] > edges[n + 1] + tol) ranges[n] <- paste(words[2], labels[n])
   }

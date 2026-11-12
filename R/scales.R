@@ -32,7 +32,8 @@
 #' rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
 #' large fall gets narrow blue steps rather than being stretched; with
 #' `limits` set, the steps divide them exactly. The count holds as the data
-#' changes, where `breaks` would need resetting.
+#' changes, where `breaks` would need resetting. Equal steps are cut in the
+#' data's units, so on a log scale they need `limits` above zero.
 #'
 #' `method` classes the bins by the distribution instead of in equal
 #' steps: `"jenks"` natural breaks, `"quantile"`, `"boxplot"`, `"sd"`,
@@ -218,7 +219,7 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
         lower <- floor(lim[1] / width + 1e-9) * width
       }
       lim <- c(lower, lower + n * width)
-      self$limits <- transformation$transform(lim)
+      self$limits <- held_limits(transformation, lim)
     } else {
       width <- diff(lim) / n
     }
@@ -267,7 +268,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
       up <- width(max(lim[2] - mid, 0), n[2])
       if (!fixed) {
         lim <- c(mid - n[1] * down, mid + n[2] * up)
-        self$limits <- transformation$transform(lim)
+        self$limits <- held_limits(transformation, lim)
       }
       breaks <- c(mid - down * seq_len(n[1] - 1), mid, mid + up * seq_len(n[2] - 1))
       breaks <- sort(breaks[breaks > lim[1] & breaks < lim[2]])
@@ -278,7 +279,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     steps_out <- function(x, f) f(round((x - mid) / step, 8))
     if (is.null(self$limits)) {
       lim <- mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling))
-      self$limits <- transformation$transform(lim)
+      self$limits <- held_limits(transformation, lim)
     }
     breaks <- mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor))
     breaks <- breaks[breaks > lim[1] & breaks < lim[2]]
@@ -299,9 +300,12 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     }
     pal <- self$palette.cache
     if (is.null(pal)) {
-      edges <- self$get_transformation()$inverse(edges)
-      pal <- diverging_bin_colours(edges[-length(edges)], edges[-1], self$midpoint,
-                                   self$theme_mode)
+      # each bin's ends in the data's units, the lower first, which a
+      # reversing transformation swaps
+      ends <- self$get_transformation()$inverse(edges)
+      a <- ends[-length(ends)]
+      b <- ends[-1]
+      pal <- diverging_bin_colours(pmin(a, b), pmax(a, b), self$midpoint, self$theme_mode)
       self$palette.cache <- pal
     }
     scaled <- pal[x_binned]
@@ -311,16 +315,37 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
 
 # the breaks a classed scale draws, worked out once from the values it was
 # trained on and then held as fixed breaks; the limits widen to the breaks'
-# precision unless the caller set them
+# precision unless the caller set them, and stop at the data where that
+# precision runs outside what the transformation takes (below one on a log
+# scale)
 classed_breaks <- function(self, midpoint, default_steps) {
   transformation <- self$get_transformation()
   fixed <- if (!is.null(self$limits)) sort(transformation$inverse(self$limits))
-  breaks <- gla_class_breaks(transformation$inverse(self$seen), self$method,
-                             n = self$steps %||% default_steps, midpoint = midpoint,
-                             limits = fixed)
-  if (is.null(self$limits)) self$limits <- transformation$transform(attr(breaks, "limits"))
+  values <- transformation$inverse(self$seen)
+  breaks <- gla_class_breaks(values, self$method, n = self$steps %||% default_steps,
+                             midpoint = midpoint, limits = fixed)
+  if (is.null(self$limits)) {
+    lim <- attr(breaks, "limits")
+    out <- !is.finite(suppressWarnings(transformation$transform(lim)))
+    lim[out] <- range(values)[out]
+    self$limits <- sort(transformation$transform(lim))
+  }
   self$breaks <- as.numeric(breaks)
   transformation$transform(self$breaks)
+}
+
+# limits worked out in the data's units, held as the scale holds them: in
+# its own units, lowest first, so on a reversed scale the data's highest.
+# Equal steps that run outside what the transformation takes, below zero
+# on a log scale, stop with a message rather than paint every area missing.
+held_limits <- function(transformation, lim) {
+  out <- suppressWarnings(transformation$transform(lim))
+  if (!all(is.finite(out))) {
+    stop(sprintf(paste0("The equal steps run from %s to %s, outside what the %s transformation ",
+                        "takes. Set `limits` inside it, or `breaks`."),
+                 format(lim[1]), format(lim[2]), transformation$name), call. = FALSE)
+  }
+  sort(out)
 }
 
 # a step of 1, 2, 2.5, 3, 4 or 5 times a power of ten, the first at or
@@ -339,15 +364,16 @@ break_step <- function(limits, n) {
 }
 
 # colours for bins by where they sit against the midpoint: those below it
-# red, those above blue, a bin that holds it the neutral
+# red, those above blue, a bin that holds it the neutral. Each side's steps
+# run outward from the midpoint whatever order the bins come in.
 diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   tol <- 1e-8 * max(abs(c(lo, hi)), 1)
   down <- hi <= midpoint + tol
   up <- lo >= midpoint - tol
   steps <- diverging_steps(c(sum(down), sum(up)), theme)
   out <- rep(unname(gla_token("data-neutral-0", theme)), length(lo))
-  out[down] <- steps[seq_len(sum(down))]
-  out[up] <- steps[sum(down) + seq_len(sum(up))]
+  out[down] <- steps[rank(lo[down], ties.method = "first")]
+  out[up] <- steps[sum(down) + rank(lo[up], ties.method = "first")]
   out
 }
 

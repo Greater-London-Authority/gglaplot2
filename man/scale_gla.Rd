@@ -139,7 +139,8 @@ two below and four above. Each side then takes its own step width,
 rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
 large fall gets narrow blue steps rather than being stretched; with
 \code{limits} set, the steps divide them exactly. The count holds as the data
-changes, where \code{breaks} would need resetting.
+changes, where \code{breaks} would need resetting. Equal steps are cut in the
+data's units, so on a log scale they need \code{limits} above zero.
 
 \code{method} classes the bins by the distribution instead of in equal
 steps: \code{"jenks"} natural breaks, \code{"quantile"}, \code{"boxplot"}, \code{"sd"},
