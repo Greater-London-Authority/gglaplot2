@@ -1,0 +1,225 @@
+---
+title: "Choosing a map scale"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5.2, dpi = 100,
+  fig.retina = 2, dev = "ragg_png", out.width = "100%"
+)
+options(gglaplot2.font = "inter")
+library(ggplot2)
+library(sf)
+library(gglaplot2)
+```
+
+A choropleth puts every area into one of a few bins and colours it by the
+bin, so the scale decides what the map says before any colour is chosen.
+`scale_fill_gla_b()` cuts equal steps by default, and that is the right
+scale for most published maps. This page is about the other choice, a scale
+classed by the distribution of the data, which [Maps](maps.html) and
+[Mapping a change](diverging-maps.html) leave aside: what each method
+shows, how to ask for one, and when not to.
+
+The data is real: the Leave share in the 2016 referendum by London borough,
+which runs from 21% in the City of London to 70% in Havering, with most
+boroughs between 30% and 50%.
+
+```{r data}
+leave <- merge(gla_boroughs, EURef[, c("Area_Code", "Leave", "PropLeave")],
+               by.x = "code", by.y = "Area_Code")
+leave$margin <- leave$PropLeave - 50
+summary(leave$PropLeave)
+```
+
+## Equal steps, the default
+
+Five bins of one width, from a round number at or below the data. A step of
+colour is a step of ten points everywhere on the map, and the same value
+takes the same colour on next year's map, which is what makes the default
+the right scale for a series.
+
+```{r equal}
+map <- function(fill, scale, title) {
+  ggplot(leave) +
+    geom_gla_sf(aes(fill = {{ fill }})) +
+    scale +
+    gla_labs(title = title, subtitle = "Share voting Leave, 2016",
+             source = "Electoral Commission") +
+    theme_gla_map()
+}
+map(PropLeave, scale_fill_gla_b(name = NULL, steps = 5, labels = label_gla_percent(scale = 1)),
+    "Equal steps of ten points")
+```
+
+The cost shows when the data is skewed or one area sits far from the rest:
+the steps have to reach the extremes, so most areas crowd into one or two
+bins and the map goes flat where the reader wants the detail.
+
+## Classing by the data
+
+`method` cuts the bins by the distribution instead. Each method decides
+which areas share a bin; the package then draws the lines between the bins
+by one rule, described further down, so that no area is moved by rounding
+and the legend reads cleanly.
+
+```{r jenks}
+map(PropLeave, scale_fill_gla_b(name = NULL, method = "jenks", steps = 5,
+                                labels = label_gla_percent(scale = 1)),
+    "Natural breaks (Jenks)")
+```
+
+`gla_class_breaks()` is the same calculation on its own. Its `counts` say
+how many areas each bin holds, which is the quickest way to see what a
+method did.
+
+```{r counts}
+gla_class_breaks(leave$PropLeave, "jenks", n = 5)
+```
+
+### What each method shows
+
+```{r methods, fig.show = "hold", out.width = "50%", fig.width = 5, fig.height = 4.2}
+methods <- c(jenks = "Natural breaks", quantile = "Quantiles", boxplot = "Box plot",
+             sd = "Standard deviations", headtails = "Head and tail", geometric = "Geometric")
+for (m in names(methods)) {
+  print(
+    ggplot(leave) +
+      geom_gla_sf(aes(fill = PropLeave)) +
+      scale_fill_gla_b(name = NULL, method = m, steps = 5,
+                       labels = label_gla_percent(scale = 1)) +
+      gla_labs(title = methods[[m]]) +
+      theme_gla_map()
+  )
+}
+```
+
+- **Natural breaks** (`"jenks"`) finds the grouping that keeps the areas in
+  each bin as alike as possible. An area far from the rest usually gets a
+  bin of its own, and the bins fall where the data has gaps. The general
+  choice for a one-off map.
+- **Quantiles** (`"quantile"`) put the same number of areas in each bin,
+  so the map is evenly coloured whatever the distribution. The cost is
+  that an outlier is hidden among its neighbours, and two areas a tenth of
+  a point apart can be in different bins while two far apart share one.
+- **Box plot** (`"boxplot"`) cuts at the quartiles and sets apart anything
+  beyond the fences, 1.5 times the interquartile range past them. An
+  outlier gets its own bin by a fixed rule, so the bin appears only when
+  there is one. The number of bins comes from the data, not `steps`.
+- **Standard deviations** (`"sd"`) cuts bins one standard deviation wide
+  around the mean, for a measure that is roughly normal. The number of
+  bins comes from the data; bins no area falls in are not drawn.
+- **Head and tail** (`"headtails"`) is for a heavy tail, a few large values
+  and many small: it splits at the mean, then the upper part at its mean,
+  and so on while the upper part is the minority. The small values share
+  one broad bin and each step up holds fewer areas.
+- **Geometric** (`"geometric"`) widens the bins by a constant ratio from the
+  smallest value to the largest, for counts and densities that span orders
+  of magnitude. It needs values above zero, so it suits the number of votes
+  rather than the share.
+
+```{r geometric}
+map(Leave, scale_fill_gla_b(name = NULL, method = "geometric", steps = 5,
+                            labels = label_gla_number()),
+    "Leave votes, geometric bins") +
+  labs(subtitle = "Votes for Leave, 2016")
+```
+
+Five bins were asked for and three drawn: two of the five would hold no
+borough, since nothing sits between the City's 1,100 votes and the next
+borough's 17,000. A bin no area falls in is never drawn, whichever method,
+so the count is at most `steps`, not always `steps`.
+
+## A change, classed each side of zero
+
+On a diverging scale each side is classed on its own, with its own count,
+and zero (or `midpoint`) is always a break. `steps = c(3, 3)` is the
+default; here the margin over 50% is classed three bins a side.
+
+```{r diverging}
+ggplot(leave) +
+  geom_gla_sf(aes(fill = margin)) +
+  scale_fill_gla_b("diverging", name = NULL, method = "jenks",
+                   labels = label_gla_percent(scale = 1)) +
+  gla_labs(title = "Margin for Leave, natural breaks each side of 50%",
+           subtitle = "Percentage points above or below 50%, 2016",
+           source = "Electoral Commission") +
+  theme_gla_map()
+```
+
+A side with fewer distinct values than bins gets one bin per value, and
+a method that works on size, head and tail and geometric, reads the side
+below the midpoint by the size of the fall.
+
+## Where the lines are drawn
+
+A method says which areas share a bin. It does not say where the legend's
+numbers should be, and left to itself each method writes its break on a
+data value: natural breaks on the top member of each class, so a class of
+one value has no width and vanishes from the legend, and quantiles at
+figures like 38.39%. The package writes every break by one rule instead:
+
+1. Each break goes in the gap between two neighbouring classes.
+2. All the breaks are rounded to the coarsest precision at which every one
+   still sits inside its gap: whole numbers if they do, else one decimal
+   place, else two. On the Leave share that is whole percentages. Rounding
+   therefore never moves an area to another bin.
+3. The limits widen to that precision, unless `limits` were set.
+4. The legend prints at that precision, and the hover of an interactive map
+   one figure finer.
+
+So the legend's numbers are where the lines are drawn, chosen for reading,
+and the classes are the method's. One consequence is worth knowing: a bin
+labelled "22% to 36%" means its areas fall between those lines, not that
+they spread across the range. With natural breaks they may all sit near
+one end.
+
+## Cautions for a map that is published again
+
+Classed breaks are computed from the data in front of the scale. That is
+their point, and it is the reason to be careful with them.
+
+- **The scale moves with the distribution.** Next month's data gives next
+  month's breaks. A borough can change colour with no change in its value,
+  and an unchanged borough can look like it moved. Two classed maps side by
+  side, or one issue against the last, do not compare unless the breaks
+  are the same. For a series, keep the default equal steps and fix the
+  frame with `limits` (and `steps`), or set `breaks` by hand, and the same
+  value takes the same colour every time.
+- **Say which method the map uses.** The note should name it, since a
+  reader who knows the methods will read the map differently under each.
+  `gla_labs(note = "Bins are natural breaks in this month's data")` is
+  enough.
+- **The legend is not a scale of the measure.** With equal steps a reader
+  can see that a step of colour is a step of ten points. Under a classed
+  scale the bins are unequal, so the colour ramp orders the areas but does
+  not measure the gaps between them. Say so if the readers will not know.
+- **Quantiles hide outliers and natural breaks make them.** Pick the method
+  for the finding: quantiles when the point is the ranking, natural breaks
+  or the box plot when the point is that one area stands apart.
+- **An area beyond `limits` is classed at the edge.** With `limits` set the
+  values beyond them are squished first and the legend labels the end bin
+  "Below" or "Above", as it does for equal steps, and the note should name
+  the area.
+- **Small numbers and suppression.** A measure with many zeros or
+  suppressed cells gives a class of zeros that is not a finding. Class the
+  areas with a value, or use equal steps.
+- **Few areas.** Across the 33 boroughs five bins is already six or seven
+  areas each; more bins than that is reading detail into noise. Across
+  wards and small areas the methods come into their own.
+
+The short version: a classed scale is for the one-off read of this month's
+distribution, where the finding is how the areas group; equal steps with
+fixed limits are for anything that will be read against another map.
+
+## Using the breaks elsewhere
+
+`gla_class_breaks()` returns the breaks with their `limits`, the `digits`
+they were rounded to and the `counts` per bin, so the same classes can go
+into a table beside the map, a report's text, or another tool.
+
+```{r elsewhere}
+b <- gla_class_breaks(leave$margin, "jenks", n = c(3, 3), midpoint = 0)
+b
+attr(b, "counts")
+```

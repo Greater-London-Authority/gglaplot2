@@ -44,6 +44,7 @@ scale_colour_gla_b(
   theme = gla_mode(),
   midpoint = 0,
   steps = NULL,
+  method = "equal",
   ...
 )
 
@@ -52,6 +53,7 @@ scale_fill_gla_b(
   theme = gla_mode(),
   midpoint = 0,
   steps = NULL,
+  method = "equal",
   ...
 )
 
@@ -73,6 +75,7 @@ scale_color_gla_b(
   theme = gla_mode(),
   midpoint = 0,
   steps = NULL,
+  method = "equal",
   ...
 )
 }
@@ -93,6 +96,11 @@ sequential scale takes one number. The diverging scale takes the count
 each side of the midpoint: one number for both sides or
 \code{c(below, above)}. \code{NULL}, the default, takes ggplot2's step; for the
 diverging scale it is counted out from the midpoint.}
+
+\item{method}{For the binned scales, how the bins are cut: \code{"equal"},
+the default, in equal steps; or a classification by the distribution,
+\code{"jenks"}, \code{"quantile"}, \code{"boxplot"}, \code{"sd"}, \code{"headtails"} or
+\code{"geometric"}, see \code{\link[=gla_class_breaks]{gla_class_breaks()}}.}
 }
 \value{
 A ggplot2 scale.
@@ -132,6 +140,17 @@ rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
 large fall gets narrow blue steps rather than being stretched; with
 \code{limits} set, the steps divide them exactly. The count holds as the data
 changes, where \code{breaks} would need resetting.
+
+\code{method} classes the bins by the distribution instead of in equal
+steps: \code{"jenks"} natural breaks, \code{"quantile"}, \code{"boxplot"}, \code{"sd"},
+\code{"headtails"} or \code{"geometric"}, as \code{\link[=gla_class_breaks]{gla_class_breaks()}} describes them,
+with \code{steps} as the number of bins (three a side for a diverging scale
+unless set). The breaks are put in the gaps between the classes at the
+coarsest precision that moves no area, the limits widen to it, and the
+legend prints at it. Classed breaks follow the data, so they suit a
+one-off read of one month's map and not a series: the same value can
+land in a different bin next month. For a series keep the default equal
+steps, with \code{limits}, or set \code{breaks}.
 
 Both ramps draw their guide vertical on the right, whatever legend
 position the theme sets, because a ramp reads top to bottom and the
