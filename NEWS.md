@@ -141,6 +141,11 @@
   paired dot plot are named as such, and a chart with no data gives no
   range where it said "between 0 and 1".
 
+* `label_gla_number()`, `label_gla_percent()` and `label_gla_pounds()`
+  pass `big.mark`, `decimal.mark` and `trim` on to scales, as their help
+  says of the other arguments. Each stopped with "formal argument matched
+  by multiple actual arguments".
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

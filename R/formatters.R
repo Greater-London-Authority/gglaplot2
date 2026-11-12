@@ -50,6 +50,15 @@
 #' @name label_gla
 NULL
 
+# the house marks, a comma for thousands and a point for the decimal, with
+# whatever the caller passes on to scales over them
+house_marks <- function(args, ...) {
+  dots <- list(...)
+  args[c("big.mark", "decimal.mark", "trim")] <- list(",", ".", TRUE)
+  args[names(dots)] <- dots
+  args
+}
+
 # a thousand and up as k, m and bn, as a UK reader abbreviates
 gla_short_scale <- function() c(0, k = 1e3, m = 1e6, bn = 1e9)
 
@@ -64,8 +73,8 @@ short_units <- function(x) {
 label_gla_number <- function(accuracy = NULL, scale = 1, prefix = "", suffix = "",
                              short = FALSE, ...) {
   make <- function(accuracy, ...) {
-    args <- list(accuracy = accuracy, scale = scale, prefix = prefix, suffix = suffix,
-                 big.mark = ",", decimal.mark = ".", trim = TRUE, ...)
+    args <- house_marks(list(accuracy = accuracy, scale = scale, prefix = prefix,
+                             suffix = suffix), ...)
     if (short) {
       args$scale_cut <- gla_short_scale()
       # one decimal where it says something, so 1.2bn and 45k rather than 1bn
@@ -84,8 +93,8 @@ label_gla_number <- function(accuracy = NULL, scale = 1, prefix = "", suffix = "
 #' @export
 label_gla_percent <- function(accuracy = 1, scale = 100, ...) {
   make <- function(accuracy, ...) {
-    scales::label_percent(accuracy = accuracy, scale = scale, big.mark = ",",
-                          decimal.mark = ".", trim = TRUE, ...)
+    rlang::exec(scales::label_percent, !!!house_marks(list(accuracy = accuracy, scale = scale),
+                                                      ...))
   }
   refinable(make, accuracy, scale, ...)
 }

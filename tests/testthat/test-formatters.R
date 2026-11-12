@@ -14,6 +14,15 @@ test_that("percentages are whole by default, from fractions, and take points wit
   expect_equal(label_gla_percent(accuracy = 0.1, scale = 1)(12.34), "12.3%")
 })
 
+test_that("the other arguments of scales' labels reach it, over the house marks", {
+  expect_equal(label_gla_number(big.mark = " ")(1234567), "1 234 567")
+  expect_equal(label_gla_number(decimal.mark = ",", big.mark = ".", accuracy = 0.1)(1234.5),
+               "1.234,5")
+  expect_equal(label_gla_percent(big.mark = " ")(123.45), "12 345%")
+  expect_equal(label_gla_pounds(big.mark = "")(12345), "\u00a312345")
+  expect_equal(label_gla_number()(1234567), "1,234,567")
+})
+
 test_that("pounds sit against the number", {
   expect_equal(label_gla_pounds()(c(50, 1234)), c("£50", "£1,234"))
   expect_equal(label_gla_pounds(accuracy = 0.01)(9.5), "£9.50")
