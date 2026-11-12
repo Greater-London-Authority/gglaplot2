@@ -3,6 +3,7 @@
 S3method(grid::heightDetails,gla_beside)
 S3method(grid::heightDetails,gla_in_viewport)
 S3method(grid::heightDetails,gla_stack)
+S3method(grid::makeContent,gla_connector)
 S3method(grid::makeContent,gla_dodge)
 S3method(grid::widthDetails,gla_beside)
 S3method(grid::widthDetails,gla_in_viewport)

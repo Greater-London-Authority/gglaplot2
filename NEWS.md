@@ -118,6 +118,11 @@
   with no legend and no message; they are now defaults that a mapping
   replaces.
 
+* `geom_gla_paired()` leaves out the arrow of a pair whose markers are
+  too close for one, or level. Shortened at both ends, a short arrow
+  crossed over and pointed the wrong way, and a level pair had a stray
+  arrowhead.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

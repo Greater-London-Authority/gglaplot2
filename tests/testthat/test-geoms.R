@@ -228,6 +228,19 @@ test_that("facet_gla_rows stacks full panels in one column", {
   expect_no_error(draw(p))
 })
 
+# the connectors of a paired dot plot as drawn on a 7 inch wide device
+connectors <- function(p) {
+  with_device({
+    g <- ggplotGrob(p)
+    panel <- g$grobs[[which(g$layout$name == "panel")]]
+    tree <- Filter(function(x) inherits(x, "gla_connector"), panel$children)[[1]]
+    grid::pushViewport(grid::viewport())
+    drawn <- grid::makeContent(tree)
+    grid::popViewport()
+    if (length(drawn$children)) drawn$children[[1]]
+  })
+}
+
 test_that("geom_gla_paired draws an arrow per category between its two markers", {
   d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
   d$year <- factor(d$year)
@@ -254,9 +267,7 @@ test_that("geom_gla_paired draws an arrow per category between its two markers",
   expect_equal(nrow(b2$data[[1]]), 2)
   expect_equal(sum(!is.na(b2$data[[2]]$x)), 5)
   # the connector stops short of the markers and ends in an arrowhead
-  g <- with_device(ggplotGrob(p))
-  panel <- g$grobs[[which(g$layout$name == "panel")]]
-  seg <- Filter(function(x) inherits(x, "segments"), panel$children)[[1]]
+  seg <- connectors(p)
   expect_false(is.null(seg$arrow))
   expect_true(grepl("points", as.character(seg$x0[1])))
   plain <- geom_gla_paired(arrow = FALSE)[[1]]
@@ -346,5 +357,17 @@ test_that("geom_gla_sf's house fill, edge and width give way to any mapping", {
   # the legend keys keep the house edge
   p <- ggplot(bo, aes(fill = val)) + geom_gla_sf() + scale_fill_gla_b() + theme_gla_map()
   expect_equal(nrow(get_guide_data(p, "fill")), 4)
+  expect_no_error(draw(p))
+})
+
+test_that("a paired dot plot leaves out a connector with no room or no change", {
+  d <- data.frame(cat = rep(c("Rise", "Fall", "Equal", "Big"), each = 2),
+                  when = factor(rep(c("2015", "2024"), 4)), v = c(40, 41, 51, 50, 30, 30, 10, 80))
+  p <- ggplot(d, aes(v, cat, colour = when)) + geom_gla_paired() + scale_colour_gla() +
+    theme_gla(gridlines = "x")
+  # only the big rise has room between its markers for an arrow
+  seg <- connectors(p)
+  expect_length(seg$x0, 1)
+  expect_null(connectors(ggplot(d[5:6, ], aes(v, cat, colour = when)) + geom_gla_paired()))
   expect_no_error(draw(p))
 })
