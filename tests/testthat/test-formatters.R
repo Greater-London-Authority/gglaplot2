@@ -43,9 +43,15 @@ test_that("a label function at a fixed accuracy can be asked for a finer one", {
   expect_equal(refine$accuracy, 1)
   expect_equal(refine$at(0.1)(c(2.5, 3)), c("2.5%", "3%"))
   expect_equal(attr(label_gla_pounds(accuracy = 1), "gla_refine")$at(0.01)(2.5), "\u00a32.5")
-  # left to scales, or cut short, there is nothing to refine
+  # left to scales there is nothing to refine
   expect_null(attr(label_gla_number(), "gla_refine"))
-  expect_null(attr(label_gla_number(accuracy = 1, short = TRUE), "gla_refine"))
+  # cut short, each value is rounded in its own unit, to one decimal unless set
+  short <- attr(label_gla_number(short = TRUE), "gla_refine")
+  expect_true(short$short)
+  expect_equal(short$accuracy, 0.1)
+  expect_equal(short$at(0.001)(c(1e6, 1.025e6)), c("1m", "1.025m"))
+  expect_equal(attr(label_gla_number(accuracy = 1, short = TRUE), "gla_refine")$accuracy, 1)
+  expect_equal(unname(short_units(c(0, 950, 1250, -2.5e6, 3e9))), c(0, 950, 1.25, -2.5, 3))
   # an argument of the caller's survives the refinement
   g <- label_gla_percent(scale = 1, suffix = " pts", drop0trailing = FALSE)
   expect_equal(attr(g, "gla_refine")$at(0.1)(3), "3 pts")

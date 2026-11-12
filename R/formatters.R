@@ -53,6 +53,12 @@ NULL
 # a thousand and up as k, m and bn, as a UK reader abbreviates
 gla_short_scale <- function() c(0, k = 1e3, m = 1e6, bn = 1e9)
 
+# values in the units a short label writes them in: 1,250 as 1.25 (k)
+short_units <- function(x) {
+  cuts <- gla_short_scale()
+  x / c(1, cuts[-1])[findInterval(abs(x), cuts)]
+}
+
 #' @rdname label_gla
 #' @export
 label_gla_number <- function(accuracy = NULL, scale = 1, prefix = "", suffix = "",
@@ -71,7 +77,7 @@ label_gla_number <- function(accuracy = NULL, scale = 1, prefix = "", suffix = "
     }
     rlang::exec(scales::label_number, !!!args)
   }
-  refinable(make, accuracy, scale * if (short) NA else 1, ...)
+  refinable(make, accuracy, scale, ..., short = short)
 }
 
 #' @rdname label_gla
@@ -88,14 +94,17 @@ label_gla_percent <- function(accuracy = 1, scale = 100, ...) {
 # hover label can ask for the same labels at a finer accuracy: a legend whose
 # steps are 0.2 wide cannot print its ranges in whole numbers. Only a fixed
 # accuracy is remembered; left to scales, the labels already follow the values.
-refinable <- function(make, accuracy, scale, ...) {
+# Short labels round each value in its own unit to one decimal by default,
+# and remember that, so a legend's ranges do not read "1m to 1m".
+refinable <- function(make, accuracy, scale, ..., short = FALSE) {
   out <- make(accuracy, ...)
-  if (is.null(accuracy) || is.na(scale)) return(out)
+  if (short) accuracy <- accuracy %||% 0.1
+  if (is.null(accuracy)) return(out)
   dots <- list(...)
   # a legend's ranges drop the zeros a round edge does not need ("0% to
   # 0.2%"); a hover label keeps them, so every area reads to the same place
   attr(out, "gla_refine") <- list(
-    accuracy = accuracy, scale = scale,
+    accuracy = accuracy, scale = scale, short = short,
     at = function(accuracy, drop0trailing = TRUE) {
       dots$drop0trailing <- drop0trailing
       rlang::exec(make, accuracy, !!!dots)

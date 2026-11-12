@@ -434,7 +434,7 @@ test_that("a value on a break falls in the same bin as the legend says, every ti
   # bins close on the right: each on-break value is in the bin it ends
   key <- get_guide_data(p, "fill")
   expect_equal(key$.label[match(fills(p), tolower(key$fill))],
-               c("-0.3 to -0.2", "-0.3 to -0.2", "-0.2 to -0.1", "-0.1 to 0.0", "0.0 to 0.1",
+               c("-0.3 to -0.2", "-0.3 to -0.2", "-0.2 to -0.1", "-0.1 to 0", "0 to 0.1",
                  "0.1 to 0.2", "0.2 to 0.3"))
   s <- ggplot(transform(d, v = c(-0.33, -0.32, -0.3, -0.28, -0.26, -0.24, -0.23)),
               aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b(steps = 7)

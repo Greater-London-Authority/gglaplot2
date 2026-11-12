@@ -337,7 +337,9 @@ area_value_labels <- function(scale, values) {
   }
   labels <- scale_labels(scale)
   refine <- attr(labels, "gla_refine")
-  if (!is.null(refine)) return(refine$at(refine$accuracy / 10, drop0trailing = FALSE)(values))
+  if (!is.null(refine) && !isTRUE(refine$short)) {
+    return(refine$at(refine$accuracy / 10, drop0trailing = FALSE)(values))
+  }
   if (is.function(labels)) {
     out <- tryCatch(as.character(labels(signif(values, 4))), error = function(e) NULL)
     if (length(out) == length(values)) return(out)

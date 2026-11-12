@@ -8,7 +8,9 @@
 #' the scale's `labels` function, so `labels = label_gla_percent(scale = 1)`
 #' on the scale puts the sign on both ends of each range. A house label
 #' function ([label_gla_percent()] and the rest) set to whole numbers gains
-#' the decimals narrow steps need, so steps of 0.2 read `0% to 0.2%`. The
+#' the decimals narrow steps need, so steps of 0.2 read `0% to 0.2%`, and a
+#' short label the decimals its own unit needs, `1m to 1.025m`. With no
+#' `labels` the ranges print the decimals their ends have, `0 to 12.5`. The
 #' web maps' legends read this way; ggplot2's `guide_coloursteps()` draws a
 #' bar labelled at the cuts instead, and remains a `guide` away.
 #'
@@ -114,22 +116,26 @@ bin_ranges <- function(scale, sep = " to ") {
 
 # the labels at the edges of the bins. A house label function set to a
 # fixed accuracy is asked again at a finer one when the edges do not sit on
-# it, so steps of 0.2 read "0% to 0.2%", not "0% to 0%". Labels given as
-# text name the breaks; the limits, which have none, take the house number.
+# it, so steps of 0.2 read "0% to 0.2%", not "0% to 0%". A scale given no
+# labels takes the house number the same way, with its thousands marked.
+# Labels given as text name the breaks; the limits, which have none, take
+# the house number.
 bin_edge_labels <- function(scale, edges) {
   labels <- scale_labels(scale)
   if (is.null(labels)) return(NULL)
+  transformation <- scale$get_transformation()
+  values <- transformation$inverse(edges)
+  plain <- inherits(labels, "waiver") && inherits(transformation, "transform") &&
+    transformation$name == "identity"
+  if (plain) labels <- label_gla_number(accuracy = 1)
   refine <- attr(labels, "gla_refine")
-  values <- scale$get_transformation()$inverse(edges)
   if (!is.null(refine) && all(is.finite(values)) && length(unique(values)) > 1) {
-    accuracy <- bin_accuracy(values * refine$scale, refine$accuracy)
+    shown <- values * refine$scale
+    if (isTRUE(refine$short)) shown <- short_units(shown)
+    accuracy <- bin_accuracy(shown, refine$accuracy)
     if (accuracy < refine$accuracy) return(refine$at(accuracy)(values))
   }
-  # a scale given no labels takes the house number, with its thousands marked
-  if (inherits(labels, "waiver") && inherits(scale$get_transformation(), "transform") &&
-        scale$get_transformation()$name == "identity") {
-    return(label_gla_number()(values))
-  }
+  if (plain) return(labels(values))
   if (!is.function(labels) && !inherits(labels, "waiver")) {
     breaks <- scale$get_breaks()
     named <- as.character(scale$get_labels(breaks))

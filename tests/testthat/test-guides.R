@@ -128,3 +128,22 @@ test_that("labels and breaks given to the scale shape the legend as ggplot2 woul
   expect_equal(anyDuplicated(key$fill), 0L)
   expect_true(all(fills_of(out) %in% tolower(key$fill)))
 })
+
+test_that("the legend's ranges print the decimals their edges have", {
+  d <- data.frame(x = 1:6, y = 1, v = c(0, 12.2, 12.8, 37.4, 37.9, 100))
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(limits = c(0, 100), steps = 8)
+  expect_equal(rev(bin_key(p)$.label)[1:3], c("0 to 12.5", "12.5 to 25", "25 to 37.5"))
+  # a midpoint off the whole numbers
+  m <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", midpoint = 37.4)
+  expect_true("12.4 to 37.4" %in% bin_key(m)$.label)
+  # short labels refine in their own units
+  s <- ggplot(data.frame(x = 1:2, y = 1, v = c(1010000, 1090000)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(steps = 4, labels = label_gla_number(short = TRUE))
+  expect_equal(rev(bin_key(s)$.label),
+               c("1m to 1.025m", "1.025m to 1.05m", "1.05m to 1.075m", "1.075m to 1.1m"))
+  pounds <- ggplot(data.frame(x = 1:2, y = 1, v = c(0.02, 0.09)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(steps = 4, labels = label_gla_pounds(short = TRUE))
+  expect_equal(anyDuplicated(bin_key(pounds)$.label), 0L)
+})

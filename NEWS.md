@@ -71,6 +71,13 @@
   with nothing but missing values draws without a legend; it stopped with
   an error, or with a method listed "-Inf to Inf".
 
+* The stepped legend prints its ranges at the decimals their ends have
+  when the scale has no `labels`. Steps of 12.5 read "0 to 12", "12 to 25",
+  "25 to 38", so 37.9 sat in a bin labelled 38 to 50. Short labels,
+  `label_gla_number(short = TRUE)` and `label_gla_pounds(short = TRUE)`,
+  take the decimals their steps need in their own unit: "1m to 1.025m",
+  where every range read "1m to 1m". A map's hover label is unchanged.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
