@@ -1,5 +1,19 @@
 # gglaplot2 0.3.1.9000
 
+* The stepped scales class their bins by the distribution with `method`:
+  `scale_fill_gla_b(method = "jenks")` for natural breaks, or `"quantile"`,
+  `"boxplot"`, `"sd"`, `"headtails"` and `"geometric"`. A diverging scale
+  classes each side of the midpoint on its own, with `steps` as the count
+  a side. Every method decides which areas share a bin; the breaks are
+  then put in the gaps between the classes at the coarsest precision that
+  moves no area, the limits widen to it and the legend prints at it, so a
+  class of one area keeps its bin and the legend reads in round figures.
+  `gla_class_breaks()` is the calculation on its own, with the limits,
+  precision and counts per bin as attributes. The new article, Choosing a
+  map scale, compares the methods on the 2016 referendum by borough and
+  sets out the cautions for a map that is published again: classed breaks
+  move with the data, so a series keeps equal steps with fixed limits.
+
 * A chart with `gla_labs()` or `theme_gla()` draws on R 4.1 and 4.2. It
   stopped with "trying to get slot "margin" from an object ... that is not
   an S4 object": the theme elements are S7 objects, and base R only

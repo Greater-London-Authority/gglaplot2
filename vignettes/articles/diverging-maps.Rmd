@@ -135,6 +135,20 @@ ggplot(b) +
   theme_gla_map()
 ```
 
+The other way to handle an area far from the rest is to class the bins by
+the data: `method = "jenks"` gives it a bin of its own and keeps the
+detail among the others, with no clamp and no note. The breaks then move
+with each month's data, so it suits a one-off map rather than a series;
+[Choosing a map scale](map-scales.html) has the methods and the cautions.
+
+```{r outlier-classed}
+ggplot(b) +
+  geom_gla_sf(aes(fill = lopsided)) +
+  scale_fill_gla_b("diverging", name = NULL, method = "jenks", steps = c(4, 2)) +
+  gla_labs(title = "One borough has fallen far", subtitle = "Natural breaks each side of zero") +
+  theme_gla_map()
+```
+
 ## When the dividing line is not zero
 
 `midpoint` moves the neutral and the counting. An index against a base of

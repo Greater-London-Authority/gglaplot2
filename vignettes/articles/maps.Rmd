@@ -61,7 +61,10 @@ A sequential ramp for a quantity. The web maps draw it in steps, which
 `scale_fill_gla_b()` does: a reader can match an area to a swatch in the
 legend, labelled with the bin's range, which a smooth ramp does not allow.
 `steps = 5` fixes the count at five bins of one rounded width, so it holds
-as the data changes. `scale_fill_gla_c()` is the smooth form.
+as the data changes. `scale_fill_gla_c()` is the smooth form. For a one-off
+map of a skewed distribution, `method = "jenks"` classes the bins by the
+data instead; [Choosing a map scale](map-scales.html) compares the methods
+and says when not to use one.
 
 ```{r choropleth}
 ggplot(b) +

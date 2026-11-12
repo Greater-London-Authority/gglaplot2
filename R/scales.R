@@ -34,6 +34,17 @@
 #' `limits` set, the steps divide them exactly. The count holds as the data
 #' changes, where `breaks` would need resetting.
 #'
+#' `method` classes the bins by the distribution instead of in equal
+#' steps: `"jenks"` natural breaks, `"quantile"`, `"boxplot"`, `"sd"`,
+#' `"headtails"` or `"geometric"`, as [gla_class_breaks()] describes them,
+#' with `steps` as the number of bins (three a side for a diverging scale
+#' unless set). The breaks are put in the gaps between the classes at the
+#' coarsest precision that moves no area, the limits widen to it, and the
+#' legend prints at it. Classed breaks follow the data, so they suit a
+#' one-off read of one month's map and not a series: the same value can
+#' land in a different bin next month. For a series keep the default equal
+#' steps, with `limits`, or set `breaks`.
+#'
 #' Both ramps draw their guide vertical on the right, whatever legend
 #' position the theme sets, because a ramp reads top to bottom and the
 #' theme's top position is for series keys. The binned scales draw
@@ -55,6 +66,10 @@
 #'   each side of the midpoint: one number for both sides or
 #'   `c(below, above)`. `NULL`, the default, takes ggplot2's step; for the
 #'   diverging scale it is counted out from the midpoint.
+#' @param method For the binned scales, how the bins are cut: `"equal"`,
+#'   the default, in equal steps; or a classification by the distribution,
+#'   `"jenks"`, `"quantile"`, `"boxplot"`, `"sd"`, `"headtails"` or
+#'   `"geometric"`, see [gla_class_breaks()].
 #' @param ... Passed to the underlying ggplot2 scale.
 #' @return A ggplot2 scale.
 #' @examples
@@ -167,8 +182,20 @@ scale_fill_gla_c <- function(type = c("sequential", "diverging"),
 ScaleBinnedGlaSequential <- ggplot2::ggproto(
   "ScaleBinnedGlaSequential", ggplot2::ScaleBinned,
   steps = NULL,
+  method = "equal",
+  seen = NULL,
+  train = function(self, x) {
+    ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$train(x)
+    if (!identical(self$method, "equal")) self$seen <- c(self$seen, x[is.finite(x)])
+  },
   get_breaks = function(self, limits = self$get_limits()) {
-    if (is.null(self$steps) || !inherits(self$breaks, "waiver") || !self$nice.breaks) {
+    if (!inherits(self$breaks, "waiver") || !self$nice.breaks) {
+      return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
+    }
+    if (!identical(self$method, "equal") && length(self$seen)) {
+      return(classed_breaks(self, NULL, 5))
+    }
+    if (is.null(self$steps)) {
       return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
     }
     if (self$is_empty()) return(numeric())
@@ -203,14 +230,24 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
   midpoint = 0,
   theme_mode = "light",
   steps = NULL,
+  method = "equal",
+  seen = NULL,
+  train = function(self, x) {
+    ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$train(x)
+    if (!identical(self$method, "equal")) self$seen <- c(self$seen, x[is.finite(x)])
+  },
   # ggplot2's default breaks, then the same step counted out from the
   # midpoint so it is always a break; without limits from the caller the
   # limits widen to whole bins, as ggplot2's do. With steps, each side is
   # cut into that many bins of its own rounded width, or of the width that
-  # divides limits the caller set.
+  # divides limits the caller set. With a method, each side is classed by
+  # the values the scale was trained on.
   get_breaks = function(self, limits = self$get_limits()) {
     if (!inherits(self$breaks, "waiver") || !self$nice.breaks) {
       return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
+    }
+    if (!identical(self$method, "equal") && length(self$seen)) {
+      return(classed_breaks(self, self$midpoint, c(3, 3)))
     }
     if (self$is_empty()) return(numeric())
     transformation <- self$get_transformation()
@@ -267,6 +304,20 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
   }
 )
 
+# the breaks a classed scale draws, worked out once from the values it was
+# trained on and then held as fixed breaks; the limits widen to the breaks'
+# precision unless the caller set them
+classed_breaks <- function(self, midpoint, default_steps) {
+  transformation <- self$get_transformation()
+  fixed <- if (!is.null(self$limits)) sort(transformation$inverse(self$limits))
+  breaks <- gla_class_breaks(transformation$inverse(self$seen), self$method,
+                             n = self$steps %||% default_steps, midpoint = midpoint,
+                             limits = fixed)
+  if (is.null(self$limits)) self$limits <- transformation$transform(attr(breaks, "limits"))
+  self$breaks <- as.numeric(breaks)
+  transformation$transform(self$breaks)
+}
+
 # a step of 1, 2, 2.5, 3, 4 or 5 times a power of ten, the first at or
 # above x, so a side of fixed bins wastes as little of its end bin as it can
 nice_step <- function(x) {
@@ -295,10 +346,12 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   out
 }
 
-.gla_binned <- function(aesthetic, type, theme, midpoint, steps, ...) {
+.gla_binned <- function(aesthetic, type, theme, midpoint, steps, method, ...) {
   args <- list(...)
   args$guide <- args$guide %||% guide_gla_bins()
   empty <- unname(gla_token("data-empty", theme))
+  method <- match.arg(method, c("equal", "jenks", "quantile", "boxplot", "sd", "headtails",
+                                "geometric"))
   if (!is.null(steps)) {
     sides <- if (type == "diverging") 1:2 else 1
     whole <- is.numeric(steps) && length(steps) %in% sides &&
@@ -316,6 +369,7 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
                       palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
                       na.value = empty, super = ScaleBinnedGlaSequential, !!!args)
     sc$steps <- steps
+    sc$method <- method
     return(sc)
   }
   sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
@@ -324,21 +378,24 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   sc$midpoint <- midpoint
   sc$theme_mode <- theme
   sc$steps <- steps
+  sc$method <- method
   sc
 }
 
 #' @rdname scale_gla
 #' @export
 scale_colour_gla_b <- function(type = c("sequential", "diverging"),
-                               theme = gla_mode(), midpoint = 0, steps = NULL, ...) {
-  .gla_binned("colour", match.arg(type), match_mode(theme), midpoint, steps, ...)
+                               theme = gla_mode(), midpoint = 0, steps = NULL,
+                               method = "equal", ...) {
+  .gla_binned("colour", match.arg(type), match_mode(theme), midpoint, steps, method, ...)
 }
 
 #' @rdname scale_gla
 #' @export
 scale_fill_gla_b <- function(type = c("sequential", "diverging"),
-                             theme = gla_mode(), midpoint = 0, steps = NULL, ...) {
-  .gla_binned("fill", match.arg(type), match_mode(theme), midpoint, steps, ...)
+                             theme = gla_mode(), midpoint = 0, steps = NULL,
+                             method = "equal", ...) {
+  .gla_binned("fill", match.arg(type), match_mode(theme), midpoint, steps, method, ...)
 }
 
 #' @rdname scale_gla
