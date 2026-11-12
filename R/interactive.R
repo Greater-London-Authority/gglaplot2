@@ -405,7 +405,9 @@ plotly_area_traces <- function(traces) {
 # its title and the value formatted by that axis's scale, so a chart whose
 # axis reads in pounds or per cent hovers in pounds or per cent too. Each
 # trace is read through its own panel, whose free scale may differ from the
-# first. An area of a map takes the label plotly_area_text() made for it.
+# first, and a value is written in the data's units, not the transformed
+# ones a log or reversed axis is drawn in. An area of a map takes the label
+# plotly_area_text() made for it.
 # Other marks with a shape rather than a point (a treemap's tiles, a map
 # with a text aesthetic of its own) keep the label ggplotly gave them.
 plotly_hover <- function(traces, built) {
@@ -422,7 +424,9 @@ plotly_hover <- function(traces, built) {
     if (is.null(title) || inherits(title, "waiver")) title <- ""
     discrete <- isTRUE(scale$is_discrete())
     levels <- if (discrete) as.character(panel[[view]]$get_labels())
+    timed <- inherits(scale, c("ScaleContinuousDate", "ScaleContinuousDatetime"))
     date <- inherits(scale, "ScaleContinuousDate") && inherits(scale$labels, "waiver")
+    transformation <- if (!discrete) scale$get_transformation()
     breaks <- panel[[view]]$breaks
     breaks <- if (is.numeric(breaks)) breaks[is.finite(breaks)] else numeric()
     fmt <- function(values) {
@@ -435,14 +439,29 @@ plotly_hover <- function(traces, built) {
         return(out)
       }
       if (date) return(trimws(format(as.Date(values, origin = "1970-01-01"), "%e %B %Y")))
+      if (timed) {
+        # a date or a time in the axis's own labels, never rounded: four
+        # figures of a count of days or seconds is another day
+        out <- tryCatch(as.character(scale$get_labels(values)), error = function(e) NULL)
+        if (length(out) == length(values)) return(out)
+      }
+      data <- transformation$inverse(values)
       if (inherits(scale$labels, "waiver")) {
         # a plain number at the axis's own precision
-        out <- label_gla_number()(c(values, breaks))
+        out <- label_gla_number()(c(data, transformation$inverse(breaks)))
         return(out[seq_along(values)])
       }
-      # the axis's labels at four significant figures, as the web charts' tips
-      out <- tryCatch(as.character(scale$get_labels(signif(values, 4))), error = function(e) NULL)
-      if (length(out) != length(values)) return(format(values, big.mark = ",", trim = TRUE))
+      # the axis's labels at four significant figures of the value itself,
+      # as the web charts' tips, given the value rather than a transformed
+      # one turned back, which a log axis would leave as 159.99999
+      given <- scale_labels(scale)
+      at <- signif(data, 4)
+      out <- tryCatch(as.character(if (is.function(given)) {
+        given(at)
+      } else {
+        scale$get_labels(transformation$transform(at))
+      }), error = function(e) NULL)
+      if (length(out) != length(values)) return(format(data, big.mark = ",", trim = TRUE))
       out
     }
     list(title = as.character(title), format = fmt)

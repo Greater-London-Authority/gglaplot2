@@ -85,6 +85,12 @@
   label reads each panel through its own scales: on a free category axis
   the second panel's bars hovered with the first panel's names.
 
+* `gla_plotly()` hovers with the date or time a point is at. The value was
+  rounded to four figures of its count of days or seconds, so with
+  `date_labels` set 1 March 2024 read "Feb 24", and a time axis with no
+  labels of its own read "1,767,225,600". A log or reversed axis hovers in
+  the data's units, 160 rather than 2.20412 and 110 rather than -110.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

@@ -496,3 +496,24 @@ test_that("a faceted chart's labels and hover are read through each panel's own 
   text <- unlist(lapply(Filter(function(t) identical(t$type, "bar"), bars$x$data), `[[`, "text"))
   expect_equal(sub("<br>.*", "", text), paste("b:", fd$b))
 })
+
+test_that("the hover label gives dates, times and transformed values as they are", {
+  hover <- function(p) plotly::plotly_build(gla_plotly(p))$x$data[[1]]$text
+  a <- gla_monthly[gla_monthly$series == "Variable A" &
+                     gla_monthly$month >= as.Date("2024-01-01"), ]
+  dated <- hover(ggplot(a, aes(month, value)) + geom_gla_line() +
+                   scale_x_date(date_labels = "%b %Y") + theme_gla())
+  expect_equal(sub("<br>.*", "", dated[1:3]),
+               c("month: Jan 2024", "month: Feb 2024", "month: Mar 2024"))
+  d <- data.frame(t = as.POSIXct("2026-01-01", tz = "UTC") + 3600 * 0:47, v = 1:48)
+  timed <- hover(ggplot(d, aes(t, v)) + geom_gla_line() +
+                   scale_x_datetime(date_labels = "%d %b %H:%M") + theme_gla())
+  expect_equal(sub("<br>.*", "", timed[1:2]), c("t: 01 Jan 00:00", "t: 01 Jan 01:00"))
+  expect_false(any(grepl("1,767", hover(ggplot(d, aes(t, v)) + geom_gla_line() + theme_gla()))))
+  logged <- hover(ggplot(mtcars, aes(disp, hp)) + geom_gla_dot() + scale_x_log10() +
+                    scale_y_reverse() + theme_gla())
+  expect_match(logged[1], "^disp: 160(\\.0)?<br>hp: 110$")
+  labelled <- hover(ggplot(mtcars, aes(disp, hp)) + geom_gla_dot() +
+                      scale_x_log10(labels = scales::label_comma()) + theme_gla())
+  expect_match(labelled[1], "^disp: 160(\\.0)?<br>")
+})
