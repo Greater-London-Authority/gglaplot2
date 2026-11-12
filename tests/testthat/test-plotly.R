@@ -580,3 +580,15 @@ test_that("each series takes the name the scale's legend gives it", {
   expect_equal(vapply(w$x$data, `[[`, "", "name"), c("Four", "Six", "Eight"))
   expect_match(w$x$data[[1]]$text[1], "^Four<br>")
 })
+
+test_that("the washes and rules of a chart take no pointer, its data does", {
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) +
+    annotate_gla_projection(from = 2022) + annotate_gla_range(xmin = 2016, xmax = 2017) +
+    geom_gla_line(projected_from = 2022) + gla_zero_line() + gla_reference_line(30000, "T") +
+    scale_colour_gla() + theme_gla()
+  traces <- plotly::plotly_build(gla_plotly(p))$x$data
+  named <- vapply(traces, function(t) nzchar(t$name %||% ""), logical(1))
+  hover <- vapply(traces, function(t) t$hoverinfo %||% "", character(1))
+  expect_true(all(hover[!named] == "skip"))
+  expect_true(all(hover[named] == "text"))
+})

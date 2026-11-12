@@ -65,6 +65,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out <- plotly_edge_labels(out, built, ct)
   out$x$data <- plotly_treemap_labels(out$x$data, built)
   out$x$data <- plotly_hover(out$x$data, built, tooltip)
+  out$x$data <- plotly_quiet(out$x$data, built)
   out <- plotly_bin_legend(out, built, ct)
   out <- plotly_chrome(out, labels, ct)
   out
@@ -586,6 +587,33 @@ plotly_treemap_labels <- function(traces, built) {
     })
   }
   traces
+}
+
+# the marks that annotate rather than carry data take no pointer: a wash
+# with no text would hover as "trace 0", and a rule across the panel would
+# give the coordinates of its two ends
+plotly_quiet <- function(traces, built) {
+  rules <- list(x = numeric(), y = numeric())
+  for (i in seq_along(built$plot$layers)) {
+    geom <- built$plot$layers[[i]]$geom
+    data <- built$data[[i]]
+    if (inherits(geom, "GeomHline")) rules$y <- c(rules$y, data$yintercept)
+    if (inherits(geom, "GeomVline")) rules$x <- c(rules$x, data$xintercept)
+  }
+  on_rule <- function(values, at) {
+    values <- unclass(values)
+    is.numeric(values) && length(values) == 2 && values[1] == values[2] &&
+      any(abs(at - values[1]) < 1e-9 * max(1, abs(values[1])))
+  }
+  lapply(traces, function(trace) {
+    unnamed <- !nzchar(trace$name %||% "")
+    wash <- !is.null(trace$fill) && !isTRUE(trace$.gla_area) &&
+      all(!nzchar(as.character(trace$text %||% "")))
+    rule <- identical(trace$mode, "lines") && is.null(trace$fill) &&
+      (on_rule(trace$y, rules$y) || on_rule(trace$x, rules$x))
+    if (unnamed && (wash || rule)) trace$hoverinfo <- "skip"
+    trace
+  })
 }
 
 # the labels a trace has no position for become annotations: an end label

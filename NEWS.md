@@ -162,6 +162,10 @@
   legend and the hover label. It used the levels of the data, so
   `scale_colour_gla(labels = c("Four", "Six", "Eight"))` read 4, 6 and 8.
 
+* `gla_plotly()` leaves the pointer to the data. A shaded range or the
+  wash of a projection hovered as "trace 0", and the zero line, reference
+  lines and the projection's rule gave the coordinates of their ends.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
