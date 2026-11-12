@@ -50,6 +50,12 @@
   saying so; it painted every area as missing. A classed scale on a log
   scale ends its limits at the data rather than at zero.
 
+* The breaks a stepped scale works out for itself are the numbers its
+  legend prints. Built by arithmetic, a break printed as 0.2 could be
+  0.19999999999999996, so a value of 0.2 fell in the bin above it while
+  0.1 fell in the bin below, and a bin could read "0.1 to 0.2" and hold
+  neither. Every value on a break now falls in the bin that ends at it.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

@@ -218,12 +218,12 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
         width <- nice_step(width * (1 + 1e-6))
         lower <- floor(lim[1] / width + 1e-9) * width
       }
-      lim <- c(lower, lower + n * width)
+      lim <- snap(c(lower, lower + n * width), width)
       self$limits <- held_limits(transformation, lim)
     } else {
       width <- diff(lim) / n
     }
-    breaks <- lim[1] + width * seq_len(n - 1)
+    breaks <- snap(lim[1] + width * seq_len(n - 1), width)
     self$breaks <- breaks
     transformation$transform(breaks)
   }
@@ -267,21 +267,24 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
       down <- width(max(mid - lim[1], 0), n[1])
       up <- width(max(lim[2] - mid, 0), n[2])
       if (!fixed) {
-        lim <- c(mid - n[1] * down, mid + n[2] * up)
+        lim <- snap(c(mid - n[1] * down, mid + n[2] * up), max(down, up))
         self$limits <- held_limits(transformation, lim)
       }
       breaks <- c(mid - down * seq_len(n[1] - 1), mid, mid + up * seq_len(n[2] - 1))
-      breaks <- sort(breaks[breaks > lim[1] & breaks < lim[2]])
+      widths <- c(down, up)
+      breaks <- snap(breaks, min(widths[widths > 0], Inf))
+      breaks <- sort(unique(breaks[breaks > lim[1] & breaks < lim[2]]))
       self$breaks <- breaks
       return(transformation$transform(breaks))
     }
     step <- break_step(lim, self$n.breaks %||% 5)
+    step <- snap(step, step)
     steps_out <- function(x, f) f(round((x - mid) / step, 8))
     if (is.null(self$limits)) {
-      lim <- mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling))
+      lim <- snap(mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling)), step)
       self$limits <- held_limits(transformation, lim)
     }
-    breaks <- mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor))
+    breaks <- snap(mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor)), step)
     breaks <- breaks[breaks > lim[1] & breaks < lim[2]]
     self$breaks <- breaks
     transformation$transform(breaks)
@@ -346,6 +349,14 @@ held_limits <- function(transformation, lim) {
                  format(lim[1]), format(lim[2]), transformation$name), call. = FALSE)
   }
   sort(out)
+}
+
+# breaks worked out by arithmetic carry its error, 0.1 * 3 is not 0.3, and
+# a value on a printed break would land on either side of it by chance;
+# rounded far below the step they are the numbers the legend prints
+snap <- function(x, step) {
+  if (!length(x) || !is.finite(step) || step <= 0) return(x)
+  round(x, max(0, 6 - floor(log10(step))))
 }
 
 # a step of 1, 2, 2.5, 3, 4 or 5 times a power of ten, the first at or
