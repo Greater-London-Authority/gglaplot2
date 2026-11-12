@@ -253,3 +253,109 @@ test_that("steps fixes the bins of the sequential scale", {
   expect_no_error(build(ggplot(d, aes(x, y, colour = v)) + geom_point() +
                           scale_colour_gla_b(steps = 3)))
 })
+
+# the change in payrolled employees by borough, August 2026: one far fall,
+# a cluster of small ones and three rises
+paye <- c(-5.31, -2, -1.95, -1.94, -1.73, -1.69, -1.69, -1.53, -1.51, -1.42, -1.35, -1.33,
+          -1.27, -1.26, -1.2, -1.07, -1.05, -1.01, -0.98, -0.91, -0.91, -0.91, -0.86, -0.82,
+          -0.78, -0.72, -0.71, -0.54, -0.27, -0.12, 0.19, 0.26, 0.41)
+
+test_that("classed breaks sit in the gaps between the classes and move no value", {
+  for (m in c("jenks", "quantile", "boxplot", "sd", "headtails", "geometric")) {
+    b <- gla_class_breaks(paye, m, n = c(5, 1), midpoint = 0)
+    lim <- attr(b, "limits")
+    expect_true(all(b > lim[1] & b < lim[2]), info = m)
+    expect_true(0 %in% b, info = m)
+    expect_true(all(diff(b) > 0), info = m)
+    expect_false(any(paye %in% b), info = m)
+    expect_equal(sum(attr(b, "counts")), length(paye), info = m)
+    expect_equal(length(attr(b, "counts")), length(b) + 1, info = m)
+  }
+})
+
+test_that("Jenks is Fisher's partition, written at the coarsest precision that holds it", {
+  b <- gla_class_breaks(paye, "jenks", n = c(5, 1), midpoint = 0)
+  expect_equal(as.numeric(b), c(-3.7, -1.6, -1.1, -0.6, 0))
+  expect_equal(attr(b, "limits"), c(-5.4, 0.5))
+  expect_equal(attr(b, "digits"), 1L)
+  expect_equal(attr(b, "counts"), c(1L, 6L, 8L, 12L, 3L, 3L))
+  skip_if_not_installed("classInt")
+  falls <- paye[paye < 0]
+  ours <- cut(falls, c(-Inf, b[b < 0], 0), labels = FALSE)
+  theirs <- classInt::findCols(classInt::classIntervals(falls, 5, style = "fisher"))
+  expect_equal(as.integer(factor(ours)), as.integer(factor(theirs)))
+})
+
+test_that("each method classes as it says, and the degenerate cases are defined", {
+  q <- gla_class_breaks(paye, "quantile", n = c(5, 1), midpoint = 0)
+  expect_true(all(abs(attr(q, "counts")[1:5] - 6) <= 1))
+  # the box plot's fence sets the far fall apart; head/tail peels one value at a time
+  expect_equal(attr(gla_class_breaks(paye, "boxplot", midpoint = 0), "counts")[1], 1L)
+  expect_equal(attr(gla_class_breaks(paye, "headtails", n = c(5, 1), midpoint = 0), "counts")[1:2],
+               c(1L, 1L))
+  g <- gla_class_breaks(c(1, 2, 2, 3, 8, 9, 30, 55, 120), "geometric", n = 4)
+  expect_equal(as.numeric(g), c(6, 20, 42))
+  expect_equal(attr(g, "limits"), c(0, 121))
+  expect_error(gla_class_breaks(c(0, 1, 5), "geometric"), "above zero")
+  set.seed(4)
+  s <- gla_class_breaks(rnorm(200, 50, 10), "sd")
+  expect_true(length(s) >= 3)
+  expect_true(all(diff(s) > 9 & diff(s) < 11))
+  # the box plot and standard deviation want more than a handful of values
+  expect_length(gla_class_breaks(c(1, 2, 9), "boxplot"), 0)
+  # fewer distinct values than bins: a bin per value, no error
+  expect_length(gla_class_breaks(c(1, 1, 2, 2, 3), "jenks", n = 5), 2)
+  # whole numbers round to tens when every gap allows it
+  wide <- gla_class_breaks(c(3, 5, 8, 41, 44, 47, 90, 95), "jenks", n = 3)
+  expect_equal(as.numeric(wide), c(20, 70))
+  expect_equal(attr(wide, "digits"), -1L)
+  expect_equal(attr(wide, "limits"), c(0, 100))
+  # limits set by the caller hold, and the values beyond them class at the edge
+  held <- gla_class_breaks(paye, "jenks", n = c(4, 1), midpoint = 0, limits = c(-2.5, 0.5))
+  expect_equal(attr(held, "limits"), c(-2.5, 0.5))
+  expect_true(all(held > -2.5))
+  expect_error(gla_class_breaks(paye, "jenks", n = 2.5), "whole number")
+  expect_length(gla_class_breaks(numeric(), "jenks"), 0)
+})
+
+test_that("the stepped scales class their bins by a method", {
+  d <- data.frame(x = seq_along(paye), y = 1, v = paye)
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", method = "jenks", steps = c(5, 1),
+                     labels = label_gla_percent(scale = 1))
+  sc <- ggplot_build(p)$plot$scales$get_scales("fill")
+  expect_equal(sc$get_breaks(), c(-3.7, -1.6, -1.1, -0.6, 0))
+  expect_equal(sc$get_limits(), c(-5.4, 0.5))
+  # the legend prints at the breaks' precision, and there is a colour per bin
+  expect_true("-5.4% to -3.7%" %in% get_guide_data(p, "fill")$.label)
+  expect_equal(length(unique(ggplot_build(p)$data[[1]]$fill)), 6)
+  # breaks given win over the method
+  p2 <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", method = "jenks", breaks = c(-2, -1, 0))
+  expect_equal(ggplot_build(p2)$plot$scales$get_scales("fill")$get_breaks(), c(-2, -1, 0))
+  # limits given are kept, and the value beyond them reads "Below"
+  p3 <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", method = "jenks", steps = c(4, 1), limits = c(-2.5, 0.5),
+                     labels = label_gla_percent(scale = 1))
+  expect_equal(ggplot_build(p3)$plot$scales$get_scales("fill")$get_limits(), c(-2.5, 0.5))
+  expect_true(any(startsWith(get_guide_data(p3, "fill")$.label, "Below")))
+  # three a side unless steps says otherwise
+  p4 <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", method = "quantile")
+  expect_length(ggplot_build(p4)$plot$scales$get_scales("fill")$get_breaks(), 5)
+  # the sequential scale and the colour scale take a method too
+  p5 <- ggplot(d, aes(x, y, fill = abs(v) * 1000)) + geom_point(shape = 21) +
+    scale_fill_gla_b(method = "quantile", steps = 4)
+  sc5 <- ggplot_build(p5)$plot$scales$get_scales("fill")
+  expect_length(sc5$get_breaks(), 3)
+  expect_equal(length(unique(ggplot_build(p5)$data[[1]]$fill)), 4)
+  p6 <- ggplot(d, aes(x, y, colour = v)) + geom_point() +
+    scale_colour_gla_b("diverging", method = "boxplot")
+  expect_true(0 %in% ggplot_build(p6)$plot$scales$get_scales("colour")$get_breaks())
+  expect_error(scale_fill_gla_b(method = "kmeans"))
+  # the default is still equal steps
+  p7 <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", steps = c(5, 1))
+  expect_equal(ggplot_build(p7)$plot$scales$get_scales("fill")$get_breaks(),
+               c(-8, -6, -4, -2, 0))
+})

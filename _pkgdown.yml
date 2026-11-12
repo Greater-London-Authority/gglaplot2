@@ -64,6 +64,8 @@ navbar:
           href: articles/maps.html
         - text: Mapping a change
           href: articles/diverging-maps.html
+        - text: Choosing a map scale
+          href: articles/map-scales.html
 
 articles:
   - title: Get started
@@ -89,6 +91,7 @@ articles:
       - articles/treemaps
       - articles/maps
       - articles/diverging-maps
+      - articles/map-scales
 
 reference:
   - title: Tokens and type
@@ -110,6 +113,7 @@ reference:
       - gla_show_pal
       - gla_check_palette
       - scale_gla
+      - gla_class_breaks
       - guide_gla_bins
       - scale_linetype_gla
   - title: Theme

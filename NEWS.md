@@ -1,5 +1,19 @@
 # gglaplot2 0.3.1.9000
 
+* The stepped scales class their bins by the distribution with `method`:
+  `scale_fill_gla_b(method = "jenks")` for natural breaks, or `"quantile"`,
+  `"boxplot"`, `"sd"`, `"headtails"` and `"geometric"`. A diverging scale
+  classes each side of the midpoint on its own, with `steps` as the count
+  a side. Every method decides which areas share a bin; the breaks are
+  then put in the gaps between the classes at the coarsest precision that
+  moves no area, the limits widen to it and the legend prints at it, so a
+  class of one area keeps its bin and the legend reads in round figures.
+  `gla_class_breaks()` is the calculation on its own, with the limits,
+  precision and counts per bin as attributes. The new article, Choosing a
+  map scale, compares the methods on the 2016 referendum by borough and
+  sets out the cautions for a map that is published again: classed breaks
+  move with the data, so a series keeps equal steps with fixed limits.
+
 * S7 0.2.0 or later is required. It is the release that lets `@` read an
   S7 object on R before 4.3, which ggplot2 4 and this package both rely
   on; ggplot2 does not ask for a version, so an older S7 installed without
