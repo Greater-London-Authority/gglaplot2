@@ -83,11 +83,16 @@ StatGlaTreemap <- ggplot2::ggproto(
     if (!by_fill) {
       return(cbind(data, treemap_rects(data$share, c(0, 0, 1, 1), aspect)))
     }
-    groups <- stats::aggregate(share ~ fill, data, sum)
+    # a missing fill is a group of its own, drawn in the scale's colour for
+    # missing values
+    key <- addNA(factor(data$fill), ifany = TRUE)
+    shares <- tapply(data$share, key, sum)
+    groups <- data.frame(key = factor(names(shares), levels = levels(key), exclude = NULL),
+                         share = as.numeric(shares))
     groups <- groups[order(-groups$share), , drop = FALSE]
     outer <- treemap_rects(groups$share, c(0, 0, 1, 1), aspect)
     pieces <- lapply(seq_len(nrow(groups)), function(i) {
-      rows <- data[data$fill == groups$fill[i], , drop = FALSE]
+      rows <- data[as.integer(key) == as.integer(groups$key[i]), , drop = FALSE]
       box <- c(outer$xmin[i], outer$ymin[i], outer$xmax[i], outer$ymax[i])
       inner <- treemap_rects(rows$share / sum(rows$share), box,
                              aspect * (box[3] - box[1]) / (box[4] - box[2]))

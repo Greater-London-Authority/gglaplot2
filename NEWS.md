@@ -108,6 +108,10 @@
   meet at it, on the line between its neighbours. The interactive chart
   splits the same way.
 
+* A treemap whose `fill` has a missing value draws, the tiles of that
+  group in the colour for missing values. It drew nothing, with a
+  "Computation failed" warning.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

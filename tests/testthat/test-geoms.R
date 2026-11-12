@@ -315,3 +315,12 @@ test_that("geom_gla_treemap tiles the unit square by value, grouped when fill is
   expect_equal(sum((one$xmax - one$xmin) * (one$ymax - one$ymin)), 1)
   expect_error(geom_gla_treemap(label_position = "middle"))
 })
+
+test_that("a treemap draws a tile whose group is missing, in the missing colour", {
+  tm <- data.frame(n = c("a", "b", "c", "d"), g = c("G1", "G1", "G2", NA), v = c(4, 3, 2, 1))
+  p <- ggplot(tm, aes(area = v, label = n, fill = g)) + geom_gla_treemap() + scale_fill_gla()
+  expect_no_warning(tiles <- build(p)$data[[1]])
+  expect_equal(nrow(tiles), 4)
+  expect_equal(tolower(tiles$fill[tiles$label == "d"]), tolower(unname(gla_token("data-empty"))))
+  expect_equal(sum((tiles$xmax - tiles$xmin) * (tiles$ymax - tiles$ymin)), 1)
+})
