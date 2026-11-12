@@ -34,8 +34,9 @@ gla_save <- function(plot, filename, width = 880, height = 440, scale = 2,
   theme <- match_mode(theme)
   args <- list(...)
   svg <- identical(tolower(tools::file_ext(filename)), "svg")
+  # svglite takes web fonts from 2.2.0
   if (svg && isTRUE(web_fonts) && is.null(args$device) &&
-        requireNamespace("svglite", quietly = TRUE)) {
+        rlang::is_installed("svglite", version = "2.2.0")) {
     fonts <- gla_web_fonts()
     args$device <- function(filename, ...) {
       svglite::svglite(filename, ..., web_fonts = fonts)

@@ -129,6 +129,11 @@
   Medium" and "Inter SemiBold", so a browser without Inter set it in the
   regular and bold faces.
 
+* `gla_save()` writes an SVG without the web fonts on an svglite older
+  than 2.2.0, the release that takes them, where it stopped with an error.
+  DESCRIPTION declares utils and tools, which the package calls, and the
+  svglite floor.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
