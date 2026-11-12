@@ -151,15 +151,17 @@ ramp_guide <- function(args, guide) {
 }
 
 # a smooth ramp; the diverging one rescaled so the midpoint, not the middle
-# of the data, is the neutral
+# of the data, is the neutral. The rescaler sees transformed values, so the
+# midpoint is transformed to meet them.
 .gla_continuous <- function(aesthetic, type, theme, midpoint, ...) {
   args <- list(...)
   args$guide <- ramp_guide(args, ggplot2::guide_colourbar(position = "right",
                                                           direction = "vertical"))
   args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   if (type == "diverging") {
+    mid <- scales::as.transform(args$transform %||% args$trans %||% "identity")$transform(midpoint)
     args$rescaler <- args$rescaler %||% function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) {
-      scales::rescale_mid(x, to, from, mid = midpoint)
+      scales::rescale_mid(x, to, from, mid = mid)
     }
   }
   rlang::exec(ggplot2::continuous_scale, aesthetic,

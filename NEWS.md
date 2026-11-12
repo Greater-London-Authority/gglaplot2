@@ -33,6 +33,10 @@
   stepped or smooth scale given `breaks = NULL` draws no legend, as
   ggplot2's own scales do, where it stopped with an error.
 
+* `scale_fill_gla_c("diverging")` with a `transform` puts its neutral at
+  `midpoint`. The midpoint was read in the transformed units, so on a log
+  scale with `midpoint = 1` the neutral sat on 10 and 1 was drawn red.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

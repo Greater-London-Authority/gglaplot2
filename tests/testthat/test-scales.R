@@ -378,3 +378,12 @@ test_that("na.value reaches every scale, and breaks = NULL leaves no guide", {
     expect_no_error(draw(p))
   }
 })
+
+test_that("the continuous diverging neutral sits at the midpoint on a transformed scale", {
+  d <- data.frame(x = 1:4, y = 1, v = c(0.1, 1, 10, 100))
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_c("diverging", transform = "log10", midpoint = 1)
+  got <- fills(p)
+  expect_equal(got[2], tolower(unname(gla_token("data-neutral-0"))))
+  expect_equal(got[1], tolower(gla_pal("diverging")[2]))
+})
