@@ -571,3 +571,12 @@ test_that("a mapped line style converts to the pattern the static chart draws", 
   dashes <- vapply(w$x$data, function(t) t$line$dash, character(1))
   expect_equal(dashes, c("solid", "4px,4px", "2px,4px"))
 })
+
+test_that("each series takes the name the scale's legend gives it", {
+  w <- plotly::plotly_build(gla_plotly(ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+                                         geom_gla_dot() +
+                                         scale_colour_gla(labels = c("Four", "Six", "Eight")) +
+                                         theme_gla()))
+  expect_equal(vapply(w$x$data, `[[`, "", "name"), c("Four", "Six", "Eight"))
+  expect_match(w$x$data[[1]]$text[1], "^Four<br>")
+})

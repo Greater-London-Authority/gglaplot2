@@ -158,6 +158,10 @@
   dotted, as dots. Mapped, it reached plotly as "12" and was drawn as 12px
   dashes.
 
+* `gla_plotly()` names each series as the scale's `labels` do, in the
+  legend and the hover label. It used the levels of the data, so
+  `scale_colour_gla(labels = c("Four", "Six", "Eight"))` read 4, 6 and 8.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

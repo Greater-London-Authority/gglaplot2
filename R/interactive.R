@@ -61,6 +61,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out <- ggla_plotly_config(out)
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
+  out$x$data <- plotly_series_names(out$x$data, built)
   out <- plotly_edge_labels(out, built, ct)
   out$x$data <- plotly_treemap_labels(out$x$data, built)
   out$x$data <- plotly_hover(out$x$data, built, tooltip)
@@ -248,6 +249,26 @@ plotly_traces <- function(traces, layout) {
     trace
   })
   Filter(function(trace) !is.null(trace$type), traces)
+}
+
+# each series named as the scale's legend names it: ggplotly() names a trace
+# by its level, so `labels` given to a colour or fill scale were lost from
+# the legend and the hover label
+plotly_series_names <- function(traces, built) {
+  for (aes in c("colour", "fill")) {
+    scale <- built$plot$scales$get_scales(aes)
+    if (is.null(scale) || !isTRUE(scale$is_discrete())) next
+    breaks <- scale$get_breaks()
+    labels <- tryCatch(scale$get_labels(breaks), error = function(e) NULL)
+    if (!is.character(labels) || length(labels) != length(breaks)) next
+    breaks <- as.character(breaks)
+    traces <- lapply(traces, function(trace) {
+      at <- if (length(trace$name) == 1) match(trace$name, breaks) else NA
+      if (!is.na(at)) trace$name <- labels[at]
+      trace
+    })
+  }
+  traces
 }
 
 # the hover label of each area of a map: its name, then its value in the
