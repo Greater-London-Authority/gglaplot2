@@ -146,6 +146,10 @@
   says of the other arguments. Each stopped with "formal argument matched
   by multiple actual arguments".
 
+* `gla_show_tokens()` labels each swatch in dark text on a light colour
+  and white on a dark one in either mode. In dark mode the two were
+  swapped and the labels could not be read.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
