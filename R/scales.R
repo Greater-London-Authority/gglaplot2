@@ -52,8 +52,8 @@
 #' continuous ones a colour bar. `theme_gla(legend = "none")` still hides
 #' it, and a `guide` passed to the scale wins.
 #'
-#' Missing values take `data-empty`. `scale_color_*` spellings are
-#' provided as aliases.
+#' Missing values take `data-empty` unless `na.value` says otherwise.
+#' `scale_color_*` spellings are provided as aliases.
 #'
 #' @param type A palette as above. Discrete scales take `"auto"`,
 #'   `"categorical"`, `"sex"` or `"change"`; continuous and binned ones
@@ -103,29 +103,29 @@ ScaleDiscreteGla <- ggplot2::ggproto(
 )
 
 .gla_discrete <- function(aesthetic, type, theme, ...) {
-  empty <- unname(gla_token("data-empty", theme))
+  args <- list(...)
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   if (type == "auto") {
-    sc <- ggplot2::discrete_scale(
-      aesthetic, palette = function(n) gla_pal("categorical", n, theme),
-      na.value = empty, super = ScaleDiscreteGla, ...
-    )
+    sc <- rlang::exec(ggplot2::discrete_scale, aesthetic,
+                      palette = function(n) gla_pal("categorical", n, theme),
+                      super = ScaleDiscreteGla, !!!args)
     sc$theme_mode <- theme
     return(sc)
   }
   if (type == "categorical") {
     pal <- gla_pal(type, theme = theme)
-    return(ggplot2::discrete_scale(aesthetic, palette = function(n) {
+    return(rlang::exec(ggplot2::discrete_scale, aesthetic, palette = function(n) {
       if (n > length(pal)) {
         stop(sprintf("The categorical palette has %d colours; the data has %d levels. %s",
                      length(pal), n, "Fold the categories"), call. = FALSE)
       }
       unname(pal[seq_len(n)])
-    }, na.value = empty, ...))
+    }, !!!args))
   }
   # ggplot2 matches a named vector of values to levels by name, which is
   # what the sex and change palettes want
-  ggplot2::scale_discrete_manual(aesthetic, values = gla_pal(type, theme = theme),
-                                 na.value = empty, ...)
+  rlang::exec(ggplot2::scale_discrete_manual, aesthetic, values = gla_pal(type, theme = theme),
+              !!!args)
 }
 
 #' @rdname scale_gla
@@ -143,24 +143,27 @@ scale_fill_gla <- function(type = c("auto", "categorical", "sex", "change"),
 }
 
 # a ramp reads top to bottom, so its guide stands on the right whatever the
-# theme's legend position; the theme's "none" still hides it
-ramp_guide <- function(constructor) {
-  constructor(position = "right", direction = "vertical")
+# theme's legend position; the theme's "none" still hides it. A scale given
+# `breaks = NULL` has no guide, as ggplot2's own.
+ramp_guide <- function(args, guide) {
+  if ("breaks" %in% names(args) && is.null(args$breaks)) return(args$guide %||% "none")
+  args$guide %||% guide
 }
 
 # a smooth ramp; the diverging one rescaled so the midpoint, not the middle
 # of the data, is the neutral
 .gla_continuous <- function(aesthetic, type, theme, midpoint, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% ramp_guide(ggplot2::guide_colourbar)
+  args$guide <- ramp_guide(args, ggplot2::guide_colourbar(position = "right",
+                                                          direction = "vertical"))
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   if (type == "diverging") {
     args$rescaler <- args$rescaler %||% function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) {
       scales::rescale_mid(x, to, from, mid = midpoint)
     }
   }
   rlang::exec(ggplot2::continuous_scale, aesthetic,
-              palette = scales::pal_gradient_n(gla_pal(type, theme = theme)),
-              na.value = unname(gla_token("data-empty", theme)), !!!args)
+              palette = scales::pal_gradient_n(gla_pal(type, theme = theme)), !!!args)
 }
 
 #' @rdname scale_gla
@@ -348,8 +351,8 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
 
 .gla_binned <- function(aesthetic, type, theme, midpoint, steps, method, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% guide_gla_bins()
-  empty <- unname(gla_token("data-empty", theme))
+  args$guide <- ramp_guide(args, guide_gla_bins())
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   method <- match.arg(method, c("equal", "jenks", "quantile", "boxplot", "sd", "headtails",
                                 "geometric"))
   if (!is.null(steps)) {
@@ -367,13 +370,13 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   if (type == "sequential") {
     sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
                       palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
-                      na.value = empty, super = ScaleBinnedGlaSequential, !!!args)
+                      super = ScaleBinnedGlaSequential, !!!args)
     sc$steps <- steps
     sc$method <- method
     return(sc)
   }
   sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
-                    palette = function(x) rep(NA_character_, length(x)), na.value = empty,
+                    palette = function(x) rep(NA_character_, length(x)),
                     super = ScaleBinnedGlaDiverging, !!!args)
   sc$midpoint <- midpoint
   sc$theme_mode <- theme

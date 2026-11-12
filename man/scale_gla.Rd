@@ -159,8 +159,8 @@ theme's top position is for series keys. The binned scales draw
 continuous ones a colour bar. \code{theme_gla(legend = "none")} still hides
 it, and a \code{guide} passed to the scale wins.
 
-Missing values take \code{data-empty}. \verb{scale_color_*} spellings are
-provided as aliases.
+Missing values take \code{data-empty} unless \code{na.value} says otherwise.
+\verb{scale_color_*} spellings are provided as aliases.
 }
 \examples{
 library(ggplot2)

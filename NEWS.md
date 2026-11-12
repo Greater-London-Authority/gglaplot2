@@ -28,6 +28,11 @@
   on older versions, as ggplot2 does. The check matrix gains a leg on R
   4.1, the floor in DESCRIPTION, so this is held.
 
+* `na.value` given to any of the colour scales is used. It stopped with
+  "formal argument "na.value" matched by multiple actual arguments". A
+  stepped or smooth scale given `breaks = NULL` draws no legend, as
+  ggplot2's own scales do, where it stopped with an error.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

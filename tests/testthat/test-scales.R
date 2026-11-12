@@ -359,3 +359,22 @@ test_that("the stepped scales class their bins by a method", {
   expect_equal(ggplot_build(p7)$plot$scales$get_scales("fill")$get_breaks(),
                c(-8, -6, -4, -2, 0))
 })
+
+test_that("na.value reaches every scale, and breaks = NULL leaves no guide", {
+  d <- data.frame(x = 1:3, y = 1, v = c(1, NA, 3), g = c("a", NA, "b"))
+  red <- "#ff0000"
+  for (sc in list(scale_fill_gla_b(na.value = red), scale_fill_gla_b("diverging", na.value = red),
+                  scale_fill_gla_c(na.value = red))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc
+    expect_equal(fills(p)[2], red)
+  }
+  for (type in c("auto", "categorical", "sex")) {
+    p <- ggplot(d, aes(x, y, colour = g)) + geom_point() + scale_colour_gla(type, na.value = red)
+    expect_equal(tolower(build(p)$data[[1]]$colour[2]), red)
+  }
+  for (sc in list(scale_fill_gla_b(breaks = NULL), scale_fill_gla_c(breaks = NULL))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc + theme_gla()
+    expect_null(get_guide_data(p, "fill"))
+    expect_no_error(draw(p))
+  }
+})
