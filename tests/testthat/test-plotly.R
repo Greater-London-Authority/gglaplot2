@@ -547,3 +547,20 @@ test_that("an interactive treemap carries its tiles' labels", {
   expect_setequal(unlist(lapply(corner, `[[`, "text")), c("Camden", "Hackney", "Barnet"))
   expect_true(all(vapply(corner, `[[`, "", "textposition") == "bottom right"))
 })
+
+test_that("ggla_plotly_layout takes one annotation or a list of them", {
+  base <- plotly::ggplotly(ggplot(gla_yearly, aes(year, average, colour = series)) +
+                             geom_gla_line() + theme_gla())
+  texts <- function(p) {
+    a <- plotly::plotly_build(p)$x$layout$annotations
+    vapply(a, function(x) paste(x$text, x$x), character(1))
+  }
+  two <- ggla_plotly_layout(base, annotations = list(list(x = 2020, y = 30000, text = "One"),
+                                                     list(x = 2022, y = 20000, text = "Two")))
+  expect_equal(texts(two), c("One 2020", "Two 2022"))
+  one <- ggla_plotly_layout(base, annotations = list(x = 2020, y = 30000, text = "One"))
+  expect_equal(texts(one), "One 2020")
+  a <- plotly::plotly_build(one)$x$layout$annotations[[1]]
+  expect_equal(a$font$color, unname(gla_token("chart-label")))
+  expect_equal(a$arrowhead, 0)
+})

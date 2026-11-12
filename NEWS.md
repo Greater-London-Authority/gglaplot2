@@ -150,6 +150,10 @@
   and white on a dark one in either mode. In dark mode the two were
   swapped and the labels could not be read.
 
+* `ggla_plotly_layout(annotations = )` draws the annotations it is given,
+  one as a list or several as a list of lists. Several were drawn as four
+  blank labels, and one was drawn four times.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

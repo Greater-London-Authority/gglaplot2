@@ -22,8 +22,8 @@
 #' @param xgridlines Draw gridlines on the x axis as well.
 #' @param legend Show the legend, at the top left.
 #' @param base_size The tick size in pixels.
-#' @param annotations A list passed to `plotly::layout(annotations = )`,
-#'   with the house defaults filled in.
+#' @param annotations One annotation as a list, or a list of them, passed
+#'   to `plotly::layout(annotations = )` with the house defaults filled in.
 #' @param ... Passed to `plotly::layout()`, `plotly::style()` or
 #'   `plotly::config()`.
 #' @return The plotly object.
@@ -92,8 +92,12 @@ ggla_plotly_layout <- function(plot, gla_theme = "default", x_axis_title = FALSE
   if (!is.null(annotations)) {
     defaults <- list(arrowhead = 0, showarrow = TRUE, arrowcolor = ct$label, arrowwidth = 1,
                      bgcolor = ct$surface, bordercolor = ct$surface, borderpad = 0, borderwidth = 0)
-    annotations <- utils::modifyList(defaults, annotations)
-    annotations$font <- utils::modifyList(font(ct$label, "label"), annotations$font %||% list())
+    if (!is.null(names(annotations))) annotations <- list(annotations)
+    annotations <- lapply(annotations, function(a) {
+      a <- utils::modifyList(defaults, a)
+      a$font <- utils::modifyList(font(ct$label, "label"), a$font %||% list())
+      a
+    })
     plot <- plotly::layout(plot, annotations = annotations)
   }
   plotly::layout(plot, ...)

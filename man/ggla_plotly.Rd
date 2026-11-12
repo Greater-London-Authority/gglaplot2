@@ -52,8 +52,8 @@ ggla_plotly_config(plot, ...)
 \item{...}{Passed to \code{plotly::layout()}, \code{plotly::style()} or
 \code{plotly::config()}.}
 
-\item{annotations}{A list passed to \code{plotly::layout(annotations = )},
-with the house defaults filled in.}
+\item{annotations}{One annotation as a list, or a list of them, passed
+to \code{plotly::layout(annotations = )} with the house defaults filled in.}
 }
 \value{
 The plotly object.
