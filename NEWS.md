@@ -123,6 +123,12 @@
   crossed over and pointed the wrong way, and a level pair had a stray
   arrowhead.
 
+* An SVG from `gla_save()` declares Inter at the medium and semibold
+  weights under the family its text names. svglite writes that text as
+  "Inter" at weight 500 or 600, and the faces were declared as "Inter
+  Medium" and "Inter SemiBold", so a browser without Inter set it in the
+  regular and bold faces.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

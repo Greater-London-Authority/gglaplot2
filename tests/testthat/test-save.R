@@ -21,7 +21,16 @@ test_that("an SVG declares Inter as a web font unless told not to", {
   svg <- paste(readLines(f, warn = FALSE), collapse = "\n")
   expect_match(svg, "@font-face")
   expect_match(svg, "fontsource/inter")
-  expect_match(svg, "Inter SemiBold")
+  # each weight the text is set in is a face of the family the text names
+  faces <- regmatches(svg, gregexpr("@font-face[^}]*}", svg))[[1]]
+  expect_true(all(grepl('font-family: "Inter";', faces)))
+  declared <- as.integer(sub(".*font-weight: ([0-9]+).*", "\\1", faces))
+  used <- unique(as.integer(sub(".*font-weight: ([0-9]+).*", "\\1",
+                                grep("font-weight", strsplit(svg, "<text")[[1]][-1],
+                                     value = TRUE))))
+  expect_true(all(c(500, 600) %in% used))
+  expect_true(all(used %in% declared))
+  expect_setequal(declared, c(400, 500, 600, 700))
   plain <- withr::local_tempfile(fileext = ".svg")
   gla_save(p, plain, web_fonts = FALSE)
   expect_no_match(paste(readLines(plain, warn = FALSE), collapse = "\n"), "@font-face")
