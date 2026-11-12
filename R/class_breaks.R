@@ -106,8 +106,9 @@ gla_class_breaks <- function(x, method = c("jenks", "quantile", "boxplot", "sd",
   }
   digits <- fit$digits
   if (is.null(limits)) {
-    limits <- c(floor(span[1] * 10^digits - 1e-9) / 10^digits,
-                ceiling(span[2] * 10^digits + 1e-9) / 10^digits)
+    # out to the precision, leaving an end already on it where it is
+    limits <- c(floor(span[1] * 10^digits + 1e-9) / 10^digits,
+                ceiling(span[2] * 10^digits - 1e-9) / 10^digits)
     if (!is.null(midpoint)) {
       limits <- c(min(limits[1], midpoint), max(limits[2], midpoint))
     }

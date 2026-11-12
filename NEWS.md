@@ -37,6 +37,11 @@
   `midpoint`. The midpoint was read in the transformed units, so on a log
   scale with `midpoint = 1` the neutral sat on 10 and 1 was drawn red.
 
+* `gla_class_breaks()`, and the stepped scales' `method`, leave a limit
+  where the values already end at the breaks' precision. Whole numbers
+  from 1 to 120 ran 0 to 121, and a diverging scale whose values started
+  at the midpoint gained an empty red bin below it.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

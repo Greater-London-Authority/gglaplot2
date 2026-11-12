@@ -295,7 +295,12 @@ test_that("each method classes as it says, and the degenerate cases are defined"
                c(1L, 1L))
   g <- gla_class_breaks(c(1, 2, 2, 3, 8, 9, 30, 55, 120), "geometric", n = 4)
   expect_equal(as.numeric(g), c(6, 20, 42))
-  expect_equal(attr(g, "limits"), c(0, 121))
+  # an end already at the precision stays where it is
+  expect_equal(attr(g, "limits"), c(1, 120))
+  # so a diverging side the values do not reach gets no bin
+  one_side <- gla_class_breaks(c(0, 1, 3), "jenks", n = 3, midpoint = 0)
+  expect_equal(attr(one_side, "limits"), c(0, 3))
+  expect_false(any(one_side < 0))
   expect_error(gla_class_breaks(c(0, 1, 5), "geometric"), "above zero")
   set.seed(4)
   s <- gla_class_breaks(rnorm(200, 50, 10), "sd")
