@@ -371,3 +371,11 @@ test_that("a paired dot plot leaves out a connector with no room or no change", 
   expect_null(connectors(ggplot(d[5:6, ], aes(v, cat, colour = when)) + geom_gla_paired()))
   expect_no_error(draw(p))
 })
+
+test_that("separate_labels keeps the spacing when the labels do not fit", {
+  out <- separate_labels(c(1, 2, 3, 4, 5), 10, 0, 20)
+  expect_equal(diff(out), rep(10, 4))
+  expect_equal(max(out), 20)
+  expect_equal(separate_labels(5, 10, 0, 20), 5)
+  expect_equal(separate_labels(numeric(), 10, 0, 20), numeric())
+})

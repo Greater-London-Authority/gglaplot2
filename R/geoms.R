@@ -544,9 +544,11 @@ makeContent.gla_dodge <- function(x) {
 #'
 #' Moves positions so neighbours are at least `spacing` apart while each
 #' stays as close as possible to where it was, and all stay within
-#' `[lower, upper]`. Overlapping labels are merged into clusters laid out as
-#' an evenly spaced stack centred on the mean of the members' original
-#' positions. The web charts' end-of-line label dodge, in one dimension.
+#' `[lower, upper]` where there is room for them. Overlapping labels are
+#' merged into clusters laid out as an evenly spaced stack centred on the
+#' mean of the members' original positions. A stack taller than the bounds
+#' keeps its spacing and runs below `lower`. The web charts' end-of-line
+#' label dodge, in one dimension.
 #'
 #' @param y Positions, any unit.
 #' @param spacing The minimum gap between neighbours.

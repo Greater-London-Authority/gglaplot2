@@ -19,9 +19,11 @@ Positions in the same order as \code{y}.
 \description{
 Moves positions so neighbours are at least \code{spacing} apart while each
 stays as close as possible to where it was, and all stay within
-\verb{[lower, upper]}. Overlapping labels are merged into clusters laid out as
-an evenly spaced stack centred on the mean of the members' original
-positions. The web charts' end-of-line label dodge, in one dimension.
+\verb{[lower, upper]} where there is room for them. Overlapping labels are
+merged into clusters laid out as an evenly spaced stack centred on the
+mean of the members' original positions. A stack taller than the bounds
+keeps its spacing and runs below \code{lower}. The web charts' end-of-line
+label dodge, in one dimension.
 }
 \examples{
 separate_labels(c(10, 12, 50), spacing = 8, lower = 0, upper = 100)
