@@ -647,8 +647,9 @@ GeomGlaVline <- ggplot2::ggproto(
 #' A dashed 2px rule in `data-context` grey across the plot at a value,
 #' with its label sitting on the line at the right edge, as the web line
 #' charts draw a target or an average. Give `x` instead of `y` for a
-#' vertical rule at a date or a value, labelled at the top. The line reads
-#' its colour from the theme's surface, so it holds in dark mode.
+#' vertical rule at a date or a value, labelled at the top. The rule takes
+#' its colour from `theme`, which follows [gla_mode()]: for a dark chart set
+#' the mode, or pass `theme = "dark"` here as well as to [theme_gla()].
 #'
 #' @param y The value a horizontal line marks.
 #' @param label Text for the line. `NULL` for none.

@@ -266,10 +266,11 @@ gla_plotly(gg_own, tooltip = "text")
 - **An area is darker than its value.** It is beyond the limits and took
   the end step. Widen the limits or say so in the note.
 - **Every rise is pale.** With few rises against large falls that is right,
-  and `steps` gives the rises their own width. A smooth ramp,
-  `scale_fill_gla_c("diverging")`, would stretch its darkest blue to the
-  largest rise however small, which is why the stepped scale is the
-  default for a map.
+  and `steps` gives the rises their own width. The smooth ramp,
+  `scale_fill_gla_c("diverging")`, measures both sides on one scale, so it
+  leaves small rises near the neutral too; it has no way to give them
+  steps of their own, which is why the stepped scale is the default for a
+  map.
 - **Values show as 0.05 rather than 5%.** The data is in fractions; use
   `label_gla_percent()` without `scale = 1`.
 - **A borough is grey.** Its value is missing. Missing values take the

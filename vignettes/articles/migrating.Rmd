@@ -127,7 +127,9 @@ ggplot(LDNUK, aes(x = Year, y = GPG, colour = location)) +
   Three is the design ceiling; past it, label the series directly.
 - `theme_gla()` needs ggplot2 4.0 or later: the marks read their colour,
   width and type from the theme, which is what lets `theme_gla(theme =
-  "dark")` recolour a chart without a change to the layers.
+  "dark")` recolour them without a change to the layers. Reference lines,
+  ranges, maps, paired arrows and treemaps take their colours from
+  `gla_mode()`, so a dark chart sets the mode.
 - Inter, the design system's typeface, is bundled and used wherever the
   device can draw it. See the Typography page.
 - The old package's chroma fork and its dependencies on dplyr, tidyr,

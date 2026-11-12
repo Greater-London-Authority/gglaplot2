@@ -22,8 +22,9 @@ A list of ggplot2 layers.
 A dashed 2px rule in \code{data-context} grey across the plot at a value,
 with its label sitting on the line at the right edge, as the web line
 charts draw a target or an average. Give \code{x} instead of \code{y} for a
-vertical rule at a date or a value, labelled at the top. The line reads
-its colour from the theme's surface, so it holds in dark mode.
+vertical rule at a date or a value, labelled at the top. The rule takes
+its colour from \code{theme}, which follows \code{\link[=gla_mode]{gla_mode()}}: for a dark chart set
+the mode, or pass \code{theme = "dark"} here as well as to \code{\link[=theme_gla]{theme_gla()}}.
 }
 \examples{
 library(ggplot2)

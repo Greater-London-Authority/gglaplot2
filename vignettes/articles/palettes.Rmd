@@ -25,10 +25,12 @@ gla_show_pal()
 The categorical palette is the order the web charts colour series in:
 `data-primary`, `data-secondary`, `data-tertiary`, then turquoise, purple,
 red, green and yellow. A chart here and a chart on one of the visualisation
-team's sites colour the fourth series alike. It validates clean to three
-series under the palette checks (lightness, chroma, colour vision deficiency
-separation, contrast on the surface); past three, turquoise reads grey on a
-light surface and red against green is a known pair. Design to three and fold
+team's sites colour the fourth series alike. On the light surface it
+validates clean to three series under the palette checks (lightness, chroma,
+colour vision deficiency separation, contrast on the surface); past three,
+turquoise reads grey and red against green is a known pair. The dark reading
+is lighter: it sits above the lightness band from the first colour, and at
+three series falls below the normal-vision floor. Design to three and fold
 categories rather than reach for a fourth colour; where a chart must carry
 more, label the series directly. Asking for more colours than the palette has
 is an error, not a recycled colour.

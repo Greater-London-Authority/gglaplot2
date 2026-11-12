@@ -42,11 +42,13 @@ here matches a dashboard built on the same tokens.
 series in: \code{data-primary}, \code{data-secondary}, \code{data-tertiary}, then
 turquoise, purple, red, green and yellow from the \verb{data-categorical-*}
 tokens. It is their \code{getColorScale} order, so a chart here and a chart on
-one of their sites colour the fourth series alike. It validates clean to
-three series under the palette checks (lightness band, chroma, colour
-vision deficiency separation, contrast on the chart surface); past three,
-turquoise reads grey on a light surface, purple leaves the lightness
-band and red against green is a known pair. Design to three and fold
+one of their sites colour the fourth series alike. On the light surface
+it validates clean to three series under the palette checks (lightness
+band, chroma, colour vision deficiency separation, contrast on the chart
+surface); past three, turquoise reads grey, purple leaves the lightness
+band and red against green is a known pair. The dark reading sits above
+the lightness band from the first colour, and at three series falls
+below the normal-vision floor. Design to three and fold
 categories rather than reach for a fourth colour; where a chart must
 carry more, label the series directly.
 
