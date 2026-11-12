@@ -206,7 +206,7 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
     if (is.null(self$steps)) {
       return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
     }
-    if (self$is_empty()) return(numeric())
+    if (self$is_empty() || !all(is.finite(limits))) return(numeric())
     transformation <- self$get_transformation()
     lim <- sort(transformation$inverse(limits))
     if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
@@ -257,7 +257,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (!identical(self$method, "equal") && length(self$seen)) {
       return(classed_breaks(self, self$midpoint, c(3, 3)))
     }
-    if (self$is_empty()) return(numeric())
+    if (self$is_empty() || !all(is.finite(limits))) return(numeric())
     transformation <- self$get_transformation()
     lim <- sort(transformation$inverse(limits))
     if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)

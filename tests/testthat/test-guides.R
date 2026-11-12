@@ -1,3 +1,5 @@
+fills_of <- function(p) tolower(build(p)$data[[1]]$fill)
+
 bin_key <- function(p) {
   b <- build(p)
   sc <- b$plot$scales$get_scales("fill")
@@ -103,4 +105,26 @@ test_that("the end labels follow what the scale does with values beyond its limi
   empty <- scale_fill_gla_b(labels = label_gla_percent())
   expect_equal(bin_edge_labels(empty, c(-Inf, Inf)), c("-Inf", "Inf"))
   expect_equal(bin_edge_labels(empty, c(2, 2)), c("200%", "200%"))
+})
+
+test_that("labels and breaks given to the scale shape the legend as ggplot2 would", {
+  d <- data.frame(x = 1:4, y = 1, v = c(-12, 0, 2, 9))
+  # text labels name the breaks, the limits take the house number
+  named <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(breaks = c(-5, 0, 5), labels = c("low", "mid", "high"))
+  expect_equal(rev(bin_key(named)$.label),
+               c("-12 to low", "low to mid", "mid to high", "high to 9"))
+  # no labels, no text
+  bare <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b(labels = NULL)
+  expect_true(all(bin_key(bare)$.label == ""))
+  # one bin is still a legend
+  one <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b(steps = 1)
+  expect_equal(nrow(bin_key(one)), 1)
+  # a break beyond the limits bounds nothing drawn: no key repeats a colour
+  out <- ggplot(transform(d, v = c(-5, 2, 4.5, 20)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(limits = c(-4, 4), breaks = c(0, 6))
+  key <- bin_key(out)
+  expect_equal(nrow(key), 2)
+  expect_equal(anyDuplicated(key$fill), 0L)
+  expect_true(all(fills_of(out) %in% tolower(key$fill)))
 })

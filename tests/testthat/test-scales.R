@@ -459,3 +459,13 @@ test_that("limits on one side of the midpoint are cut into the steps asked for",
   expect_equal(fill_scale(below)$get_breaks(), c(-9, -6))
   expect_equal(nrow(get_guide_data(below, "fill")), 3)
 })
+
+test_that("a scale with nothing but missing values draws no legend and no error", {
+  d <- data.frame(x = 1:2, y = 1, v = c(NA_real_, NA_real_))
+  for (sc in list(scale_fill_gla_b(), scale_fill_gla_b(steps = 2), scale_fill_gla_b("diverging"),
+                  scale_fill_gla_b("diverging", steps = 2), scale_fill_gla_b(method = "jenks"))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc + theme_gla()
+    expect_no_error(draw(p))
+    expect_null(get_guide_data(p, "fill"))
+  }
+})

@@ -62,6 +62,15 @@
   no legend. The help now gives the step widths `steps` rounds to as they
   are: 1, 2, 2.5, 3, 4 or 5 times a power of ten.
 
+* The stepped legend draws with `labels` given as text, which name the
+  breaks, and with `labels = NULL`, which leaves the swatches bare; the
+  first stopped with "`breaks` and `labels` have different lengths" and
+  the second read " to " on every swatch. A scale of one bin, `steps = 1`,
+  has its swatch, where it had no legend. A break beyond the `limits` no
+  longer adds a swatch in the colour of the one beside it. A stepped scale
+  with nothing but missing values draws without a legend; it stopped with
+  an error, or with a method listed "-Inf to Inf".
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover
