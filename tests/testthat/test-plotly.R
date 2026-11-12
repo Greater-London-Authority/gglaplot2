@@ -528,3 +528,22 @@ test_that("a tooltip the caller chose is the one the marks show", {
   b <- plotly::plotly_build(gla_plotly(bars, tooltip = "text"))$x$data[[1]]$text
   expect_true(all(b == "Variable A"))
 })
+
+test_that("an interactive treemap carries its tiles' labels", {
+  d <- data.frame(b = c("Camden", "Hackney", "Barnet", "Tiny"), v = c(42, 35, 51, 0.5),
+                  g = c("Inner", "Inner", "Outer", "Outer"))
+  text_traces <- function(p) {
+    Filter(function(t) identical(t$mode, "text"), plotly::plotly_build(gla_plotly(p))$x$data)
+  }
+  centred <- text_traces(ggplot(d, aes(area = v, label = b)) + geom_gla_treemap() +
+                           theme_gla_map())
+  expect_length(centred, 1)
+  expect_setequal(centred[[1]]$text, c("Camden", "Hackney", "Barnet"))
+  expect_true(all(centred[[1]]$x > 0 & centred[[1]]$x < 1))
+  expect_equal(centred[[1]]$hoverinfo, "skip")
+  corner <- text_traces(ggplot(d, aes(area = v, label = b, fill = g)) +
+                          geom_gla_treemap(label_position = "topleft") + scale_fill_gla() +
+                          theme_gla_map())
+  expect_setequal(unlist(lapply(corner, `[[`, "text")), c("Camden", "Hackney", "Barnet"))
+  expect_true(all(vapply(corner, `[[`, "", "textposition") == "bottom right"))
+})

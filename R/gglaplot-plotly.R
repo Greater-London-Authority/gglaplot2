@@ -162,8 +162,14 @@ to_basic.GeomGlaArea <- as_basic("GeomArea")
 to_basic.GeomGlaConnector <- as_basic("GeomSegment")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaTreemap <- as_basic("GeomRect")
+# a treemap's labels are placed as the tiles are drawn, which ggplotly()
+# never runs, so they are placed here the same way
 #' @exportS3Method plotly::to_basic
-to_basic.GeomGlaTreemapLabel <- as_basic("GeomText")
+to_basic.GeomGlaTreemapLabel <- function(data, prestats_data, layout, params, p, ...) {
+  data <- treemap_labels(data, params$label_position %||% "centre", params$min_label %||% 0.02)
+  class(data) <- c(if (nrow(data)) "GeomText" else "GeomBlank", class(data)[-1])
+  plotly::to_basic(data, prestats_data, layout, params, p, ...)
+}
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaText <- as_basic("GeomText")
 # an end label is placed by gla_plotly() as an annotation, off its point

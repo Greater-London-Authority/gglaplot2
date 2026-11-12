@@ -95,6 +95,11 @@
   points, lines and bars as well as on maps. The house hover label was
   written over it.
 
+* `gla_plotly()` draws a treemap's labels. They were placed only when the
+  static chart drew its tiles, so the interactive one had none; they now
+  sit centred or at the top left of their tile as the static chart has
+  them.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

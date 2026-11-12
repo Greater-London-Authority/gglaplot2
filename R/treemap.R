@@ -200,19 +200,26 @@ GeomGlaTreemapLabel <- ggplot2::ggproto(
   ),
   draw_panel = function(data, panel_params, coord, label_position = "centre",
                         min_label = 0.02, na.rm = FALSE) {
-    if (is.null(data$label)) return(ggplot2::zeroGrob())
-    data <- data[!is.na(data$label) & data$share >= min_label, , drop = FALSE]
+    data <- treemap_labels(data, label_position, min_label)
     if (nrow(data) == 0) return(ggplot2::zeroGrob())
-    inset <- 0.012
-    if (label_position == "topleft") {
-      data$x <- data$xmin + inset
-      data$y <- data$ymax - inset
-      data$hjust <- 0
-      data$vjust <- 1
-    } else {
-      data$x <- (data$xmin + data$xmax) / 2
-      data$y <- (data$ymin + data$ymax) / 2
-    }
     ggplot2::GeomText$draw_panel(data, panel_params, coord, na.rm = na.rm)
   }
 )
+
+# the labels of the tiles big enough to carry one, placed centred or at the
+# top left of their tile
+treemap_labels <- function(data, label_position = "centre", min_label = 0.02) {
+  if (is.null(data$label)) return(data[0, , drop = FALSE])
+  data <- data[!is.na(data$label) & data$share >= min_label, , drop = FALSE]
+  inset <- 0.012
+  if (label_position == "topleft") {
+    data$x <- data$xmin + inset
+    data$y <- data$ymax - inset
+    data$hjust <- rep(0, nrow(data))
+    data$vjust <- rep(1, nrow(data))
+  } else {
+    data$x <- (data$xmin + data$xmax) / 2
+    data$y <- (data$ymin + data$ymax) / 2
+  }
+  data
+}

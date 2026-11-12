@@ -62,6 +62,7 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
   out <- plotly_edge_labels(out, built, ct)
+  out$x$data <- plotly_treemap_labels(out$x$data, built)
   out$x$data <- plotly_hover(out$x$data, built, tooltip)
   out <- plotly_bin_legend(out, built, ct)
   out <- plotly_chrome(out, labels, ct)
@@ -533,6 +534,30 @@ plotly_hover <- function(traces, built, tooltip = "all") {
     trace$hoverinfo <- "text"
     trace
   })
+}
+
+# a treemap's labels as the static chart sets them: plotly centres text on
+# its point, so a label set at the top left of its tile hangs below and to
+# the right of it. The tile under a label keeps the pointer.
+plotly_treemap_labels <- function(traces, built) {
+  for (i in seq_along(built$plot$layers)) {
+    layer <- built$plot$layers[[i]]
+    if (!inherits(layer$geom, "GeomGlaTreemapLabel")) next
+    params <- layer$geom_params
+    labels <- treemap_labels(built$data[[i]], params$label_position %||% "centre",
+                             params$min_label %||% 0.02)$label
+    topleft <- identical(params$label_position, "topleft")
+    traces <- lapply(traces, function(trace) {
+      if (!identical(trace$mode, "text") || !length(trace$text) ||
+            !all(as.character(trace$text) %in% as.character(labels))) {
+        return(trace)
+      }
+      if (topleft) trace$textposition <- "bottom right"
+      trace$hoverinfo <- "skip"
+      trace
+    })
+  }
+  traces
 }
 
 # the labels a trace has no position for become annotations: an end label
