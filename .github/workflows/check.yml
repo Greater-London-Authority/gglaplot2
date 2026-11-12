@@ -89,6 +89,8 @@ jobs:
           - { name: "Ubuntu, R release (reference)", os: ubuntu-latest, r: release, reference: true }
           - { name: "Ubuntu, R devel", os: ubuntu-latest, r: devel, http-user-agent: release }
           - { name: "Ubuntu, R oldrel", os: ubuntu-latest, r: oldrel-1 }
+          # the floor in DESCRIPTION, where base R has no `@` for S7 objects
+          - { name: "Ubuntu 22.04, R 4.1 (floor)", os: ubuntu-22.04, r: "4.1" }
           - { name: "Ubuntu, oldest ggplot2", os: ubuntu-latest, r: release, ggplot2: "4.0.0" }
           - { name: "macOS, R release", os: macos-latest, r: release }
           - { name: "Windows, R release", os: windows-latest, r: release }
