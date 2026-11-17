@@ -228,6 +228,13 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
     breaks <- snap(lim[1] + width * seq_len(n - 1), width)
     self$breaks <- breaks
     transformation$transform(breaks)
+  },
+  # trained on nothing but missing values the limits are infinite, so the
+  # rescaled edges would be NaN and cut() refuses them from R 4.6.1
+  map = function(self, x, limits = self$get_limits()) {
+    if (!self$after.stat && !all(is.finite(limits))) return(rep(self$na.value, length(x)))
+    parent <- ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)
+    if (missing(limits)) parent$map(x) else parent$map(x, limits)
   }
 )
 
@@ -298,6 +305,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (self$after.stat) return(x)
     breaks <- self$get_breaks(limits)
     if (missing(limits)) limits <- self$get_limits()
+    if (!all(is.finite(limits))) return(rep(self$na.value, length(x)))
     edges <- sort(unique(c(limits[1], breaks, limits[2])))
     x <- self$rescale(self$oob(x, range = limits), limits)
     cuts <- self$rescale(edges, limits)
