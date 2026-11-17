@@ -119,10 +119,66 @@ label_gla_percent(accuracy = 0.1)(0.123)
 label_gla_date()(as.Date("2024-03-05"))
 ```
 
+## Maps
+
+`geom_gla_sf()` draws areas with the house fill and edge, and
+`theme_gla_map()` takes the axes away. The package carries the 33 boroughs
+as `gla_boroughs`: load sf, then join your figures to them on the code.
+`scale_fill_gla_b()` colours them in steps as the web maps do, five bins of
+one rounded width by default, so a value takes the same colour on next
+year's map.
+
+```{r map, fig.width = 7, fig.height = 5.2, eval = requireNamespace("sf", quietly = TRUE)}
+library(sf)
+leave <- merge(gla_boroughs, EURef[, c("Area_Code", "PropLeave")],
+               by.x = "code", by.y = "Area_Code")
+
+ggplot(leave) +
+  geom_gla_sf(aes(fill = PropLeave)) +
+  scale_fill_gla_b(name = NULL, steps = 5, labels = label_gla_percent(scale = 1)) +
+  gla_labs(title = "Share voting Leave, 2016", source = "Electoral Commission") +
+  theme_gla_map()
+```
+
+Equal steps are the right scale for most published maps, and for any map
+that is published again. When one map of a skewed distribution goes flat,
+`method` classes the bins by the data instead:
+
+- `"jenks"`, natural breaks: the bins fall where the data has gaps, and an
+  area far from the rest gets one of its own. The general choice.
+- `"quantile"`: the same number of areas in each bin whatever the
+  distribution, at the cost of hiding an outlier among its neighbours.
+- `"boxplot"`: cuts at the quartiles, with anything beyond the fences in a
+  bin of its own, so an outlier bin appears only when there is one.
+- `"sd"`: bins one standard deviation wide around the mean, for a measure
+  that is roughly normal.
+- `"headtails"`: for a heavy tail, splitting at the mean and again above
+  it, so the many small values share one bin and each step up holds fewer.
+- `"geometric"`: bins widening by a constant ratio, for counts that span
+  orders of magnitude. The values must be above zero.
+
+```{r map-method, fig.width = 7, fig.height = 5.2, eval = requireNamespace("sf", quietly = TRUE)}
+ggplot(leave) +
+  geom_gla_sf(aes(fill = PropLeave)) +
+  scale_fill_gla_b(name = NULL, method = "jenks", steps = 5,
+                   labels = label_gla_percent(scale = 1)) +
+  gla_labs(title = "The same shares in natural breaks", source = "Electoral Commission") +
+  theme_gla_map()
+```
+
+Whichever method, the lines between bins are drawn in the gaps between the
+classes, at the coarsest rounding that moves no area, so the legend reads in
+round figures. `gla_class_breaks()` is the calculation on its own, and
+[Choosing a map scale](map-scales.html) shows every method on this map and
+says when not to use one.
+
 ## Where next
 
 - [Design tokens](design-tokens.html), [Typography](typography.html) and
   [Palettes and colour](palettes.html) for the foundations.
 - A page per chart family under Charts, each with the code: start with
   [Line charts](line-charts.html).
+- [Maps](maps.html), [Mapping a change](diverging-maps.html) and
+  [Choosing a map scale](map-scales.html) for choropleths and the scales
+  that colour them.
 - The [reference](https://greater-london-authority.github.io/gglaplot2/reference/index.html) for every function.
