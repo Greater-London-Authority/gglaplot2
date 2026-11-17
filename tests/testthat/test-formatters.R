@@ -14,6 +14,15 @@ test_that("percentages are whole by default, from fractions, and take points wit
   expect_equal(label_gla_percent(accuracy = 0.1, scale = 1)(12.34), "12.3%")
 })
 
+test_that("the other arguments of scales' labels reach it, over the house marks", {
+  expect_equal(label_gla_number(big.mark = " ")(1234567), "1 234 567")
+  expect_equal(label_gla_number(decimal.mark = ",", big.mark = ".", accuracy = 0.1)(1234.5),
+               "1.234,5")
+  expect_equal(label_gla_percent(big.mark = " ")(123.45), "12 345%")
+  expect_equal(label_gla_pounds(big.mark = "")(12345), "\u00a312345")
+  expect_equal(label_gla_number()(1234567), "1,234,567")
+})
+
 test_that("pounds sit against the number", {
   expect_equal(label_gla_pounds()(c(50, 1234)), c("£50", "£1,234"))
   expect_equal(label_gla_pounds(accuracy = 0.01)(9.5), "£9.50")
@@ -43,9 +52,15 @@ test_that("a label function at a fixed accuracy can be asked for a finer one", {
   expect_equal(refine$accuracy, 1)
   expect_equal(refine$at(0.1)(c(2.5, 3)), c("2.5%", "3%"))
   expect_equal(attr(label_gla_pounds(accuracy = 1), "gla_refine")$at(0.01)(2.5), "\u00a32.5")
-  # left to scales, or cut short, there is nothing to refine
+  # left to scales there is nothing to refine
   expect_null(attr(label_gla_number(), "gla_refine"))
-  expect_null(attr(label_gla_number(accuracy = 1, short = TRUE), "gla_refine"))
+  # cut short, each value is rounded in its own unit, to one decimal unless set
+  short <- attr(label_gla_number(short = TRUE), "gla_refine")
+  expect_true(short$short)
+  expect_equal(short$accuracy, 0.1)
+  expect_equal(short$at(0.001)(c(1e6, 1.025e6)), c("1m", "1.025m"))
+  expect_equal(attr(label_gla_number(accuracy = 1, short = TRUE), "gla_refine")$accuracy, 1)
+  expect_equal(unname(short_units(c(0, 950, 1250, -2.5e6, 3e9))), c(0, 950, 1.25, -2.5, 3))
   # an argument of the caller's survives the refinement
   g <- label_gla_percent(scale = 1, suffix = " pts", drop0trailing = FALSE)
   expect_equal(attr(g, "gla_refine")$at(0.1)(3), "3 pts")

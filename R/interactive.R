@@ -16,7 +16,8 @@
 #' value, formatted by the fill scale's `labels`, anywhere inside its
 #' boundary. The name is the layer's `label` aesthetic or, without one, a
 #' `name` column in the data. To write the label yourself, map a `text`
-#' aesthetic and pass `tooltip = "text"`.
+#' aesthetic and pass `tooltip = "text"`; any `tooltip` other than `"all"`
+#' is ggplotly()'s, written from the aesthetics it names.
 #'
 #' Interactive charts on a GLA site belong to the visualisation team's web
 #' components; this is for a notebook, a Shiny app or a one-off.
@@ -60,8 +61,11 @@ gla_plotly <- function(plot, theme = NULL, tooltip = "all", ...) {
   out <- ggla_plotly_config(out)
   out$x$layout <- plotly_layout(out$x$layout, plot, plot_theme, ct)
   out$x$data <- plotly_traces(out$x$data, out$x$layout)
+  out$x$data <- plotly_series_names(out$x$data, built)
   out <- plotly_edge_labels(out, built, ct)
-  out$x$data <- plotly_hover(out$x$data, built)
+  out$x$data <- plotly_treemap_labels(out$x$data, built)
+  out$x$data <- plotly_hover(out$x$data, built, tooltip)
+  out$x$data <- plotly_quiet(out$x$data, built)
   out <- plotly_bin_legend(out, built, ct)
   out <- plotly_chrome(out, labels, ct)
   out
@@ -231,14 +235,41 @@ plotly_traces <- function(traces, layout) {
     trace$y <- finite(trace$y, axis_key(trace$yaxis, "y"))
     dash <- trace$line$dash
     name <- if (length(dash) == 1) plotly_dash_names[dash] else NA
-    if (!is.na(name)) {
+    # a named dash, or a pattern ggplotly() passed on as ggplot2 wrote it
+    # (a mapped "12", which plotly would read as a 12px dash)
+    pattern <- if (!is.na(name)) {
+      plotly_dashes[[name]]
+    } else if (length(dash) == 1 && grepl("^([0-9a-fA-F]{2}){1,4}$", dash)) {
+      dash
+    }
+    if (!is.null(pattern)) {
       width <- max(trace$line$width %||% 1, 1)
-      digits <- strtoi(strsplit(plotly_dashes[[name]], "")[[1]], 16L)
+      digits <- strtoi(strsplit(pattern, "")[[1]], 16L)
       trace$line$dash <- paste0(round(digits * width), "px", collapse = ",")
     }
     trace
   })
   Filter(function(trace) !is.null(trace$type), traces)
+}
+
+# each series named as the scale's legend names it: ggplotly() names a trace
+# by its level, so `labels` given to a colour or fill scale were lost from
+# the legend and the hover label
+plotly_series_names <- function(traces, built) {
+  for (aes in c("colour", "fill")) {
+    scale <- built$plot$scales$get_scales(aes)
+    if (is.null(scale) || !isTRUE(scale$is_discrete())) next
+    breaks <- scale$get_breaks()
+    labels <- tryCatch(scale$get_labels(breaks), error = function(e) NULL)
+    if (!is.character(labels) || length(labels) != length(breaks)) next
+    breaks <- as.character(breaks)
+    traces <- lapply(traces, function(trace) {
+      at <- if (length(trace$name) == 1) match(trace$name, breaks) else NA
+      if (!is.na(at)) trace$name <- labels[at]
+      trace
+    })
+  }
+  traces
 }
 
 # the hover label of each area of a map: its name, then its value in the
@@ -337,7 +368,9 @@ area_value_labels <- function(scale, values) {
   }
   labels <- scale_labels(scale)
   refine <- attr(labels, "gla_refine")
-  if (!is.null(refine)) return(refine$at(refine$accuracy / 10, drop0trailing = FALSE)(values))
+  if (!is.null(refine) && !isTRUE(refine$short)) {
+    return(refine$at(refine$accuracy / 10, drop0trailing = FALSE)(values))
+  }
   if (is.function(labels)) {
     out <- tryCatch(as.character(labels(signif(values, 4))), error = function(e) NULL)
     if (length(out) == length(values)) return(out)
@@ -401,18 +434,28 @@ plotly_area_traces <- function(traces) {
 
 # the hover label in the chart's own words: the series, then each axis as
 # its title and the value formatted by that axis's scale, so a chart whose
-# axis reads in pounds or per cent hovers in pounds or per cent too. An
-# area of a map takes the label plotly_area_text() made for it. Other marks
-# with a shape rather than a point (a treemap's tiles, a map with a text
-# aesthetic of its own) keep the label ggplotly gave them.
-plotly_hover <- function(traces, built) {
+# axis reads in pounds or per cent hovers in pounds or per cent too. Each
+# trace is read through its own panel, whose free scale may differ from the
+# first, and a value is written in the data's units, not the transformed
+# ones a log or reversed axis is drawn in. An area of a map takes the label
+# plotly_area_text() made for it. Other marks with a shape rather than a
+# point (a treemap's tiles, a map with a text aesthetic of its own) keep
+# the label ggplotly gave them, as does every mark when the caller chose
+# the tooltip.
+plotly_hover <- function(traces, built, tooltip = "all") {
+  traces <- plotly_area_traces(traces)
+  if (!identical(tooltip, "all")) {
+    return(lapply(traces, function(trace) {
+      trace$.gla_area <- NULL
+      trace
+    }))
+  }
   scales <- built$plot$scales
   labels <- built$plot$labels
-  panel <- built$layout$panel_params[[1]]
   # under coord_flip() the scales keep their names and the panel swaps its
   # views, so a trace's x is the y scale read through the panel's x
   flipped <- inherits(built$layout$coord, "CoordFlip")
-  axis <- function(aes, view = aes) {
+  axis <- function(panel, aes, view = aes) {
     scale <- scales$get_scales(aes)
     if (is.null(scale)) return(NULL)
     title <- scale$name
@@ -420,7 +463,9 @@ plotly_hover <- function(traces, built) {
     if (is.null(title) || inherits(title, "waiver")) title <- ""
     discrete <- isTRUE(scale$is_discrete())
     levels <- if (discrete) as.character(panel[[view]]$get_labels())
+    timed <- inherits(scale, c("ScaleContinuousDate", "ScaleContinuousDatetime"))
     date <- inherits(scale, "ScaleContinuousDate") && inherits(scale$labels, "waiver")
+    transformation <- if (!discrete) scale$get_transformation()
     breaks <- panel[[view]]$breaks
     breaks <- if (is.numeric(breaks)) breaks[is.finite(breaks)] else numeric()
     fmt <- function(values) {
@@ -433,20 +478,42 @@ plotly_hover <- function(traces, built) {
         return(out)
       }
       if (date) return(trimws(format(as.Date(values, origin = "1970-01-01"), "%e %B %Y")))
+      if (timed) {
+        # a date or a time in the axis's own labels, never rounded: four
+        # figures of a count of days or seconds is another day
+        out <- tryCatch(as.character(scale$get_labels(values)), error = function(e) NULL)
+        if (length(out) == length(values)) return(out)
+      }
+      data <- transformation$inverse(values)
       if (inherits(scale$labels, "waiver")) {
         # a plain number at the axis's own precision
-        out <- label_gla_number()(c(values, breaks))
+        out <- label_gla_number()(c(data, transformation$inverse(breaks)))
         return(out[seq_along(values)])
       }
-      # the axis's labels at four significant figures, as the web charts' tips
-      out <- tryCatch(as.character(scale$get_labels(signif(values, 4))), error = function(e) NULL)
-      if (length(out) != length(values)) return(format(values, big.mark = ",", trim = TRUE))
+      # the axis's labels at four significant figures of the value itself,
+      # as the web charts' tips, given the value rather than a transformed
+      # one turned back, which a log axis would leave as 159.99999
+      given <- scale_labels(scale)
+      at <- signif(data, 4)
+      out <- tryCatch(as.character(if (is.function(given)) {
+        given(at)
+      } else {
+        scale$get_labels(transformation$transform(at))
+      }), error = function(e) NULL)
+      if (length(out) != length(values)) return(format(data, big.mark = ",", trim = TRUE))
       out
     }
     list(title = as.character(title), format = fmt)
   }
-  x <- if (flipped) axis("y", "x") else axis("x")
-  y <- if (flipped) axis("x", "y") else axis("y")
+  views <- lapply(built$layout$panel_params, function(panel) {
+    list(x = if (flipped) axis(panel, "y", "x") else axis(panel, "x"),
+         y = if (flipped) axis(panel, "x", "y") else axis(panel, "y"))
+  })
+  axes <- plotly_panel_axes(built)
+  panel_of <- function(trace) {
+    hit <- which(axes$x == (trace$xaxis %||% "x") & axes$y == (trace$yaxis %||% "y"))
+    if (length(hit)) hit[1] else 1L
+  }
   line <- function(axis, values) {
     values <- unclass(values)
     if (is.null(axis) || !is.numeric(values)) return(NULL)
@@ -454,7 +521,6 @@ plotly_hover <- function(traces, built) {
     if (all(is.na(text))) return(NULL)
     if (nzchar(axis$title)) paste0(axis$title, ": ", text) else text
   }
-  traces <- plotly_area_traces(traces)
   sideways <- function(trace) {
     !flipped && identical(trace$type, "bar") && !is.null(trace$width) && !is.null(trace$base) &&
       isTRUE(scales$get_scales("y")$is_discrete()) &&
@@ -467,6 +533,9 @@ plotly_hover <- function(traces, built) {
     }
     shape <- !is.null(trace$fill) || identical(trace$mode, "text") || !length(trace$x)
     if (shape || is.null(trace$text)) return(trace)
+    view <- views[[panel_of(trace)]]
+    x <- view$x
+    y <- view$y
     series <- if (!is.null(trace$legendgroup) && !is.null(trace$name)) trace$name
     parts <- list(rep(series, length(trace$x)), line(x, trace$x), line(y, trace$y))
     if (identical(trace$type, "bar") && !is.null(trace$base)) {
@@ -496,12 +565,64 @@ plotly_hover <- function(traces, built) {
   })
 }
 
+# a treemap's labels as the static chart sets them: plotly centres text on
+# its point, so a label set at the top left of its tile hangs below and to
+# the right of it. The tile under a label keeps the pointer.
+plotly_treemap_labels <- function(traces, built) {
+  for (i in seq_along(built$plot$layers)) {
+    layer <- built$plot$layers[[i]]
+    if (!inherits(layer$geom, "GeomGlaTreemapLabel")) next
+    params <- layer$geom_params
+    labels <- treemap_labels(built$data[[i]], params$label_position %||% "centre",
+                             params$min_label %||% 0.02)$label
+    topleft <- identical(params$label_position, "topleft")
+    traces <- lapply(traces, function(trace) {
+      if (!identical(trace$mode, "text") || !length(trace$text) ||
+            !all(as.character(trace$text) %in% as.character(labels))) {
+        return(trace)
+      }
+      if (topleft) trace$textposition <- "bottom right"
+      trace$hoverinfo <- "skip"
+      trace
+    })
+  }
+  traces
+}
+
+# the marks that annotate rather than carry data take no pointer: a wash
+# with no text would hover as "trace 0", and a rule across the panel would
+# give the coordinates of its two ends
+plotly_quiet <- function(traces, built) {
+  rules <- list(x = numeric(), y = numeric())
+  for (i in seq_along(built$plot$layers)) {
+    geom <- built$plot$layers[[i]]$geom
+    data <- built$data[[i]]
+    if (inherits(geom, "GeomHline")) rules$y <- c(rules$y, data$yintercept)
+    if (inherits(geom, "GeomVline")) rules$x <- c(rules$x, data$xintercept)
+  }
+  on_rule <- function(values, at) {
+    values <- unclass(values)
+    is.numeric(values) && length(values) == 2 && values[1] == values[2] &&
+      any(abs(at - values[1]) < 1e-9 * max(1, abs(values[1])))
+  }
+  lapply(traces, function(trace) {
+    unnamed <- !nzchar(trace$name %||% "")
+    wash <- !is.null(trace$fill) && !isTRUE(trace$.gla_area) &&
+      all(!nzchar(as.character(trace$text %||% "")))
+    rule <- identical(trace$mode, "lines") && is.null(trace$fill) &&
+      (on_rule(trace$y, rules$y) || on_rule(trace$x, rules$x))
+    if (unnamed && (wash || rule)) trace$hoverinfo <- "skip"
+    trace
+  })
+}
+
 # the labels a trace has no position for become annotations: an end label
 # sits a few pixels off its point and is dodged apart from its neighbours
 # as the geom does, and the labels on reference lines are anchored to the
 # paper on one side and to the data on the other
 plotly_edge_labels <- function(out, built, ct) {
   layers <- built$plot$layers
+  axes <- plotly_panel_axes(built)
   for (i in seq_along(layers)) {
     geom <- layers[[i]]$geom
     kinds <- c(GeomGlaEndlabel = "end", GeomGlaEdgelabel = "edge", GeomGlaToplabel = "top")
@@ -521,19 +642,19 @@ plotly_edge_labels <- function(out, built, ct) {
     }
     dx <- layers[[i]]$geom_params$dx %||% 8
     for (r in seq_len(nrow(data))) {
-      suffix <- if (as.integer(data$PANEL[r]) > 1) as.integer(data$PANEL[r]) else ""
+      on <- axes[as.integer(data$PANEL[r]), ]
       alpha <- if (is.null(data$alpha) || is.na(data$alpha[r])) 1 else data$alpha[r]
       colour <- ggplot2::alpha(data$colour[r], alpha)
       a <- switch(kind,
         end = {
           right <- (data$hjust[r] %||% 0) >= 0.5
-          list(text = data$label[r], x = as.numeric(data$x[r]), xref = paste0("x", suffix),
+          list(text = data$label[r], x = as.numeric(data$x[r]), xref = on$x,
                xanchor = if (right) "right" else "left", xshift = dx,
-               y = data$y[r], yref = paste0("y", suffix), yanchor = "middle")
+               y = data$y[r], yref = on$y, yanchor = "middle")
         },
         edge = list(text = data$label[r], x = 1, xref = "paper", xanchor = "right", xshift = -4,
-                    y = data$y[r], yref = paste0("y", suffix), yanchor = "bottom", yshift = 4),
-        top = list(text = data$label[r], x = as.numeric(data$x[r]), xref = paste0("x", suffix),
+                    y = data$y[r], yref = on$y, yanchor = "bottom", yshift = 4),
+        top = list(text = data$label[r], x = as.numeric(data$x[r]), xref = on$x,
                    xanchor = "left", xshift = 4, y = 1, yref = "paper", yanchor = "top",
                    yshift = -4)
       )
@@ -543,6 +664,23 @@ plotly_edge_labels <- function(out, built, ct) {
     }
   }
   out
+}
+
+# the axes ggplotly() draws each panel on, named as it names them: an x
+# axis per column and a y axis per row, or one per panel for a scale that
+# facet_wrap() frees. One row per panel, in panel order.
+plotly_panel_axes <- function(built) {
+  lay <- built$layout$layout
+  x <- lay$COL
+  y <- lay$ROW
+  free <- built$plot$facet$params$free
+  if (inherits(built$plot$facet, "FacetWrap")) {
+    if (isTRUE(free$x)) x <- as.integer(lay$PANEL)
+    if (isTRUE(free$y)) y <- as.integer(lay$PANEL)
+  }
+  id <- function(prefix, i) paste0(prefix, ifelse(i == 1, "", i))
+  out <- data.frame(x = id("x", x), y = id("y", y), stringsAsFactors = FALSE)
+  out[order(as.integer(lay$PANEL)), , drop = FALSE]
 }
 
 # the eyebrow and title as one title block, the subtitle under it, and the

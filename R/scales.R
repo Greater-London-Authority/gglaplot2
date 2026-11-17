@@ -29,10 +29,13 @@
 #' which a note on the chart should say. `steps` fixes how many bins each
 #' side has: `steps = 3` is three below and three above, `steps = c(2, 4)`
 #' two below and four above. Each side then takes its own step width,
-#' rounded to 1, 2, 2.5 or 5 times a power of ten, so a small rise beside a
-#' large fall gets narrow blue steps rather than being stretched; with
-#' `limits` set, the steps divide them exactly. The count holds as the data
-#' changes, where `breaks` would need resetting.
+#' rounded up to 1, 2, 2.5, 3, 4 or 5 times a power of ten, so a small rise
+#' beside a large fall gets narrow blue steps rather than being stretched;
+#' with `limits` set, the steps divide them exactly, and limits wholly on
+#' one side of the midpoint are cut into that side's count. The count holds
+#' as the data changes, where `breaks` would need resetting. Equal steps
+#' are cut in the data's units, so on a log scale they need `limits` above
+#' zero.
 #'
 #' `method` classes the bins by the distribution instead of in equal
 #' steps: `"jenks"` natural breaks, `"quantile"`, `"boxplot"`, `"sd"`,
@@ -52,8 +55,8 @@
 #' continuous ones a colour bar. `theme_gla(legend = "none")` still hides
 #' it, and a `guide` passed to the scale wins.
 #'
-#' Missing values take `data-empty`. `scale_color_*` spellings are
-#' provided as aliases.
+#' Missing values take `data-empty` unless `na.value` says otherwise.
+#' `scale_color_*` spellings are provided as aliases.
 #'
 #' @param type A palette as above. Discrete scales take `"auto"`,
 #'   `"categorical"`, `"sex"` or `"change"`; continuous and binned ones
@@ -103,29 +106,29 @@ ScaleDiscreteGla <- ggplot2::ggproto(
 )
 
 .gla_discrete <- function(aesthetic, type, theme, ...) {
-  empty <- unname(gla_token("data-empty", theme))
+  args <- list(...)
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   if (type == "auto") {
-    sc <- ggplot2::discrete_scale(
-      aesthetic, palette = function(n) gla_pal("categorical", n, theme),
-      na.value = empty, super = ScaleDiscreteGla, ...
-    )
+    sc <- rlang::exec(ggplot2::discrete_scale, aesthetic,
+                      palette = function(n) gla_pal("categorical", n, theme),
+                      super = ScaleDiscreteGla, !!!args)
     sc$theme_mode <- theme
     return(sc)
   }
   if (type == "categorical") {
     pal <- gla_pal(type, theme = theme)
-    return(ggplot2::discrete_scale(aesthetic, palette = function(n) {
+    return(rlang::exec(ggplot2::discrete_scale, aesthetic, palette = function(n) {
       if (n > length(pal)) {
         stop(sprintf("The categorical palette has %d colours; the data has %d levels. %s",
                      length(pal), n, "Fold the categories"), call. = FALSE)
       }
       unname(pal[seq_len(n)])
-    }, na.value = empty, ...))
+    }, !!!args))
   }
   # ggplot2 matches a named vector of values to levels by name, which is
   # what the sex and change palettes want
-  ggplot2::scale_discrete_manual(aesthetic, values = gla_pal(type, theme = theme),
-                                 na.value = empty, ...)
+  rlang::exec(ggplot2::scale_discrete_manual, aesthetic, values = gla_pal(type, theme = theme),
+              !!!args)
 }
 
 #' @rdname scale_gla
@@ -143,24 +146,29 @@ scale_fill_gla <- function(type = c("auto", "categorical", "sex", "change"),
 }
 
 # a ramp reads top to bottom, so its guide stands on the right whatever the
-# theme's legend position; the theme's "none" still hides it
-ramp_guide <- function(constructor) {
-  constructor(position = "right", direction = "vertical")
+# theme's legend position; the theme's "none" still hides it. A scale given
+# `breaks = NULL` has no guide, as ggplot2's own.
+ramp_guide <- function(args, guide) {
+  if ("breaks" %in% names(args) && is.null(args$breaks)) return(args$guide %||% "none")
+  args$guide %||% guide
 }
 
 # a smooth ramp; the diverging one rescaled so the midpoint, not the middle
-# of the data, is the neutral
+# of the data, is the neutral. The rescaler sees transformed values, so the
+# midpoint is transformed to meet them.
 .gla_continuous <- function(aesthetic, type, theme, midpoint, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% ramp_guide(ggplot2::guide_colourbar)
+  args$guide <- ramp_guide(args, ggplot2::guide_colourbar(position = "right",
+                                                          direction = "vertical"))
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   if (type == "diverging") {
+    mid <- scales::as.transform(args$transform %||% args$trans %||% "identity")$transform(midpoint)
     args$rescaler <- args$rescaler %||% function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) {
-      scales::rescale_mid(x, to, from, mid = midpoint)
+      scales::rescale_mid(x, to, from, mid = mid)
     }
   }
   rlang::exec(ggplot2::continuous_scale, aesthetic,
-              palette = scales::pal_gradient_n(gla_pal(type, theme = theme)),
-              na.value = unname(gla_token("data-empty", theme)), !!!args)
+              palette = scales::pal_gradient_n(gla_pal(type, theme = theme)), !!!args)
 }
 
 #' @rdname scale_gla
@@ -198,7 +206,7 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
     if (is.null(self$steps)) {
       return(ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)$get_breaks(limits))
     }
-    if (self$is_empty()) return(numeric())
+    if (self$is_empty() || !all(is.finite(limits))) return(numeric())
     transformation <- self$get_transformation()
     lim <- sort(transformation$inverse(limits))
     if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
@@ -212,14 +220,21 @@ ScaleBinnedGlaSequential <- ggplot2::ggproto(
         width <- nice_step(width * (1 + 1e-6))
         lower <- floor(lim[1] / width + 1e-9) * width
       }
-      lim <- c(lower, lower + n * width)
-      self$limits <- transformation$transform(lim)
+      lim <- snap(c(lower, lower + n * width), width)
+      self$limits <- held_limits(transformation, lim)
     } else {
       width <- diff(lim) / n
     }
-    breaks <- lim[1] + width * seq_len(n - 1)
+    breaks <- snap(lim[1] + width * seq_len(n - 1), width)
     self$breaks <- breaks
     transformation$transform(breaks)
+  },
+  # trained on nothing but missing values the limits are infinite, so the
+  # rescaled edges would be NaN and cut() refuses them from R 4.6.1
+  map = function(self, x, limits = self$get_limits()) {
+    if (!self$after.stat && !all(is.finite(limits))) return(rep(self$na.value, length(x)))
+    parent <- ggplot2::ggproto_parent(ggplot2::ScaleBinned, self)
+    if (missing(limits)) parent$map(x) else parent$map(x, limits)
   }
 )
 
@@ -249,7 +264,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (!identical(self$method, "equal") && length(self$seen)) {
       return(classed_breaks(self, self$midpoint, c(3, 3)))
     }
-    if (self$is_empty()) return(numeric())
+    if (self$is_empty() || !all(is.finite(limits))) return(numeric())
     transformation <- self$get_transformation()
     lim <- sort(transformation$inverse(limits))
     if (scales::zero_range(lim)) lim <- lim + c(-0.05, 0.05)
@@ -257,25 +272,31 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (!is.null(self$steps)) {
       n <- rep_len(self$steps, 2)
       fixed <- !is.null(self$limits)
+      # limits set wholly on one side of the midpoint leave the other side
+      # no bins, and the side they hold is counted from its edge
+      from <- if (fixed) min(max(mid, lim[1]), lim[2]) else mid
       width <- function(extent, k) if (fixed) extent / k else nice_step(extent / k)
-      down <- width(max(mid - lim[1], 0), n[1])
-      up <- width(max(lim[2] - mid, 0), n[2])
+      down <- width(max(from - lim[1], 0), n[1])
+      up <- width(max(lim[2] - from, 0), n[2])
       if (!fixed) {
-        lim <- c(mid - n[1] * down, mid + n[2] * up)
-        self$limits <- transformation$transform(lim)
+        lim <- snap(c(mid - n[1] * down, mid + n[2] * up), max(down, up))
+        self$limits <- held_limits(transformation, lim)
       }
-      breaks <- c(mid - down * seq_len(n[1] - 1), mid, mid + up * seq_len(n[2] - 1))
-      breaks <- sort(breaks[breaks > lim[1] & breaks < lim[2]])
+      breaks <- c(from - down * seq_len(n[1] - 1), from, from + up * seq_len(n[2] - 1))
+      widths <- c(down, up)
+      breaks <- snap(breaks, min(widths[widths > 0], Inf))
+      breaks <- sort(unique(breaks[breaks > lim[1] & breaks < lim[2]]))
       self$breaks <- breaks
       return(transformation$transform(breaks))
     }
     step <- break_step(lim, self$n.breaks %||% 5)
+    step <- snap(step, step)
     steps_out <- function(x, f) f(round((x - mid) / step, 8))
     if (is.null(self$limits)) {
-      lim <- mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling))
-      self$limits <- transformation$transform(lim)
+      lim <- snap(mid + step * c(steps_out(lim[1], floor), steps_out(lim[2], ceiling)), step)
+      self$limits <- held_limits(transformation, lim)
     }
-    breaks <- mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor))
+    breaks <- snap(mid + step * seq(steps_out(lim[1], ceiling), steps_out(lim[2], floor)), step)
     breaks <- breaks[breaks > lim[1] & breaks < lim[2]]
     self$breaks <- breaks
     transformation$transform(breaks)
@@ -284,6 +305,7 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     if (self$after.stat) return(x)
     breaks <- self$get_breaks(limits)
     if (missing(limits)) limits <- self$get_limits()
+    if (!all(is.finite(limits))) return(rep(self$na.value, length(x)))
     edges <- sort(unique(c(limits[1], breaks, limits[2])))
     x <- self$rescale(self$oob(x, range = limits), limits)
     cuts <- self$rescale(edges, limits)
@@ -294,9 +316,12 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
     }
     pal <- self$palette.cache
     if (is.null(pal)) {
-      edges <- self$get_transformation()$inverse(edges)
-      pal <- diverging_bin_colours(edges[-length(edges)], edges[-1], self$midpoint,
-                                   self$theme_mode)
+      # each bin's ends in the data's units, the lower first, which a
+      # reversing transformation swaps
+      ends <- self$get_transformation()$inverse(edges)
+      a <- ends[-length(ends)]
+      b <- ends[-1]
+      pal <- diverging_bin_colours(pmin(a, b), pmax(a, b), self$midpoint, self$theme_mode)
       self$palette.cache <- pal
     }
     scaled <- pal[x_binned]
@@ -306,16 +331,45 @@ ScaleBinnedGlaDiverging <- ggplot2::ggproto(
 
 # the breaks a classed scale draws, worked out once from the values it was
 # trained on and then held as fixed breaks; the limits widen to the breaks'
-# precision unless the caller set them
+# precision unless the caller set them, and stop at the data where that
+# precision runs outside what the transformation takes (below one on a log
+# scale)
 classed_breaks <- function(self, midpoint, default_steps) {
   transformation <- self$get_transformation()
   fixed <- if (!is.null(self$limits)) sort(transformation$inverse(self$limits))
-  breaks <- gla_class_breaks(transformation$inverse(self$seen), self$method,
-                             n = self$steps %||% default_steps, midpoint = midpoint,
-                             limits = fixed)
-  if (is.null(self$limits)) self$limits <- transformation$transform(attr(breaks, "limits"))
+  values <- transformation$inverse(self$seen)
+  breaks <- gla_class_breaks(values, self$method, n = self$steps %||% default_steps,
+                             midpoint = midpoint, limits = fixed)
+  if (is.null(self$limits)) {
+    lim <- attr(breaks, "limits")
+    out <- !is.finite(suppressWarnings(transformation$transform(lim)))
+    lim[out] <- range(values)[out]
+    self$limits <- sort(transformation$transform(lim))
+  }
   self$breaks <- as.numeric(breaks)
   transformation$transform(self$breaks)
+}
+
+# limits worked out in the data's units, held as the scale holds them: in
+# its own units, lowest first, so on a reversed scale the data's highest.
+# Equal steps that run outside what the transformation takes, below zero
+# on a log scale, stop with a message rather than paint every area missing.
+held_limits <- function(transformation, lim) {
+  out <- suppressWarnings(transformation$transform(lim))
+  if (!all(is.finite(out))) {
+    stop(sprintf(paste0("The equal steps run from %s to %s, outside what the %s transformation ",
+                        "takes. Set `limits` inside it, or `breaks`."),
+                 format(lim[1]), format(lim[2]), transformation$name), call. = FALSE)
+  }
+  sort(out)
+}
+
+# breaks worked out by arithmetic carry its error, 0.1 * 3 is not 0.3, and
+# a value on a printed break would land on either side of it by chance;
+# rounded far below the step they are the numbers the legend prints
+snap <- function(x, step) {
+  if (!length(x) || !is.finite(step) || step <= 0) return(x)
+  round(x, max(0, 6 - floor(log10(step))))
 }
 
 # a step of 1, 2, 2.5, 3, 4 or 5 times a power of ten, the first at or
@@ -334,22 +388,23 @@ break_step <- function(limits, n) {
 }
 
 # colours for bins by where they sit against the midpoint: those below it
-# red, those above blue, a bin that holds it the neutral
+# red, those above blue, a bin that holds it the neutral. Each side's steps
+# run outward from the midpoint whatever order the bins come in.
 diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   tol <- 1e-8 * max(abs(c(lo, hi)), 1)
   down <- hi <= midpoint + tol
   up <- lo >= midpoint - tol
   steps <- diverging_steps(c(sum(down), sum(up)), theme)
   out <- rep(unname(gla_token("data-neutral-0", theme)), length(lo))
-  out[down] <- steps[seq_len(sum(down))]
-  out[up] <- steps[sum(down) + seq_len(sum(up))]
+  out[down] <- steps[rank(lo[down], ties.method = "first")]
+  out[up] <- steps[sum(down) + rank(lo[up], ties.method = "first")]
   out
 }
 
 .gla_binned <- function(aesthetic, type, theme, midpoint, steps, method, ...) {
   args <- list(...)
-  args$guide <- args$guide %||% guide_gla_bins()
-  empty <- unname(gla_token("data-empty", theme))
+  args$guide <- ramp_guide(args, guide_gla_bins())
+  args$na.value <- args$na.value %||% unname(gla_token("data-empty", theme))
   method <- match.arg(method, c("equal", "jenks", "quantile", "boxplot", "sd", "headtails",
                                 "geometric"))
   if (!is.null(steps)) {
@@ -367,13 +422,13 @@ diverging_bin_colours <- function(lo, hi, midpoint, theme) {
   if (type == "sequential") {
     sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
                       palette = function(x) ramp_steps("blue", length(x), c(200, 900), theme),
-                      na.value = empty, super = ScaleBinnedGlaSequential, !!!args)
+                      super = ScaleBinnedGlaSequential, !!!args)
     sc$steps <- steps
     sc$method <- method
     return(sc)
   }
   sc <- rlang::exec(ggplot2::binned_scale, aesthetic,
-                    palette = function(x) rep(NA_character_, length(x)), na.value = empty,
+                    palette = function(x) rep(NA_character_, length(x)),
                     super = ScaleBinnedGlaDiverging, !!!args)
   sc$midpoint <- midpoint
   sc$theme_mode <- theme

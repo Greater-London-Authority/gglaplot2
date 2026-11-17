@@ -83,11 +83,16 @@ StatGlaTreemap <- ggplot2::ggproto(
     if (!by_fill) {
       return(cbind(data, treemap_rects(data$share, c(0, 0, 1, 1), aspect)))
     }
-    groups <- stats::aggregate(share ~ fill, data, sum)
+    # a missing fill is a group of its own, drawn in the scale's colour for
+    # missing values
+    key <- addNA(factor(data$fill), ifany = TRUE)
+    shares <- tapply(data$share, key, sum)
+    groups <- data.frame(key = factor(names(shares), levels = levels(key), exclude = NULL),
+                         share = as.numeric(shares))
     groups <- groups[order(-groups$share), , drop = FALSE]
     outer <- treemap_rects(groups$share, c(0, 0, 1, 1), aspect)
     pieces <- lapply(seq_len(nrow(groups)), function(i) {
-      rows <- data[data$fill == groups$fill[i], , drop = FALSE]
+      rows <- data[as.integer(key) == as.integer(groups$key[i]), , drop = FALSE]
       box <- c(outer$xmin[i], outer$ymin[i], outer$xmax[i], outer$ymax[i])
       inner <- treemap_rects(rows$share / sum(rows$share), box,
                              aspect * (box[3] - box[1]) / (box[4] - box[2]))
@@ -200,19 +205,26 @@ GeomGlaTreemapLabel <- ggplot2::ggproto(
   ),
   draw_panel = function(data, panel_params, coord, label_position = "centre",
                         min_label = 0.02, na.rm = FALSE) {
-    if (is.null(data$label)) return(ggplot2::zeroGrob())
-    data <- data[!is.na(data$label) & data$share >= min_label, , drop = FALSE]
+    data <- treemap_labels(data, label_position, min_label)
     if (nrow(data) == 0) return(ggplot2::zeroGrob())
-    inset <- 0.012
-    if (label_position == "topleft") {
-      data$x <- data$xmin + inset
-      data$y <- data$ymax - inset
-      data$hjust <- 0
-      data$vjust <- 1
-    } else {
-      data$x <- (data$xmin + data$xmax) / 2
-      data$y <- (data$ymin + data$ymax) / 2
-    }
     ggplot2::GeomText$draw_panel(data, panel_params, coord, na.rm = na.rm)
   }
 )
+
+# the labels of the tiles big enough to carry one, placed centred or at the
+# top left of their tile
+treemap_labels <- function(data, label_position = "centre", min_label = 0.02) {
+  if (is.null(data$label)) return(data[0, , drop = FALSE])
+  data <- data[!is.na(data$label) & data$share >= min_label, , drop = FALSE]
+  inset <- 0.012
+  if (label_position == "topleft") {
+    data$x <- data$xmin + inset
+    data$y <- data$ymax - inset
+    data$hjust <- rep(0, nrow(data))
+    data$vjust <- rep(1, nrow(data))
+  } else {
+    data$x <- (data$xmin + data$xmax) / 2
+    data$y <- (data$ymin + data$ymax) / 2
+  }
+  data
+}

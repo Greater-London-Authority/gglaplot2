@@ -295,7 +295,12 @@ test_that("each method classes as it says, and the degenerate cases are defined"
                c(1L, 1L))
   g <- gla_class_breaks(c(1, 2, 2, 3, 8, 9, 30, 55, 120), "geometric", n = 4)
   expect_equal(as.numeric(g), c(6, 20, 42))
-  expect_equal(attr(g, "limits"), c(0, 121))
+  # an end already at the precision stays where it is
+  expect_equal(attr(g, "limits"), c(1, 120))
+  # so a diverging side the values do not reach gets no bin
+  one_side <- gla_class_breaks(c(0, 1, 3), "jenks", n = 3, midpoint = 0)
+  expect_equal(attr(one_side, "limits"), c(0, 3))
+  expect_false(any(one_side < 0))
   expect_error(gla_class_breaks(c(0, 1, 5), "geometric"), "above zero")
   set.seed(4)
   s <- gla_class_breaks(rnorm(200, 50, 10), "sd")
@@ -358,4 +363,109 @@ test_that("the stepped scales class their bins by a method", {
     scale_fill_gla_b("diverging", steps = c(5, 1))
   expect_equal(ggplot_build(p7)$plot$scales$get_scales("fill")$get_breaks(),
                c(-8, -6, -4, -2, 0))
+})
+
+test_that("na.value reaches every scale, and breaks = NULL leaves no guide", {
+  d <- data.frame(x = 1:3, y = 1, v = c(1, NA, 3), g = c("a", NA, "b"))
+  red <- "#ff0000"
+  for (sc in list(scale_fill_gla_b(na.value = red), scale_fill_gla_b("diverging", na.value = red),
+                  scale_fill_gla_c(na.value = red))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc
+    expect_equal(fills(p)[2], red)
+  }
+  for (type in c("auto", "categorical", "sex")) {
+    p <- ggplot(d, aes(x, y, colour = g)) + geom_point() + scale_colour_gla(type, na.value = red)
+    expect_equal(tolower(build(p)$data[[1]]$colour[2]), red)
+  }
+  for (sc in list(scale_fill_gla_b(breaks = NULL), scale_fill_gla_c(breaks = NULL))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc + theme_gla()
+    expect_null(get_guide_data(p, "fill"))
+    expect_no_error(draw(p))
+  }
+})
+
+test_that("the continuous diverging neutral sits at the midpoint on a transformed scale", {
+  d <- data.frame(x = 1:4, y = 1, v = c(0.1, 1, 10, 100))
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_c("diverging", transform = "log10", midpoint = 1)
+  got <- fills(p)
+  expect_equal(got[2], tolower(unname(gla_token("data-neutral-0"))))
+  expect_equal(got[1], tolower(gla_pal("diverging")[2]))
+})
+
+test_that("a reversed stepped scale spreads its colours, and log steps say where they fail", {
+  v <- c(-12, -7.5, -3, 0, 1, 4, 9)
+  d <- data.frame(x = seq_along(v), y = 1, v = v)
+  for (sc in list(scale_fill_gla_b("diverging", transform = "reverse"),
+                  scale_fill_gla_b("diverging", transform = "reverse", steps = 2),
+                  scale_fill_gla_b(transform = "reverse", steps = 3))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc
+    lim <- fill_scale(p)$get_limits()
+    expect_true(lim[1] < lim[2])
+    expect_gt(length(unique(fills(p))), 2)
+  }
+  # the falls stay red and the rises blue, the deepest at the far ends
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", transform = "reverse", steps = 2)
+  red <- tolower(ramp_steps("red", 2))
+  blue <- tolower(ramp_steps("blue", 2))
+  expect_equal(fills(p)[c(1, 3, 6, 7)], c(red[2], red[1], blue[1], blue[2]))
+  # the ranges read from their low end
+  key <- get_guide_data(p, "fill")
+  expect_true("-10 to 0" %in% key$.label)
+  # equal steps below zero on a log scale stop with a message; limits inside it draw
+  logged <- data.frame(x = 1:5, y = 1, v = c(1, 5, 10, 100, 1000))
+  bad <- ggplot(logged, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(transform = "log10", steps = 3)
+  expect_error(build(bad), "outside what the log-10 transformation takes")
+  good <- ggplot(logged, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b(transform = "log10", steps = 3, limits = c(1, 1000))
+  expect_equal(length(unique(fills(good))), 2)
+  # a classed scale on a log transform stops its limits at the data
+  classed <- ggplot(transform(logged, v = c(0.5, 2, 8, 30, 120)), aes(x, y, fill = v)) +
+    geom_point(shape = 21) + scale_fill_gla_b(transform = "log10", method = "geometric", steps = 3)
+  expect_equal(fill_scale(classed)$get_limits(), log10(c(0.5, 120)))
+})
+
+test_that("a value on a break falls in the same bin as the legend says, every time", {
+  d <- data.frame(x = 1:7, y = 1, v = c(-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3))
+  p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b("diverging")
+  expect_identical(fill_scale(p)$get_breaks(), c(-0.2, -0.1, 0, 0.1, 0.2))
+  # bins close on the right: each on-break value is in the bin it ends
+  key <- get_guide_data(p, "fill")
+  expect_equal(key$.label[match(fills(p), tolower(key$fill))],
+               c("-0.3 to -0.2", "-0.3 to -0.2", "-0.2 to -0.1", "-0.1 to 0", "0 to 0.1",
+                 "0.1 to 0.2", "0.2 to 0.3"))
+  s <- ggplot(transform(d, v = c(-0.33, -0.32, -0.3, -0.28, -0.26, -0.24, -0.23)),
+              aes(x, y, fill = v)) + geom_point(shape = 21) + scale_fill_gla_b(steps = 7)
+  expect_identical(fill_scale(s)$get_breaks(), c(-0.32, -0.3, -0.28, -0.26, -0.24, -0.22))
+  expect_equal(length(unique(fills(s))), 6)
+})
+
+test_that("limits on one side of the midpoint are cut into the steps asked for", {
+  v <- c(-12, -3, 0, 1, 3.9, 4, 9, 9.5, 10.5)
+  d <- data.frame(x = seq_along(v), y = 1, v = v)
+  above <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(2, 10), steps = 3)
+  expect_equal(fill_scale(above)$get_breaks(), c(4.666667, 7.333333), tolerance = 1e-6)
+  key <- get_guide_data(above, "fill")
+  expect_equal(nrow(key), 3)
+  expect_equal(rev(tolower(key$fill)), tolower(ramp_steps("blue", 3)))
+  narrow <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(9, 11), steps = 3)
+  expect_equal(nrow(get_guide_data(narrow, "fill")), 3)
+  below <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) +
+    scale_fill_gla_b("diverging", limits = c(-12, -3), steps = 3)
+  expect_equal(fill_scale(below)$get_breaks(), c(-9, -6))
+  expect_equal(nrow(get_guide_data(below, "fill")), 3)
+})
+
+test_that("a scale with nothing but missing values draws no legend and no error", {
+  d <- data.frame(x = 1:2, y = 1, v = c(NA_real_, NA_real_))
+  for (sc in list(scale_fill_gla_b(), scale_fill_gla_b(steps = 2), scale_fill_gla_b("diverging"),
+                  scale_fill_gla_b("diverging", steps = 2), scale_fill_gla_b(method = "jenks"))) {
+    p <- ggplot(d, aes(x, y, fill = v)) + geom_point(shape = 21) + sc + theme_gla()
+    expect_no_error(draw(p))
+    expect_null(get_guide_data(p, "fill"))
+  }
 })

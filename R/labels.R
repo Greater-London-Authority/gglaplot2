@@ -82,15 +82,20 @@ gla_describe <- function(plot) {
   stats <- vapply(plot$layers, function(l) class(l$stat)[1], character(1))
   kind <- if (any(grepl("Sf", geoms))) {
     "Map"
+  } else if (any(geoms == "GeomGlaTreemap")) {
+    "Treemap"
+  } else if (any(geoms == "GeomGlaConnector")) {
+    "Paired dot plot"
   } else if (any(stats == "StatBin")) {
     "Histogram"
   } else if (any(grepl("Line|Path|Step", geoms))) {
     "Line chart"
   } else if (any(grepl("Bar|Col", geoms))) {
     positions <- vapply(plot$layers, function(l) class(l$position)[1], character(1))
+    dodged <- vapply(plot$layers, function(l) inherits(l$position, "PositionDodge"), logical(1))
     if (any(positions == "PositionStack") && !is.null(series_scale(built, "fill"))) {
       "Stacked bar chart"
-    } else if (any(positions == "PositionDodge")) {
+    } else if (any(dodged)) {
       "Grouped bar chart"
     } else {
       "Bar chart"
@@ -107,13 +112,14 @@ gla_describe <- function(plot) {
   series_part <- if (!is.null(series) && length(series) > 0) {
     noun <- if (kind == "Line chart") "lines" else if (grepl("bar", kind)) "bars" else "series"
     if (length(series) == 1) {
-      sprintf("with a single %s for %s", sub("s$", "", noun), series)
+      sprintf("with a single %s for %s", c(lines = "line", bars = "bar", series = "series")[[noun]],
+              series)
     } else {
       sprintf("with %s for %s", noun, join_names(series))
     }
   }
 
-  x_part <- if (kind != "Map") x_range_statement(built)
+  x_part <- if (!kind %in% c("Map", "Treemap")) x_range_statement(built)
   paste0(paste(c(kind, series_part, x_part), collapse = ", "), ".")
 }
 
@@ -135,17 +141,19 @@ series_scale <- function(built, aesthetic) {
   as.character(lim[!is.na(lim)])
 }
 
-# "showing values between 2015 and 2024", or the categories on a discrete x
+# "showing values between 2015 and 2024", or the categories on a discrete
+# x; nothing for a scale with no data. A log or reversed scale holds its
+# limits transformed, so they are turned back into the data's units.
 x_range_statement <- function(built) {
   sc <- built$layout$panel_scales_x[[1]]
-  if (is.null(sc)) return(NULL)
+  if (is.null(sc) || sc$is_empty()) return(NULL)
   lim <- sc$get_limits()
   lim <- lim[!is.na(lim)]
   if (!length(lim)) return(NULL)
   if (sc$is_discrete()) {
     return(sprintf("showing values for %s", join_names(lim)))
   }
-  rng <- range(lim)
+  rng <- range(sc$get_transformation()$inverse(lim))
   if (inherits(sc, "ScaleContinuousDate")) {
     rng <- format(as.Date(rng, origin = "1970-01-01"), "%Y")
   } else if (inherits(sc, "ScaleContinuousDatetime")) {

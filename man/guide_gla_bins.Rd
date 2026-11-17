@@ -46,7 +46,9 @@ those values take reads \verb{Below -4\%} or \verb{Above 4\%}. The labels come f
 the scale's \code{labels} function, so \code{labels = label_gla_percent(scale = 1)}
 on the scale puts the sign on both ends of each range. A house label
 function (\code{\link[=label_gla_percent]{label_gla_percent()}} and the rest) set to whole numbers gains
-the decimals narrow steps need, so steps of 0.2 read \verb{0\% to 0.2\%}. The
+the decimals narrow steps need, so steps of 0.2 read \verb{0\% to 0.2\%}, and a
+short label the decimals its own unit needs, \verb{1m to 1.025m}. With no
+\code{labels} the ranges print the decimals their ends have, \verb{0 to 12.5}. The
 web maps' legends read this way; ggplot2's \code{guide_coloursteps()} draws a
 bar labelled at the cuts instead, and remains a \code{guide} away.
 }

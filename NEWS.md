@@ -28,6 +28,144 @@
   on older versions, as ggplot2 does. The check matrix gains a leg on R
   4.1, the floor in DESCRIPTION, so this is held.
 
+* `na.value` given to any of the colour scales is used. It stopped with
+  "formal argument "na.value" matched by multiple actual arguments". A
+  stepped or smooth scale given `breaks = NULL` draws no legend, as
+  ggplot2's own scales do, where it stopped with an error.
+
+* `scale_fill_gla_c("diverging")` with a `transform` puts its neutral at
+  `midpoint`. The midpoint was read in the transformed units, so on a log
+  scale with `midpoint = 1` the neutral sat on 10 and 1 was drawn red.
+
+* `gla_class_breaks()`, and the stepped scales' `method`, leave a limit
+  where the values already end at the breaks' precision. Whole numbers
+  from 1 to 120 ran 0 to 121, and a diverging scale whose values started
+  at the midpoint gained an empty red bin below it.
+
+* A stepped scale with `transform = "reverse"` colours each value by its
+  bin. The diverging scale, and the sequential one with `steps`, held their
+  limits the wrong way round and painted every area one colour. The
+  legend's ranges on a reversed scale read from their low end. `steps` on
+  a log scale, where the equal steps run down to zero, stops with a message
+  saying so; it painted every area as missing. A classed scale on a log
+  scale ends its limits at the data rather than at zero.
+
+* The breaks a stepped scale works out for itself are the numbers its
+  legend prints. Built by arithmetic, a break printed as 0.2 could be
+  0.19999999999999996, so a value of 0.2 fell in the bin above it while
+  0.1 fell in the bin below, and a bin could read "0.1 to 0.2" and hold
+  neither. Every value on a break now falls in the bin that ends at it.
+
+* `steps` with `limits` wholly on one side of the midpoint cuts the limits
+  into that side's count of equal bins. `limits = c(2, 10), steps = 3`
+  gave bins 1.3, 3.3 and 3.3 wide, and `limits = c(9, 11)` one colour and
+  no legend. The help now gives the step widths `steps` rounds to as they
+  are: 1, 2, 2.5, 3, 4 or 5 times a power of ten.
+
+* The stepped legend draws with `labels` given as text, which name the
+  breaks, and with `labels = NULL`, which leaves the swatches bare; the
+  first stopped with "`breaks` and `labels` have different lengths" and
+  the second read " to " on every swatch. A scale of one bin, `steps = 1`,
+  has its swatch, where it had no legend. A break beyond the `limits` no
+  longer adds a swatch in the colour of the one beside it. A stepped scale
+  with nothing but missing values draws without a legend; it stopped with
+  an error, or with a method listed "-Inf to Inf".
+
+* The stepped legend prints its ranges at the decimals their ends have
+  when the scale has no `labels`. Steps of 12.5 read "0 to 12", "12 to 25",
+  "25 to 38", so 37.9 sat in a bin labelled 38 to 50. Short labels,
+  `label_gla_number(short = TRUE)` and `label_gla_pounds(short = TRUE)`,
+  take the decimals their steps need in their own unit: "1m to 1.025m",
+  where every range read "1m to 1m". A map's hover label is unchanged.
+
+* `gla_plotly()` on a faceted chart places the end labels and the labels
+  of reference lines on each panel's own axes. They were put on an axis
+  numbered by the panel, which ggplotly() had not made when the panels
+  share one, so plotly drew stray axes and left panels empty. The hover
+  label reads each panel through its own scales: on a free category axis
+  the second panel's bars hovered with the first panel's names.
+
+* `gla_plotly()` hovers with the date or time a point is at. The value was
+  rounded to four figures of its count of days or seconds, so with
+  `date_labels` set 1 March 2024 read "Feb 24", and a time axis with no
+  labels of its own read "1,767,225,600". A log or reversed axis hovers in
+  the data's units, 160 rather than 2.20412 and 110 rather than -110.
+
+* `gla_plotly(tooltip = "text")` shows the caller's `text` aesthetic on
+  points, lines and bars as well as on maps. The house hover label was
+  written over it.
+
+* `gla_plotly()` draws a treemap's labels. They were placed only when the
+  static chart drew its tiles, so the interactive one had none; they now
+  sit centred or at the top left of their tile as the static chart has
+  them.
+
+* `geom_gla_line(projected_from = )` draws when the projection starts
+  past the data, or on a reversed or log x axis; each stopped with
+  "replacement has 1 row, data has 0". The start is read through the x
+  scale, so on a reversed axis the years before it are still the solid
+  part. A start between two points no longer breaks the line: both parts
+  meet at it, on the line between its neighbours. The interactive chart
+  splits the same way.
+
+* A treemap whose `fill` has a missing value draws, the tiles of that
+  group in the colour for missing values. It drew nothing, with a
+  "Computation failed" warning.
+
+* `geom_gla_sf()` takes a `fill` mapped in `ggplot()`, as gglaplot's
+  choropleths were written, and a mapped `colour` or `linewidth`. The house
+  fill, edge and width were fixed on the layer, which drew every area grey
+  with no legend and no message; they are now defaults that a mapping
+  replaces.
+
+* `geom_gla_paired()` leaves out the arrow of a pair whose markers are
+  too close for one, or level. Shortened at both ends, a short arrow
+  crossed over and pointed the wrong way, and a level pair had a stray
+  arrowhead.
+
+* An SVG from `gla_save()` declares Inter at the medium and semibold
+  weights under the family its text names. svglite writes that text as
+  "Inter" at weight 500 or 600, and the faces were declared as "Inter
+  Medium" and "Inter SemiBold", so a browser without Inter set it in the
+  regular and bold faces.
+
+* `gla_save()` writes an SVG without the web fonts on an svglite older
+  than 2.2.0, the release that takes them, where it stopped with an error.
+  DESCRIPTION declares utils and tools, which the package calls, and the
+  svglite floor.
+
+* `gla_describe()` and `gla_alt()` write true alt text for more charts:
+  grouped bars drawn with `position = "dodge"` are a grouped bar chart, one
+  series reads "a single series" where it read "a single serie", a log or
+  reversed x axis gives its range in the data's units, a treemap and a
+  paired dot plot are named as such, and a chart with no data gives no
+  range where it said "between 0 and 1".
+
+* `label_gla_number()`, `label_gla_percent()` and `label_gla_pounds()`
+  pass `big.mark`, `decimal.mark` and `trim` on to scales, as their help
+  says of the other arguments. Each stopped with "formal argument matched
+  by multiple actual arguments".
+
+* `gla_show_tokens()` labels each swatch in dark text on a light colour
+  and white on a dark one in either mode. In dark mode the two were
+  swapped and the labels could not be read.
+
+* `ggla_plotly_layout(annotations = )` draws the annotations it is given,
+  one as a list or several as a list of lists. Several were drawn as four
+  blank labels, and one was drawn four times.
+
+* `gla_plotly()` draws the third line style of `scale_linetype_gla()`,
+  dotted, as dots. Mapped, it reached plotly as "12" and was drawn as 12px
+  dashes.
+
+* `gla_plotly()` names each series as the scale's `labels` do, in the
+  legend and the hover label. It used the levels of the data, so
+  `scale_colour_gla(labels = c("Four", "Six", "Eight"))` read 4, 6 and 8.
+
+* `gla_plotly()` leaves the pointer to the data. A shaded range or the
+  wash of a projection hovered as "trace 0", and the zero line, reference
+  lines and the projection's rule gave the coordinates of their ends.
+
 # gglaplot2 0.3.1
 
 Interactive maps. `gla_plotly()` now names each area of a map in its hover

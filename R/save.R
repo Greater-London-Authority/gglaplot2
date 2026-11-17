@@ -34,8 +34,9 @@ gla_save <- function(plot, filename, width = 880, height = 440, scale = 2,
   theme <- match_mode(theme)
   args <- list(...)
   svg <- identical(tolower(tools::file_ext(filename)), "svg")
+  # svglite takes web fonts from 2.2.0
   if (svg && isTRUE(web_fonts) && is.null(args$device) &&
-        requireNamespace("svglite", quietly = TRUE)) {
+        rlang::is_installed("svglite", version = "2.2.0")) {
     fonts <- gla_web_fonts()
     args$device <- function(filename, ...) {
       svglite::svglite(filename, ..., web_fonts = fonts)
@@ -48,17 +49,15 @@ gla_save <- function(plot, filename, width = 880, height = 440, scale = 2,
   invisible(filename)
 }
 
-# Inter from the Fontsource CDN, under the family names the package
-# registers, so an SVG's text finds its face by name
+# Inter from the Fontsource CDN at each weight the chart roles use. svglite
+# writes the medium and semibold text as the family "Inter" at weights 500
+# and 600, so each weight is a face of that family.
 gla_web_fonts <- function() {
   url <- function(weight) {
     sprintf("https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-%d-normal.woff2",
             weight)
   }
-  list(
-    svglite::font_face("Inter", woff2 = url(400), weight = 400),
-    svglite::font_face("Inter", woff2 = url(700), weight = 700),
-    svglite::font_face("Inter Medium", woff2 = url(500)),
-    svglite::font_face("Inter SemiBold", woff2 = url(600))
-  )
+  lapply(c(400, 500, 600, 700), function(weight) {
+    svglite::font_face("Inter", woff2 = url(weight), weight = weight)
+  })
 }

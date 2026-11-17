@@ -97,6 +97,33 @@ test_that("a projected line goes dashed from the point, through it", {
   expect_s3_class(ggplot2::layer_grob(r, 1)[[1]], "polyline")
 })
 
+test_that("a projection starting off the data, past it or on a turned axis still draws", {
+  base <- ggplot(gla_yearly, aes(year, average, colour = series)) + theme_gla()
+  # a start between two years: both runs reach it, so the line does not break
+  between <- ggplot2::layer_grob(base + geom_gla_line(projected_from = 2021.5), 1)[[1]]
+  expect_equal(length(between), 2)
+  runs <- ggplot2::layer_data(base + geom_gla_line(projected_from = 2021.5), 1)
+  parts <- split_projected(runs, list(x = 2021.5, rising = TRUE))
+  expect_equal(nrow(parts$actual), 3 * 8)
+  expect_equal(nrow(parts$projected), 3 * 4)
+  expect_true(all(c(max(parts$actual$x), min(parts$projected$x)) == 2021.5))
+  a <- gla_yearly[gla_yearly$series == "Variable A", ]
+  mid <- parts$actual[parts$actual$x == 2021.5 & parts$actual$group == 1, "y"]
+  expect_equal(mid, mean(a$average[a$year %in% 2021:2022]))
+  # a start past the data, or on a reversed or log axis, draws without error
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2030)))
+  rev <- base + geom_gla_line(projected_from = 2022) + scale_x_reverse()
+  expect_no_error(draw(rev))
+  # on the reversed axis the years to 2022 are still the solid run
+  b <- build(rev)
+  at <- projected_x(2022, b$layout$panel_params[[1]], b$layout$coord)
+  expect_equal(at, list(x = -2022, rising = FALSE))
+  solid <- split_projected(b$data[[1]], at)$actual
+  expect_equal(sort(unique(-solid$x)), 2015:2022)
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2022) + scale_x_log10()))
+  expect_no_error(draw(base + geom_gla_line(projected_from = 2022) + coord_flip()))
+})
+
 test_that("the projection annotation is a wash, a rule and a label", {
   layers <- annotate_gla_projection(from = 2022, label = "Projected")
   expect_equal(length(layers), 3)
@@ -201,6 +228,19 @@ test_that("facet_gla_rows stacks full panels in one column", {
   expect_no_error(draw(p))
 })
 
+# the connectors of a paired dot plot as drawn on a 7 inch wide device
+connectors <- function(p) {
+  with_device({
+    g <- ggplotGrob(p)
+    panel <- g$grobs[[which(g$layout$name == "panel")]]
+    tree <- Filter(function(x) inherits(x, "gla_connector"), panel$children)[[1]]
+    grid::pushViewport(grid::viewport())
+    drawn <- grid::makeContent(tree)
+    grid::popViewport()
+    if (length(drawn$children)) drawn$children[[1]]
+  })
+}
+
 test_that("geom_gla_paired draws an arrow per category between its two markers", {
   d <- gla_yearly[gla_yearly$year %in% c(2015, 2024), ]
   d$year <- factor(d$year)
@@ -227,9 +267,7 @@ test_that("geom_gla_paired draws an arrow per category between its two markers",
   expect_equal(nrow(b2$data[[1]]), 2)
   expect_equal(sum(!is.na(b2$data[[2]]$x)), 5)
   # the connector stops short of the markers and ends in an arrowhead
-  g <- with_device(ggplotGrob(p))
-  panel <- g$grobs[[which(g$layout$name == "panel")]]
-  seg <- Filter(function(x) inherits(x, "segments"), panel$children)[[1]]
+  seg <- connectors(p)
   expect_false(is.null(seg$arrow))
   expect_true(grepl("points", as.character(seg$x0[1])))
   plain <- geom_gla_paired(arrow = FALSE)[[1]]
@@ -287,4 +325,57 @@ test_that("geom_gla_treemap tiles the unit square by value, grouped when fill is
   one <- layer_data(q, 1)
   expect_equal(sum((one$xmax - one$xmin) * (one$ymax - one$ymin)), 1)
   expect_error(geom_gla_treemap(label_position = "middle"))
+})
+
+test_that("a treemap draws a tile whose group is missing, in the missing colour", {
+  tm <- data.frame(n = c("a", "b", "c", "d"), g = c("G1", "G1", "G2", NA), v = c(4, 3, 2, 1))
+  p <- ggplot(tm, aes(area = v, label = n, fill = g)) + geom_gla_treemap() + scale_fill_gla()
+  expect_no_warning(tiles <- build(p)$data[[1]])
+  expect_equal(nrow(tiles), 4)
+  expect_equal(tolower(tiles$fill[tiles$label == "d"]), tolower(unname(gla_token("data-empty"))))
+  expect_equal(sum((tiles$xmax - tiles$xmin) * (tiles$ymax - tiles$ymin)), 1)
+})
+
+test_that("geom_gla_sf's house fill, edge and width give way to any mapping", {
+  skip_if_not_installed("sf")
+  bo <- gla_boroughs
+  bo$val <- seq_len(nrow(bo))
+  bo$grp <- rep(c("a", "b"), length.out = nrow(bo))
+  data_of <- function(p) build(p)$data[[1]]
+  # a fill mapped on the plot, as gglaplot's choropleths were written
+  expect_equal(length(unique(data_of(ggplot(bo, aes(fill = val)) + geom_gla_sf())$fill)), 33)
+  expect_equal(length(unique(data_of(ggplot(bo) + geom_gla_sf(aes(colour = grp)))$colour)), 2)
+  expect_gt(length(unique(data_of(ggplot(bo) + geom_gla_sf(aes(linewidth = val)))$linewidth)), 1)
+  # unmapped, the house defaults; fixed, the caller's
+  plain <- data_of(ggplot(bo) + geom_gla_sf())
+  expect_equal(unique(tolower(plain$fill)), tolower(unname(gla_token("data-empty"))))
+  expect_equal(unique(tolower(plain$colour)), tolower(unname(gla_token("chart-surface"))))
+  expect_equal(unique(plain$linewidth), px(1))
+  fixed <- data_of(ggplot(bo, aes(fill = val)) + geom_gla_sf(fill = "red", color = "blue"))
+  expect_equal(unique(fixed$fill), "red")
+  expect_equal(unique(fixed$colour), "blue")
+  # the legend keys keep the house edge
+  p <- ggplot(bo, aes(fill = val)) + geom_gla_sf() + scale_fill_gla_b() + theme_gla_map()
+  expect_equal(nrow(get_guide_data(p, "fill")), 4)
+  expect_no_error(draw(p))
+})
+
+test_that("a paired dot plot leaves out a connector with no room or no change", {
+  d <- data.frame(cat = rep(c("Rise", "Fall", "Equal", "Big"), each = 2),
+                  when = factor(rep(c("2015", "2024"), 4)), v = c(40, 41, 51, 50, 30, 30, 10, 80))
+  p <- ggplot(d, aes(v, cat, colour = when)) + geom_gla_paired() + scale_colour_gla() +
+    theme_gla(gridlines = "x")
+  # only the big rise has room between its markers for an arrow
+  seg <- connectors(p)
+  expect_length(seg$x0, 1)
+  expect_null(connectors(ggplot(d[5:6, ], aes(v, cat, colour = when)) + geom_gla_paired()))
+  expect_no_error(draw(p))
+})
+
+test_that("separate_labels keeps the spacing when the labels do not fit", {
+  out <- separate_labels(c(1, 2, 3, 4, 5), 10, 0, 20)
+  expect_equal(diff(out), rep(10, 4))
+  expect_equal(max(out), 20)
+  expect_equal(separate_labels(5, 10, 0, 20), 5)
+  expect_equal(separate_labels(numeric(), 10, 0, 20), numeric())
 })

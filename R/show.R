@@ -58,8 +58,10 @@ gla_show_tokens <- function(pattern = "^data-") {
   d$token <- factor(d$token, levels = rev(tk$token))
   d$mode <- factor(d$mode, levels = c("light", "dark"))
   d$label <- toupper(d$colour)
-  d$text <- ifelse(contrast_dark(d$colour), gla_token("chart-label-muted"),
-                   gla_token("chart-surface"))
+  # the label sits on the swatch, so its colour follows the swatch, not the
+  # mode: dark text on a light colour, white on a dark one
+  d$text <- ifelse(contrast_dark(d$colour), gla_token("chart-label-muted", "light"),
+                   gla_token("chart-surface", "light"))
   ggplot2::ggplot(d, ggplot2::aes(.data$mode, .data$token)) +
     ggplot2::geom_tile(ggplot2::aes(fill = .data$colour), width = 0.94, height = 0.86) +
     ggplot2::geom_text(ggplot2::aes(label = .data$label, colour = .data$text),

@@ -22,8 +22,8 @@
 #' @param xgridlines Draw gridlines on the x axis as well.
 #' @param legend Show the legend, at the top left.
 #' @param base_size The tick size in pixels.
-#' @param annotations A list passed to `plotly::layout(annotations = )`,
-#'   with the house defaults filled in.
+#' @param annotations One annotation as a list, or a list of them, passed
+#'   to `plotly::layout(annotations = )` with the house defaults filled in.
 #' @param ... Passed to `plotly::layout()`, `plotly::style()` or
 #'   `plotly::config()`.
 #' @return The plotly object.
@@ -92,8 +92,12 @@ ggla_plotly_layout <- function(plot, gla_theme = "default", x_axis_title = FALSE
   if (!is.null(annotations)) {
     defaults <- list(arrowhead = 0, showarrow = TRUE, arrowcolor = ct$label, arrowwidth = 1,
                      bgcolor = ct$surface, bordercolor = ct$surface, borderpad = 0, borderwidth = 0)
-    annotations <- utils::modifyList(defaults, annotations)
-    annotations$font <- utils::modifyList(font(ct$label, "label"), annotations$font %||% list())
+    if (!is.null(names(annotations))) annotations <- list(annotations)
+    annotations <- lapply(annotations, function(a) {
+      a <- utils::modifyList(defaults, a)
+      a$font <- utils::modifyList(font(ct$label, "label"), a$font %||% list())
+      a
+    })
     plot <- plotly::layout(plot, annotations = annotations)
   }
   plotly::layout(plot, ...)
@@ -141,15 +145,17 @@ to_basic.GeomGlaLine <- function(data, prestats_data, layout, params, p, ...) {
   }
   from <- params$projected_from
   if (is.null(from) || !"x" %in% names(data)) return(as_line(data))
-  from <- as.numeric(from)
-  projected <- data[data$x >= from, , drop = FALSE]
-  actual <- data[data$x <= from, , drop = FALSE]
+  parts <- split_projected(data, projected_x(from, layout$panel_params[[1]], layout$coord))
+  actual <- parts$actual
+  projected <- parts$projected
   if (nrow(projected) < 2) return(as_line(data))
   projected$linetype <- "twodash"
   # two basic layers, so plotly draws two traces rather than one line
   # with a dash pattern per point
   list(as_line(actual), as_line(projected))
 }
+#' @exportS3Method plotly::to_basic
+to_basic.GeomGlaSf <- as_basic("GeomSf")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaDot <- as_basic("GeomPoint")
 #' @exportS3Method plotly::to_basic
@@ -162,8 +168,14 @@ to_basic.GeomGlaArea <- as_basic("GeomArea")
 to_basic.GeomGlaConnector <- as_basic("GeomSegment")
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaTreemap <- as_basic("GeomRect")
+# a treemap's labels are placed as the tiles are drawn, which ggplotly()
+# never runs, so they are placed here the same way
 #' @exportS3Method plotly::to_basic
-to_basic.GeomGlaTreemapLabel <- as_basic("GeomText")
+to_basic.GeomGlaTreemapLabel <- function(data, prestats_data, layout, params, p, ...) {
+  data <- treemap_labels(data, params$label_position %||% "centre", params$min_label %||% 0.02)
+  class(data) <- c(if (nrow(data)) "GeomText" else "GeomBlank", class(data)[-1])
+  plotly::to_basic(data, prestats_data, layout, params, p, ...)
+}
 #' @exportS3Method plotly::to_basic
 to_basic.GeomGlaText <- as_basic("GeomText")
 # an end label is placed by gla_plotly() as an annotation, off its point

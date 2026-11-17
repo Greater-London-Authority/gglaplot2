@@ -65,16 +65,62 @@ GeomGlaLine <- ggplot2::ggproto(
     if (is.null(projected_from)) return(draw(data))
     # the web's forecast line: solid to the point, dashed from it, both
     # passing through it so the line does not break
-    from <- as.numeric(projected_from)
-    actual <- data[data$x <= from, , drop = FALSE]
-    projected <- data[data$x >= from, , drop = FALSE]
-    projected$linetype <- gla_linetypes()[["projected"]]
+    parts <- split_projected(data, projected_x(projected_from, panel_params, coord))
+    projected <- parts$projected
+    if (nrow(projected)) projected$linetype <- gla_linetypes()[["projected"]]
     grid::gList(
-      if (nrow(actual) > 1) draw(actual),
+      if (nrow(parts$actual) > 1) draw(parts$actual),
       if (nrow(projected) > 1) draw(projected)
     )
   }
 )
+
+# where a projection starts in the units the panel draws x in, read
+# through the x scale so a log or reversed axis splits where the data's own
+# x passes it, and whether x there grows with the data
+projected_x <- function(from, panel_params, coord) {
+  view <- if (inherits(coord, "CoordFlip")) panel_params$y else panel_params$x
+  transformation <- tryCatch(view$scale$get_transformation(), error = function(e) NULL)
+  at <- function(v) {
+    out <- if (!is.null(transformation)) {
+      tryCatch(suppressWarnings(as.numeric(transformation$transform(v))),
+               error = function(e) NULL)
+    }
+    out %||% as.numeric(v)
+  }
+  x <- at(from)
+  list(x = x, rising = !isTRUE(at(from + 1) < x))
+}
+
+# each line in two parts, the actual up to the projection's start and the
+# projected from it. Where no point falls on the start, one is put there on
+# the line between its neighbours, so the two parts meet.
+split_projected <- function(data, at) {
+  x <- at$x
+  before <- if (at$rising) data$x <= x else data$x >= x
+  after <- if (at$rising) data$x >= x else data$x <= x
+  parts <- lapply(split(seq_len(nrow(data)), data$group), function(rows) {
+    d <- data[rows, , drop = FALSE]
+    a <- d[before[rows], , drop = FALSE]
+    b <- d[after[rows], , drop = FALSE]
+    if (nrow(a) && nrow(b) && !any(d$x == x)) {
+      p <- a[which.min(abs(a$x - x)), , drop = FALSE]
+      q <- b[which.min(abs(b$x - x)), , drop = FALSE]
+      m <- p
+      m$x <- x
+      m$y <- p$y + (q$y - p$y) * (x - p$x) / (q$x - p$x)
+      a <- rbind(a, m)
+      b <- rbind(m, b)
+    }
+    list(actual = a, projected = b)
+  })
+  bind <- function(which) {
+    out <- do.call(rbind, c(lapply(parts, `[[`, which), list(data[0, , drop = FALSE])))
+    rownames(out) <- NULL
+    out[order(out$PANEL, out$group, out$x), , drop = FALSE]
+  }
+  list(actual = bind("actual"), projected = bind("projected"))
+}
 
 #' Dots and markers in the house style
 #'
@@ -498,9 +544,11 @@ makeContent.gla_dodge <- function(x) {
 #'
 #' Moves positions so neighbours are at least `spacing` apart while each
 #' stays as close as possible to where it was, and all stay within
-#' `[lower, upper]`. Overlapping labels are merged into clusters laid out as
-#' an evenly spaced stack centred on the mean of the members' original
-#' positions. The web charts' end-of-line label dodge, in one dimension.
+#' `[lower, upper]` where there is room for them. Overlapping labels are
+#' merged into clusters laid out as an evenly spaced stack centred on the
+#' mean of the members' original positions. A stack taller than the bounds
+#' keeps its spacing and runs below `lower`. The web charts' end-of-line
+#' label dodge, in one dimension.
 #'
 #' @param y Positions, any unit.
 #' @param spacing The minimum gap between neighbours.
@@ -599,8 +647,9 @@ GeomGlaVline <- ggplot2::ggproto(
 #' A dashed 2px rule in `data-context` grey across the plot at a value,
 #' with its label sitting on the line at the right edge, as the web line
 #' charts draw a target or an average. Give `x` instead of `y` for a
-#' vertical rule at a date or a value, labelled at the top. The line reads
-#' its colour from the theme's surface, so it holds in dark mode.
+#' vertical rule at a date or a value, labelled at the top. The rule takes
+#' its colour from `theme`, which follows [gla_mode()]: for a dark chart set
+#' the mode, or pass `theme = "dark"` here as well as to [theme_gla()].
 #'
 #' @param y The value a horizontal line marks.
 #' @param label Text for the line. `NULL` for none.
@@ -802,18 +851,37 @@ geom_gla_sf <- function(mapping = ggplot2::aes(), data = NULL, ..., theme = gla_
                         na.rm = FALSE, show.legend = NA, inherit.aes = TRUE) {
   theme <- match_mode(theme)
   dots <- list(...)
-  if (is.null(dots$fill) && !"fill" %in% names(mapping)) {
-    dots$fill <- unname(gla_token("data-empty", theme))
-  }
-  if (is.null(dots$colour)) dots$colour <- unname(gla_token("chart-surface", theme))
-  if (is.null(dots$linewidth)) dots$linewidth <- px(1)
+  names(dots) <- ggplot2::standardise_aes_names(names(dots))
+  # the house fill, edge and width are the geom's defaults, not fixed on
+  # the layer, so a mapping of the plot's as well as the layer's wins
+  geom <- ggplot2::ggproto(NULL, GeomGlaSf, house = list(
+    fill = unname(gla_token("data-empty", theme)),
+    colour = unname(gla_token("chart-surface", theme)), linewidth = px(1)
+  ))
   # geom_sf() has no label or text aesthetic and would warn of one; they are
   # set on the layer afterwards, where gla_plotly() finds them
   hover <- mapping[intersect(names(mapping), c("label", "text"))]
   mapping[names(hover)] <- NULL
-  layers <- do.call(ggplot2::geom_sf, c(list(mapping = mapping, data = data, na.rm = na.rm,
-                                             show.legend = show.legend,
-                                             inherit.aes = inherit.aes), dots))
-  for (aes in names(hover)) layers[[1]]$mapping[[aes]] <- hover[[aes]]
-  list(layers, ggplot2::coord_sf(datum = NULL))
+  layer <- ggplot2::layer_sf(
+    geom = geom, data = data, mapping = mapping, stat = "sf", position = "identity",
+    show.legend = show.legend, inherit.aes = inherit.aes,
+    params = c(list(na.rm = na.rm), Filter(Negate(is.null), dots))
+  )
+  for (aes in names(hover)) layer$mapping[[aes]] <- hover[[aes]]
+  list(layer, ggplot2::coord_sf(datum = NULL))
 }
+
+# geom_sf() with the house fill, edge and width as defaults: each is used
+# where the data does not map it and the caller did not fix it
+GeomGlaSf <- ggplot2::ggproto(
+  "GeomGlaSf", ggplot2::GeomSf,
+  house = list(),
+  use_defaults = function(self, data, params = list(), modifiers = ggplot2::aes(),
+                          default_aes = NULL, theme = NULL, ...) {
+    unset <- setdiff(names(self$house), c(names(data), names(params)))
+    params[unset] <- self$house[unset]
+    ggplot2::ggproto_parent(ggplot2::GeomSf, self)$use_defaults(
+      data, params, modifiers, default_aes = default_aes, theme = theme, ...
+    )
+  }
+)

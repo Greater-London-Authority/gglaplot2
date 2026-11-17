@@ -110,19 +110,29 @@ GeomGlaConnector <- ggplot2::ggproto(
     if (nrow(data) == 0) return(ggplot2::zeroGrob())
     coords <- coord$transform(data, panel_params)
     if (!is.null(context)) coords$colour <- context
-    step <- sign(coords$xend - coords$x)
-    x0 <- grid::unit(coords$x, "npc") + grid::unit(step * inset, "pt")
-    x1 <- grid::unit(coords$xend, "npc") - grid::unit(step * inset, "pt")
-    grid::segmentsGrob(
-      x0, grid::unit(coords$y, "npc"), x1, grid::unit(coords$yend, "npc"),
-      default.units = "npc",
-      gp = grid::gpar(
-        col = scales::alpha(coords$colour, coords$alpha),
-        fill = scales::alpha(coords$colour, coords$alpha),
-        lwd = coords$linewidth * ggplot2::.pt, lty = coords$linetype,
-        lineend = lineend, linejoin = linejoin
-      ),
-      arrow = arrow
-    )
+    coords$colour <- scales::alpha(coords$colour, coords$alpha)
+    # how far apart the markers are is known only when the panel is drawn
+    grid::gTree(coords = coords, inset = inset, arrow = arrow, lineend = lineend,
+                linejoin = linejoin, cl = "gla_connector")
   }
 )
+
+# the connectors once the panel's width is known: each stops the inset
+# short of both markers, and a pair closer than twice the inset, or level,
+# has none, since what is left would point the wrong way or nowhere
+#' @exportS3Method grid::makeContent
+makeContent.gla_connector <- function(x) {
+  d <- x$coords
+  width <- grid::convertWidth(grid::unit(1, "npc"), "pt", valueOnly = TRUE)
+  d <- d[abs(d$xend - d$x) * width > 2 * x$inset, , drop = FALSE]
+  if (!nrow(d)) return(grid::setChildren(x, grid::gList()))
+  step <- sign(d$xend - d$x)
+  segments <- grid::segmentsGrob(
+    grid::unit(d$x, "npc") + grid::unit(step * x$inset, "pt"), grid::unit(d$y, "npc"),
+    grid::unit(d$xend, "npc") - grid::unit(step * x$inset, "pt"), grid::unit(d$yend, "npc"),
+    gp = grid::gpar(col = d$colour, fill = d$colour, lwd = d$linewidth * ggplot2::.pt,
+                    lty = d$linetype, lineend = x$lineend, linejoin = x$linejoin),
+    arrow = x$arrow
+  )
+  grid::setChildren(x, grid::gList(segments))
+}

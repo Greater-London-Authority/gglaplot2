@@ -8,7 +8,9 @@
 #' the scale's `labels` function, so `labels = label_gla_percent(scale = 1)`
 #' on the scale puts the sign on both ends of each range. A house label
 #' function ([label_gla_percent()] and the rest) set to whole numbers gains
-#' the decimals narrow steps need, so steps of 0.2 read `0% to 0.2%`. The
+#' the decimals narrow steps need, so steps of 0.2 read `0% to 0.2%`, and a
+#' short label the decimals its own unit needs, `1m to 1.025m`. With no
+#' `labels` the ranges print the decimals their ends have, `0 to 12.5`. The
 #' web maps' legends read this way; ggplot2's `guide_coloursteps()` draws a
 #' bar labelled at the cuts instead, and remains a `guide` away.
 #'
@@ -62,7 +64,8 @@ GuideGlaBins <- ggplot2::ggproto(
   # middle and labelled by its two ends; highest bin first so the legend
   # reads top to bottom as the stepped bar would
   extract_key = function(scale, aesthetic, sep = " to ", ...) {
-    if (length(scale$get_breaks()) == 0) return(NULL)
+    # breaks = NULL asks for no legend, as it does of ggplot2's
+    if (is.null(scale$get_breaks())) return(NULL)
     bins <- bin_ranges(scale, sep)
     if (is.null(bins)) return(NULL)
     key <- data.frame(scale$map(bins$mid), stringsAsFactors = FALSE)
@@ -74,17 +77,28 @@ GuideGlaBins <- ggplot2::ggproto(
 )
 
 # the bins of a stepped scale, lowest first: the middle of each and the
-# label of its range. An end bin that holds values beyond the limits (the
-# scale squishes them in) says so, "Below -4%", rather than giving a range
-# the values in it are outside.
+# label of its range, read from its low end. An end bin that holds values
+# beyond the limits (the scale squishes them in) says so, "Below -4%",
+# rather than giving a range the values in it are outside. A scale with
+# nothing in it has no bins.
 bin_ranges <- function(scale, sep = " to ") {
-  breaks <- scale$get_breaks()
   limits <- scale$get_limits()
-  edges <- sort(unique(c(limits[1], breaks[is.finite(breaks)], limits[2])))
+  if (!all(is.finite(limits))) return(NULL)
+  # a break beyond the limits bounds no bin a value is drawn in
+  breaks <- scale$get_breaks()
+  breaks <- breaks[is.finite(breaks) & breaks > min(limits) & breaks < max(limits)]
+  edges <- sort(unique(c(limits[1], breaks, limits[2])))
   n <- length(edges) - 1
   if (n < 1) return(NULL)
   labels <- bin_edge_labels(scale, edges)
-  ranges <- paste0(labels[-length(labels)], sep, labels[-1])
+  mid <- (edges[-1] + edges[-length(edges)]) / 2
+  if (is.null(labels)) return(list(mid = mid, label = rep("", n)))
+  # on a reversed scale the first bin holds the highest values
+  ends <- scale$get_transformation()$inverse(edges[c(1, n + 1)])
+  reversed <- isTRUE(ends[1] > ends[2])
+  low <- labels[-length(labels)]
+  high <- labels[-1]
+  ranges <- if (reversed) paste0(high, sep, low) else paste0(low, sep, high)
   data <- scale$range$range
   # only where the scale squishes such values into the end bin; one that
   # censors them draws them as missing
@@ -93,30 +107,42 @@ bin_ranges <- function(scale, sep = " to ") {
                               error = function(e) NA))
   if (n > 1 && length(data) == 2 && all(is.finite(c(data, edges))) && squished) {
     tol <- 1e-8 * max(abs(edges), 1)
-    # on a reversed scale the first bin holds the highest values
-    ends <- scale$get_transformation()$inverse(edges[c(1, n + 1)])
-    words <- if (isTRUE(ends[1] > ends[2])) c("Above", "Below") else c("Below", "Above")
+    words <- if (reversed) c("Above", "Below") else c("Below", "Above")
     if (data[1] < edges[1] - tol) ranges[1] <- paste(words[1], labels[2])
     if (data[2] > edges[n + 1] + tol) ranges[n] <- paste(words[2], labels[n])
   }
-  list(mid = (edges[-1] + edges[-length(edges)]) / 2, label = ranges)
+  list(mid = mid, label = ranges)
 }
 
 # the labels at the edges of the bins. A house label function set to a
 # fixed accuracy is asked again at a finer one when the edges do not sit on
-# it, so steps of 0.2 read "0% to 0.2%", not "0% to 0%".
+# it, so steps of 0.2 read "0% to 0.2%", not "0% to 0%". A scale given no
+# labels takes the house number the same way, with its thousands marked.
+# Labels given as text name the breaks; the limits, which have none, take
+# the house number.
 bin_edge_labels <- function(scale, edges) {
   labels <- scale_labels(scale)
+  if (is.null(labels)) return(NULL)
+  transformation <- scale$get_transformation()
+  values <- transformation$inverse(edges)
+  plain <- inherits(labels, "waiver") && inherits(transformation, "transform") &&
+    transformation$name == "identity"
+  if (plain) labels <- label_gla_number(accuracy = 1)
   refine <- attr(labels, "gla_refine")
-  values <- scale$get_transformation()$inverse(edges)
   if (!is.null(refine) && all(is.finite(values)) && length(unique(values)) > 1) {
-    accuracy <- bin_accuracy(values * refine$scale, refine$accuracy)
+    shown <- values * refine$scale
+    if (isTRUE(refine$short)) shown <- short_units(shown)
+    accuracy <- bin_accuracy(shown, refine$accuracy)
     if (accuracy < refine$accuracy) return(refine$at(accuracy)(values))
   }
-  # a scale given no labels takes the house number, with its thousands marked
-  if (inherits(labels, "waiver") && inherits(scale$get_transformation(), "transform") &&
-        scale$get_transformation()$name == "identity") {
-    return(label_gla_number()(values))
+  if (plain) return(labels(values))
+  if (!is.function(labels) && !inherits(labels, "waiver")) {
+    breaks <- scale$get_breaks()
+    named <- as.character(scale$get_labels(breaks))
+    at <- match(edges, breaks)
+    out <- label_gla_number()(values)
+    out[!is.na(at)] <- named[at[!is.na(at)]]
+    return(out)
   }
   scale$get_labels(edges)
 }

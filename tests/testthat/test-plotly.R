@@ -468,3 +468,127 @@ test_that("the footer moves only for a legend that is along the bottom", {
   ))$x
   expect_equal(sum(vapply(single$data, function(t) isTRUE(t$showlegend), logical(1))), 1)
 })
+
+test_that("a faceted chart's labels and hover are read through each panel's own axes", {
+  refs <- function(w) {
+    a <- Filter(function(a) !identical(a$xref, "paper") || !identical(a$yref, "paper"),
+                w$x$layout$annotations)
+    vapply(a, function(a) paste(a$text, a$xref, a$yref), character(1))
+  }
+  wrap <- gla_plotly(ggplot(gla_monthly, aes(month, value, colour = series)) +
+                       geom_gla_line() + geom_gla_endlabel(aes(label = series)) +
+                       gla_reference_line(30000, "Target") + facet_wrap(vars(series)) +
+                       scale_colour_gla() + theme_gla(legend = "none"))
+  axes <- grep("^[xy]axis", names(wrap$x$layout), value = TRUE)
+  expect_setequal(axes, c("xaxis", "xaxis2", "xaxis3", "yaxis"))
+  expect_equal(refs(wrap), c("Variable A x y", "Variable B x2 y", "Variable C x3 y",
+                             "Target paper y", "Target paper y", "Target paper y"))
+  rows <- gla_plotly(ggplot(gla_monthly, aes(month, value, colour = series)) +
+                       geom_gla_line() + geom_gla_endlabel(aes(label = series)) +
+                       facet_gla_rows(vars(series)) + scale_colour_gla() +
+                       theme_gla(legend = "none"))
+  expect_equal(refs(rows), c("Variable A x y", "Variable B x y2", "Variable C x y3"))
+  # a free category axis names each panel's own bars
+  fd <- data.frame(g = rep(c("Inner", "Outer"), each = 3), v = (1:6) / 10,
+                   b = c("Camden", "Hackney", "Islington", "Barnet", "Brent", "Ealing"))
+  bars <- gla_plotly(ggplot(fd, aes(b, v)) + geom_gla_col() +
+                       facet_wrap(vars(g), scales = "free_x") + theme_gla())
+  text <- unlist(lapply(Filter(function(t) identical(t$type, "bar"), bars$x$data), `[[`, "text"))
+  expect_equal(sub("<br>.*", "", text), paste("b:", fd$b))
+})
+
+test_that("the hover label gives dates, times and transformed values as they are", {
+  hover <- function(p) plotly::plotly_build(gla_plotly(p))$x$data[[1]]$text
+  a <- gla_monthly[gla_monthly$series == "Variable A" &
+                     gla_monthly$month >= as.Date("2024-01-01"), ]
+  dated <- hover(ggplot(a, aes(month, value)) + geom_gla_line() +
+                   scale_x_date(date_labels = "%b %Y") + theme_gla())
+  expect_equal(sub("<br>.*", "", dated[1:3]),
+               c("month: Jan 2024", "month: Feb 2024", "month: Mar 2024"))
+  d <- data.frame(t = as.POSIXct("2026-01-01", tz = "UTC") + 3600 * 0:47, v = 1:48)
+  timed <- hover(ggplot(d, aes(t, v)) + geom_gla_line() +
+                   scale_x_datetime(date_labels = "%d %b %H:%M") + theme_gla())
+  expect_equal(sub("<br>.*", "", timed[1:2]), c("t: 01 Jan 00:00", "t: 01 Jan 01:00"))
+  expect_false(any(grepl("1,767", hover(ggplot(d, aes(t, v)) + geom_gla_line() + theme_gla()))))
+  logged <- hover(ggplot(mtcars, aes(disp, hp)) + geom_gla_dot() + scale_x_log10() +
+                    scale_y_reverse() + theme_gla())
+  expect_match(logged[1], "^disp: 160(\\.0)?<br>hp: 110$")
+  labelled <- hover(ggplot(mtcars, aes(disp, hp)) + geom_gla_dot() +
+                      scale_x_log10(labels = scales::label_comma()) + theme_gla())
+  expect_match(labelled[1], "^disp: 160(\\.0)?<br>")
+})
+
+test_that("a tooltip the caller chose is the one the marks show", {
+  p <- ggplot(mtcars, aes(wt, mpg, text = paste("Car:", rownames(mtcars)))) +
+    geom_gla_dot() + theme_gla()
+  own <- plotly::plotly_build(gla_plotly(p, tooltip = "text"))$x$data[[1]]$text
+  expect_equal(own[1:2], c("Car: Mazda RX4", "Car: Mazda RX4 Wag"))
+  bars <- ggplot(gla_yearly, aes(factor(year), average, fill = series, text = series)) +
+    geom_gla_col() + scale_fill_gla() + theme_gla()
+  b <- plotly::plotly_build(gla_plotly(bars, tooltip = "text"))$x$data[[1]]$text
+  expect_true(all(b == "Variable A"))
+})
+
+test_that("an interactive treemap carries its tiles' labels", {
+  d <- data.frame(b = c("Camden", "Hackney", "Barnet", "Tiny"), v = c(42, 35, 51, 0.5),
+                  g = c("Inner", "Inner", "Outer", "Outer"))
+  text_traces <- function(p) {
+    Filter(function(t) identical(t$mode, "text"), plotly::plotly_build(gla_plotly(p))$x$data)
+  }
+  centred <- text_traces(ggplot(d, aes(area = v, label = b)) + geom_gla_treemap() +
+                           theme_gla_map())
+  expect_length(centred, 1)
+  expect_setequal(centred[[1]]$text, c("Camden", "Hackney", "Barnet"))
+  expect_true(all(centred[[1]]$x > 0 & centred[[1]]$x < 1))
+  expect_equal(centred[[1]]$hoverinfo, "skip")
+  corner <- text_traces(ggplot(d, aes(area = v, label = b, fill = g)) +
+                          geom_gla_treemap(label_position = "topleft") + scale_fill_gla() +
+                          theme_gla_map())
+  expect_setequal(unlist(lapply(corner, `[[`, "text")), c("Camden", "Hackney", "Barnet"))
+  expect_true(all(vapply(corner, `[[`, "", "textposition") == "bottom right"))
+})
+
+test_that("ggla_plotly_layout takes one annotation or a list of them", {
+  base <- plotly::ggplotly(ggplot(gla_yearly, aes(year, average, colour = series)) +
+                             geom_gla_line() + theme_gla())
+  texts <- function(p) {
+    a <- plotly::plotly_build(p)$x$layout$annotations
+    vapply(a, function(x) paste(x$text, x$x), character(1))
+  }
+  two <- ggla_plotly_layout(base, annotations = list(list(x = 2020, y = 30000, text = "One"),
+                                                     list(x = 2022, y = 20000, text = "Two")))
+  expect_equal(texts(two), c("One 2020", "Two 2022"))
+  one <- ggla_plotly_layout(base, annotations = list(x = 2020, y = 30000, text = "One"))
+  expect_equal(texts(one), "One 2020")
+  a <- plotly::plotly_build(one)$x$layout$annotations[[1]]
+  expect_equal(a$font$color, unname(gla_token("chart-label")))
+  expect_equal(a$arrowhead, 0)
+})
+
+test_that("a mapped line style converts to the pattern the static chart draws", {
+  w <- plotly::plotly_build(gla_plotly(ggplot(gla_yearly, aes(year, average, linetype = series)) +
+                                         geom_gla_line() + scale_linetype_gla() + theme_gla()))
+  dashes <- vapply(w$x$data, function(t) t$line$dash, character(1))
+  expect_equal(dashes, c("solid", "4px,4px", "2px,4px"))
+})
+
+test_that("each series takes the name the scale's legend gives it", {
+  w <- plotly::plotly_build(gla_plotly(ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+                                         geom_gla_dot() +
+                                         scale_colour_gla(labels = c("Four", "Six", "Eight")) +
+                                         theme_gla()))
+  expect_equal(vapply(w$x$data, `[[`, "", "name"), c("Four", "Six", "Eight"))
+  expect_match(w$x$data[[1]]$text[1], "^Four<br>")
+})
+
+test_that("the washes and rules of a chart take no pointer, its data does", {
+  p <- ggplot(gla_yearly, aes(year, average, colour = series)) +
+    annotate_gla_projection(from = 2022) + annotate_gla_range(xmin = 2016, xmax = 2017) +
+    geom_gla_line(projected_from = 2022) + gla_zero_line() + gla_reference_line(30000, "T") +
+    scale_colour_gla() + theme_gla()
+  traces <- plotly::plotly_build(gla_plotly(p))$x$data
+  named <- vapply(traces, function(t) nzchar(t$name %||% ""), logical(1))
+  hover <- vapply(traces, function(t) t$hoverinfo %||% "", character(1))
+  expect_true(all(hover[!named] == "skip"))
+  expect_true(all(hover[named] == "text"))
+})
