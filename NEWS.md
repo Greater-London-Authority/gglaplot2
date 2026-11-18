@@ -1,4 +1,13 @@
-# gglaplot2 0.3.1.9000
+# gglaplot2 0.4.0
+
+Map scales classed by the data. The stepped scales take a `method`, each
+side of a diverging scale is classed on its own, `gla_class_breaks()`
+gives the breaks alone, and the article Choosing a map scale compares the
+methods and says when equal steps are still the right choice. The package
+asks for S7 0.2.0 and draws on R 4.1 and 4.2. The rest is the November
+review: a stepped scale draws and labels every bin as its legend prints
+it, `gla_plotly()` hovers with the date, the panel and the caller's text,
+and `geom_gla_sf()` takes a mapped fill.
 
 * The stepped scales class their bins by the distribution with `method`:
   `scale_fill_gla_b(method = "jenks")` for natural breaks, or `"quantile"`,
