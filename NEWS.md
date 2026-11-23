@@ -1,5 +1,7 @@
 # gglaplot2 0.4.0
 
+* Tokens refreshed to `@ldn-viz/themes` 10.1.0: 0 added, 0 removed, 0 changed.
+
 Map scales classed by the data. The stepped scales take a `method`, each
 side of a diverging scale is classed on its own, `gla_class_breaks()`
 gives the breaks alone, and the article Choosing a map scale compares the
